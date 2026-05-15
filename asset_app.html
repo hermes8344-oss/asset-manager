@@ -1019,6 +1019,7 @@ let state = {
   settingTab: 'fixed',
   graphMode: 'bar',
   balTrendMode: 'trend',
+  dashRow1Tab: 'cashflow',
   balanceUserFilter: '모두',
   cfUserFilter: '모두',
   fixedEditIdx: null,
@@ -1618,8 +1619,14 @@ function renderDashboard() {
           }).join('')}
         </div>
 
+        ${_isMobile ? `
+        <div class="dash-row1-tabs graph-pill-group" style="margin-bottom:.5rem;">
+          <button class="graph-pill ${state.dashRow1Tab==='cashflow'?'active':''}" onclick="setDashRow1Tab('cashflow')">수입/지출</button>
+          <button class="graph-pill ${state.dashRow1Tab==='asset'?'active':''}" onclick="setDashRow1Tab('asset')">자산추이</button>
+        </div>` : ''}
+
         <div class="dash-row1">
-          <div class="card">
+          <div class="card" id="dash-r1-cashflow" style="${_isMobile && state.dashRow1Tab!=='cashflow' ? 'display:none;' : ''}">
             <div class="section-title" style="margin-bottom:.4rem;">수입 / 지출 추이</div>
             <div class="legend-wrap" style="margin-bottom:.2rem;">
               <div class="legend-item"><div class="legend-dot" style="background:#9FE1CB;border-radius:2px;width:10px;height:10px;"></div>수입</div>
@@ -1630,7 +1637,9 @@ function renderDashboard() {
             </div>
           </div>
 
-          ${buildAnnualSummaryHtml(year)}
+          <div style="${_isMobile && state.dashRow1Tab!=='asset' ? 'display:none;' : ''}">
+            ${buildAnnualSummaryHtml(year)}
+          </div>
         </div>
 
         <div class="donut-tab-btns">
@@ -1798,7 +1807,7 @@ function drawAnnualStackedBar(svgId, year, force=false) {
     const showAllMonths = W >= 380;
     const showLabel = showAllMonths || i % 3 === 0 || d.isCur;
     if (showLabel) {
-      svgStr += `<text x="${mx}" y="${H-6}" text-anchor="middle" font-size="${d.isCur?10:9}" font-weight="${d.isCur?700:400}" fill="${d.isCur?'var(--accent)':textColor}">${i+1}월</text>`;
+      svgStr += `<text x="${mx}" y="${PAD_T+cH+16}" text-anchor="middle" font-size="10" font-weight="${d.isCur?700:400}" fill="${d.isCur?'var(--accent)':textColor}">${i+1}월</text>`;
     }
 
     const catLines = nonDebtCats
@@ -2098,8 +2107,11 @@ function drawGraph(mode) {
   }
 
   // x축 레이블
-  xLabels.forEach(({x, label}) => {
-    svgStr += `<text x="${x}" y="${H - 2}" text-anchor="middle" font-size="10" fill="${tcol}">${label}</text>`;
+  const curMonth = parseInt(state.currentMonth.split('-')[1]);
+  const xLabelY = PAD_T + cH + 16;
+  xLabels.forEach(({i, x, label}) => {
+    const isCur = (i + 1) === curMonth;
+    svgStr += `<text x="${x}" y="${xLabelY}" text-anchor="middle" font-size="10" font-weight="${isCur?700:400}" fill="${isCur?'var(--accent)':tcol}">${label}</text>`;
   });
 
   // 하단 기준선
@@ -2109,6 +2121,18 @@ function drawGraph(mode) {
   svg.innerHTML = svgStr;
 }
 
+function setDashRow1Tab(tab) {
+  state.dashRow1Tab = tab;
+  const cf = document.getElementById('dash-r1-cashflow');
+  const as = document.getElementById('annual-summary-card');
+  if (cf) cf.style.display = tab === 'cashflow' ? '' : 'none';
+  if (as) as.parentElement.style.display = tab === 'asset' ? '' : 'none';
+  document.querySelectorAll('.dash-row1-tabs .graph-pill').forEach((btn, i) => {
+    btn.classList.toggle('active', i === (tab === 'cashflow' ? 0 : 1));
+  });
+  if (tab === 'asset') drawAnnualStackedBar('annual-stacked-svg', parseInt(state.currentMonth.split('-')[0]));
+  if (tab === 'cashflow') drawGraph(state.graphMode);
+}
 function setDonutTab(tab) {
   dashDonutTab = tab;
   document.querySelectorAll('.donut-tab-card').forEach(el => {
