@@ -1929,8 +1929,8 @@ function drawDonutChart(svgId, segments) {
   if (!el) return;
   const W = 200, H = 200, cx = 100, cy = 100, outerR = 74, innerR = 46;
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const tcol  = isDark ? 'rgba(255,255,255,.7)' : 'rgba(0,0,0,.7)';
-  const tcol3 = isDark ? 'rgba(255,255,255,.3)' : 'rgba(0,0,0,.3)';
+  const tcol  = isDark ? '#9ca3af' : '#888';
+  const tcol3 = isDark ? '#6b7280' : '#aaa';
   const total = segments.reduce((s, g) => s + (g.value || 0), 0);
   let svgStr = '';
   if (total === 0) {
@@ -1970,8 +1970,8 @@ function drawTopExpenses(svgId, dataYM) {
   raw.sort((a, b) => (b.amount || 0) - (a.amount || 0));
   const items = raw.slice(0, 10);
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const tcol  = isDark ? 'rgba(255,255,255,.65)' : 'rgba(0,0,0,.65)';
-  const tcol3 = isDark ? 'rgba(255,255,255,.3)'  : 'rgba(0,0,0,.3)';
+  const tcol  = isDark ? '#9ca3af' : '#888';
+  const tcol3 = isDark ? '#6b7280' : '#aaa';
   if (items.length === 0) {
     el.setAttribute('viewBox', '0 0 240 50');
     el.innerHTML = `<text x="120" y="30" text-anchor="middle" font-size="11" fill="${tcol3}">이달 지출 데이터 없음</text>`;
@@ -2010,8 +2010,8 @@ function drawGraph(mode) {
   const cH = H - PAD_T - PAD_B;
   const d = graphData;
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const tcol = isDark ? 'rgba(255,255,255,.3)' : 'rgba(0,0,0,.25)';
-  const gcol = isDark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.06)';
+  const tcol = isDark ? '#9ca3af' : '#888';
+  const gcol = isDark ? '#374151' : '#e5e7eb';
 
   svg.setAttribute('height', H);
 
