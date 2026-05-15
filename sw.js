@@ -1,4 +1,4 @@
-const CACHE = 'asset-app-v1';
+const CACHE = 'asset-app-v2';
 const PRECACHE = ['./asset_app.html', './icon.svg', './manifest.json'];
 
 self.addEventListener('install', e => {
