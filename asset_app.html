@@ -1928,14 +1928,11 @@ function drawDonutChart(svgId, segments) {
   const el = document.getElementById(svgId);
   if (!el) return;
   const W = 200, H = 200, cx = 100, cy = 100, outerR = 74, innerR = 46;
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const tcol  = isDark ? '#9ca3af' : '#888';
-  const tcol3 = isDark ? '#6b7280' : '#aaa';
   const total = segments.reduce((s, g) => s + (g.value || 0), 0);
   let svgStr = '';
   if (total === 0) {
     svgStr += `<circle cx="${cx}" cy="${cy}" r="${(outerR+innerR)/2}" fill="none" stroke="var(--border)" stroke-width="${outerR-innerR}"/>`;
-    svgStr += `<text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="12" fill="${tcol3}">데이터 없음</text>`;
+    svgStr += `<text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="12" fill="var(--text2)">데이터 없음</text>`;
   } else {
     const GAP = 0.03;
     let angle = -Math.PI / 2;
@@ -1955,8 +1952,8 @@ function drawDonutChart(svgId, segments) {
       svgStr += `<path d="M${ix1},${iy1} L${x1},${y1} A${outerR},${outerR} 0 ${large},1 ${x2},${y2} L${ix2},${iy2} A${innerR},${innerR} 0 ${large},0 ${ix1},${iy1}Z" fill="${seg.color}" onmouseover="showChartTip(event,'${tip}')" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" style="cursor:default"/>`;
       angle += sweep + GAP;
     });
-    svgStr += `<text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="10" fill="${tcol3}">합계</text>`;
-    svgStr += `<text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="14" font-weight="700" fill="${tcol}">${fmtAbs(total)}</text>`;
+    svgStr += `<text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="10" fill="var(--text2)">합계</text>`;
+    svgStr += `<text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--text1)">${fmtAbs(total)}</text>`;
   }
   el.setAttribute('viewBox', `0 0 ${W} ${H}`);
   el.innerHTML = svgStr;
@@ -1969,12 +1966,9 @@ function drawTopExpenses(svgId, dataYM) {
   const raw = [...(state.cashflow[ym]?.expense || [])].filter(e => e.amount > 0);
   raw.sort((a, b) => (b.amount || 0) - (a.amount || 0));
   const items = raw.slice(0, 10);
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const tcol  = isDark ? '#9ca3af' : '#888';
-  const tcol3 = isDark ? '#6b7280' : '#aaa';
   if (items.length === 0) {
     el.setAttribute('viewBox', '0 0 240 50');
-    el.innerHTML = `<text x="120" y="30" text-anchor="middle" font-size="11" fill="${tcol3}">이달 지출 데이터 없음</text>`;
+    el.innerHTML = `<text x="120" y="30" text-anchor="middle" font-size="11" fill="var(--text2)">이달 지출 데이터 없음</text>`;
     return;
   }
   const ROW = 28, PAD_L = 76, PAD_R = 58, W = 240, barW = W - PAD_L - PAD_R;
@@ -1986,10 +1980,10 @@ function drawTopExpenses(svgId, dataYM) {
     const bw = Math.max(2, Math.round((exp.amount || 0) / maxVal * barW));
     const lbl = exp.label.length > 7 ? exp.label.slice(0, 7) + '…' : exp.label;
     const tip = `${exp.label}: ${fmtW(exp.amount)}`;
-    svgStr += `<text x="${PAD_L-6}" y="${y+4}" text-anchor="end" font-size="11" fill="${tcol}">${lbl}</text>`;
+    svgStr += `<text x="${PAD_L-6}" y="${y+4}" text-anchor="end" font-size="11" fill="var(--text1)">${lbl}</text>`;
     svgStr += `<rect x="${PAD_L}" y="${y-7}" width="${barW}" height="14" rx="3" fill="var(--surface2)"/>`;
     svgStr += `<rect x="${PAD_L}" y="${y-7}" width="${bw}" height="14" rx="3" fill="#F5A0A0" onmouseover="showChartTip(event,'${tip}')" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" style="cursor:default"/>`;
-    svgStr += `<text x="${PAD_L+barW+5}" y="${y+4}" text-anchor="start" font-size="10" fill="${tcol3}">${fmtAbs(exp.amount)}</text>`;
+    svgStr += `<text x="${PAD_L+barW+5}" y="${y+4}" text-anchor="start" font-size="10" fill="var(--text2)">${fmtAbs(exp.amount)}</text>`;
   });
   el.setAttribute('viewBox', `0 0 ${W} ${H}`);
   el.setAttribute('preserveAspectRatio', 'xMidYMin meet');
@@ -2010,8 +2004,8 @@ function drawGraph(mode) {
   const cH = H - PAD_T - PAD_B;
   const d = graphData;
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const tcol = isDark ? '#9ca3af' : '#888';
-  const gcol = isDark ? '#374151' : '#e5e7eb';
+  const tcol = 'var(--text2)';
+  const gcol = 'var(--border)';
 
   svg.setAttribute('height', H);
 
