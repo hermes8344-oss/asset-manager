@@ -47,6 +47,7 @@
   --text1: #f0f0ea;
   --text2: #9a9a92;
   --text3: #555550;
+  --accent-light: #2a2760;
 }
 [data-theme="dark"] .card { box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2); }
 [data-theme="dark"] .card-sm { box-shadow: none; }
@@ -109,11 +110,10 @@ body {
 .card-sm { background: var(--surface2); border-radius: var(--r-sm); padding: .75rem; margin-bottom: .5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
 
 /* ── 메트릭 strip ── */
-.metric-strip { display: flex; gap: 10px; overflow-x: auto; margin-bottom: .875rem; scrollbar-width: none; -ms-overflow-style: none; padding-bottom: 2px; }
-.metric-strip::-webkit-scrollbar { display: none; }
-.metric-card { background: var(--surface); border-radius: var(--r-sm); padding: .75rem 1rem; min-width: 130px; flex-shrink: 0; border-left: 4px solid transparent; }
+.metric-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: .875rem; }
+.metric-card { background: var(--surface); border-radius: var(--r-sm); padding: .6rem .875rem; min-width: 0; border-left: 4px solid transparent; }
 .metric-label { font-size: 12px; color: var(--text3); margin-bottom: .3rem; letter-spacing: 0; }
-.metric-value { font-size: 26px; font-weight: 700; color: var(--text1); letter-spacing: -.5px; }
+.metric-value { font-size: 20px; font-weight: 700; color: var(--text1); letter-spacing: -.5px; }
 .metric-value.neg { color: var(--red); }
 .metric-value.pos { color: var(--green); }
 .metric-delta { font-size: 12px; margin-top: .25rem; }
@@ -683,9 +683,10 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
   .dash-aside { position: sticky; top: 16px; align-self: start; }
   .dash-aside .card { margin-bottom: 0; }
 
-  /* ── 대시보드: 메트릭 4열 (PC) ── */
-  .metric-strip { flex-wrap: nowrap; overflow-x: visible; }
-  .metric-card { flex: 1; min-width: 0; }
+  /* ── 대시보드: 메트릭 6열 (PC) ── */
+  .metric-strip { display: flex; flex-wrap: nowrap; gap: 10px; }
+  .metric-card { flex: 1; min-width: 0; padding: .75rem 1rem; }
+  .metric-value { font-size: 26px; }
 
   /* ── 대시보드: 차트+도넛 2:1 / 자산+목표 1:1 ── */
   .dash-row1 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; margin-bottom: 16px; }
