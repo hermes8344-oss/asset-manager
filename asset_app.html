@@ -4880,8 +4880,8 @@ function toggleTheme() {
   const next = isDark ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
   localStorage.setItem('asset_theme', next);
-  _updateThemeIcon();
   renderSettings();
+  if (state.tab === 'dashboard') renderDashboard();
   setTimeout(() => document.documentElement.classList.remove('theme-transition'), 300);
 }
 function toggleSpecialSetting() {
