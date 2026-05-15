@@ -196,7 +196,7 @@ body {
 .dash-row1 > .card { margin-bottom: .75rem; }
 .dash-row1 > .card:last-child { margin-bottom: 0; }
 .dash-row2 { margin-bottom: .75rem; }
-.dash-row2 > .card { margin-bottom: .75rem; }
+.dash-row2 > .card { margin-bottom: .75rem; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
 .dash-row2 > .card:last-child { margin-bottom: 0; }
 
 /* ── 도넛 범례 ── */
@@ -1756,7 +1756,7 @@ function drawAnnualStackedBar(svgId, year, force=false) {
   annualTipData = [];
 
   const W = svg.getBoundingClientRect().width || 300;
-  const H = 160, PAD_L = 38, PAD_R = 8, PAD_T = 8, PAD_B = 28;
+  const H = 160, PAD_L = 8, PAD_R = 8, PAD_T = 8, PAD_B = 28;
   svg.setAttribute('height', H);
   const cW = W - PAD_L - PAD_R, cH = H - PAD_T - PAD_B;
   const curM = parseInt(state.currentMonth.split('-')[1]);
@@ -1787,14 +1787,6 @@ function drawAnnualStackedBar(svgId, year, force=false) {
 
   let svgStr = '';
 
-  // Y축 레이블 (0, 1/3, 2/3, 최대값)
-  const fmtYVal = v => v < 10000 ? '0' : v >= 1e8 ? (Math.round(v/1e8*10)/10)+'억' : Math.round(v/1e4)+'만';
-  [0, 1/3, 2/3, 1].forEach(r => {
-    const val = maxAsset * r;
-    const y = zeroY - cH * (maxAsset / totalRange) * r;
-    svgStr += `<text x="${PAD_L - 3}" y="${y + 3}" text-anchor="end" font-size="10" fill="${textColor}">${fmtYVal(val)}</text>`;
-    if (r > 0 && r < 1) svgStr += `<line x1="${PAD_L}" y1="${y}" x2="${W-PAD_R}" y2="${y}" stroke="${gridColor}" stroke-width="1"/>`;
-  });
 
   // 기준선
   svgStr += `<line x1="${PAD_L}" y1="${zeroY}" x2="${W-PAD_R}" y2="${zeroY}" stroke="${gridColor}" stroke-width="1"/>`;
@@ -1806,6 +1798,8 @@ function drawAnnualStackedBar(svgId, year, force=false) {
     const mx = PAD_L + i * barSlotW + barSlotW / 2;
     const hasData = d.asset > 0 || d.debt > 0;
     const alpha = d.isCur ? 1 : 0.72;
+
+    if (d.isCur) svgStr += `<rect x="${PAD_L + i * barSlotW}" y="${PAD_T}" width="${barSlotW}" height="${cH}" fill="rgba(83,74,183,.08)" rx="2"/>`;
 
     if (!hasData) {
       svgStr += `<rect x="${x}" y="${zeroY-1}" width="${barW}" height="2" rx="1" fill="${gridColor}"/>`;
@@ -1821,9 +1815,9 @@ function drawAnnualStackedBar(svgId, year, force=false) {
     }
 
     const showAllMonths = W >= 380;
-    const showLabel = showAllMonths || i % 3 === 0 || d.isCur;
+    const showLabel = showAllMonths || i % 3 === 0;
     if (showLabel) {
-      svgStr += `<text x="${mx}" y="${PAD_T+cH+16}" text-anchor="middle" font-size="10" font-weight="${d.isCur?700:400}" fill="${d.isCur?'var(--accent)':textColor}">${i+1}월</text>`;
+      svgStr += `<text x="${mx}" y="${PAD_T+cH+16}" text-anchor="middle" font-size="10" fill="${textColor}">${i+1}월</text>`;
     }
 
     const catLines = nonDebtCats
@@ -2002,7 +1996,7 @@ function drawGraph(mode) {
 
   const W = svg.getBoundingClientRect().width || 320;
   const H = 160;
-  const PAD_L = 38;
+  const PAD_L = 8;
   const PAD_R = 6;
   const PAD_T = 8;
   const PAD_B = 32;
@@ -2038,15 +2032,8 @@ function drawGraph(mode) {
     const maxVal = Math.max(...d.incomeData, ...d.expenseData, 1);
     const barW = cW / 12 * 0.35;
 
-    // y축 레이블 (0, 1/3, 2/3, 1 — 4개)
-    [0, 1/3, 2/3, 1].forEach(r => {
-      const val = maxVal * r;
-      const y = PAD_T + cH * (1 - r);
-      const label = val === 0 ? '0' : val >= 10000000 ? Math.round(val/10000000)+'천만' : val >= 10000 ? Math.round(val/10000)+'만' : Math.round(val/1000)+'천';
-      svgStr += `<text x="${PAD_L - 3}" y="${y + 3}" text-anchor="end" font-size="10" fill="${tcol}">${label}</text>`;
-    });
-
     // 막대
+    const slotW = cW / 12;
     for (let i = 0; i < 12; i++) {
       const cx = xPos(i);
       const incH = maxVal > 0 ? (d.incomeData[i] / maxVal) * cH : 0;
@@ -2054,6 +2041,7 @@ function drawGraph(mode) {
       const isCurrent = (i + 1) === d.nowM;
       const incColor = isCurrent ? '#0F6E56' : '#9FE1CB';
       const expColor = isCurrent ? '#A32D2D' : '#F5C4B3';
+      if (isCurrent) svgStr += `<rect x="${PAD_L + i * slotW}" y="${PAD_T}" width="${slotW}" height="${cH}" fill="rgba(83,74,183,.08)" rx="2"/>`;
       if (incH > 0) svgStr += `<rect x="${cx - barW - 1}" y="${PAD_T + cH - incH}" width="${barW}" height="${incH}" fill="${incColor}" rx="1"/>`;
       if (expH > 0) svgStr += `<rect x="${cx + 1}" y="${PAD_T + cH - expH}" width="${barW}" height="${expH}" fill="${expColor}" rx="1"/>`;
       svgStr += `<rect x="${cx - barW - 2}" y="${PAD_T}" width="${(barW + 2) * 2}" height="${cH}" fill="transparent" style="cursor:default" onmouseover="showBarTip(event,${i})" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()"/>`;
@@ -2071,14 +2059,6 @@ function drawGraph(mode) {
       if (v === null) return null;
       return PAD_T + cH - ((v - zero) / range) * cH;
     };
-
-    // y축 레이블 (0, 1/3, 2/3, 1 — 4개)
-    [0, 1/3, 2/3, 1].forEach(r => {
-      const val = zero + range * r;
-      const y = PAD_T + cH * (1 - r);
-      const label = Math.abs(val) < 10000 ? '0억' : (Math.round(val/10000000*10)/10)+'억';
-      svgStr += `<text x="${PAD_L - 3}" y="${y + 3}" text-anchor="end" font-size="10" fill="${tcol}">${label}</text>`;
-    });
 
     // 실선 path
     let solidPts = [];
