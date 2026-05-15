@@ -1470,6 +1470,7 @@ function calcGoalProgress(goal) {
 
 function renderDashboard() {
   const cfg = state.config;
+  const _isMobile = window.innerWidth < 900;
   const ym = getMostRecentDataYM();
   const isHistoric = ym !== currentYM();
   const year = ym.split('-')[0];
@@ -1706,7 +1707,6 @@ function renderDashboard() {
   _assetDonutSegs = assetDonutSegs;
   _incomeDonutSegs = incomeDonutSegs;
   _expenseDonutSegs = expenseDonutSegs;
-  const _isMobile = window.innerWidth < 900;
   if (!_isMobile || dashDonutTab === 'income')  { if (incomeDonutSegs.length)  drawDonutChart('income-donut-svg',  incomeDonutSegs); }
   if (!_isMobile || dashDonutTab === 'expense') { if (expenseDonutSegs.length) drawDonutChart('expense-donut-svg', expenseDonutSegs); }
 }
