@@ -5154,7 +5154,35 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    const showUpdateBanner = (worker) => {
+      const el = document.getElementById('update-banner');
+      if (el) return;
+      const banner = document.createElement('div');
+      banner.id = 'update-banner';
+      banner.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;border-radius:12px;padding:12px 18px;font-size:13px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);white-space:nowrap;';
+      banner.innerHTML = '새 버전이 있어요 <button id="update-btn" style="background:#534AB7;color:#fff;border:none;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;">지금 업데이트</button>';
+      document.body.appendChild(banner);
+      document.getElementById('update-btn').onclick = () => {
+        worker.postMessage({ type: 'SKIP_WAITING' });
+        banner.remove();
+      };
+    };
+
+    if (reg.waiting) showUpdateBanner(reg.waiting);
+
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      nw.addEventListener('statechange', () => {
+        if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner(nw);
+      });
+    });
+  }).catch(() => {});
+
+  let _swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!_swRefreshing) { _swRefreshing = true; location.reload(); }
+  });
 }
 </script>
 <div id="toast"></div>
