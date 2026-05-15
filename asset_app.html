@@ -1007,6 +1007,8 @@ const SUPABASE_KEY = 'sb_publishable_3ZypE2IlEkSTTnYvE6f_yw_xmHqEl2P';
 const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
 let ownerUserId = localStorage.getItem('ownerUserId') || null;
+let _lastUpdatedBy = null;
+let _lastUpdatedAt = null;
 let state = {
   config: null,        // userConfig
   accounts: [],        // 계좌 목록
@@ -1070,7 +1072,7 @@ async function _doSave() {
   if (!ownerUserId) localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   if (currentUser) {
     await _sb.from('user_data').upsert(
-      { user_id: targetId, data: payload, updated_at: new Date().toISOString() },
+      { user_id: targetId, data: payload, updated_at: new Date().toISOString(), updated_by: currentUser.id },
       { onConflict: 'user_id' }
     );
   }
@@ -1085,8 +1087,8 @@ async function loadState() {
   let saved = null;
   const targetId = ownerUserId || currentUser?.id;
   if (currentUser && targetId) {
-    const { data } = await _sb.from('user_data').select('data').eq('user_id', targetId).single();
-    if (data) saved = data.data;
+    const { data } = await _sb.from('user_data').select('data, updated_by, updated_at').eq('user_id', targetId).single();
+    if (data) { saved = data.data; _lastUpdatedBy = data.updated_by; _lastUpdatedAt = data.updated_at; }
   }
   if (!saved && !ownerUserId) {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -1100,6 +1102,15 @@ async function loadState() {
 }
 
 function uuid() { return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2); }
+function _formatLastUpdated(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const diff = Date.now() - d;
+  if (diff < 60000) return '방금 전';
+  if (diff < 3600000) return Math.floor(diff / 60000) + '분 전';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + '시간 전';
+  return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
 function monthDiff(fromYM, toYM) {
   const [fy,fm] = fromYM.split('-').map(Number);
   const [ty,tm] = toYM.split('-').map(Number);
@@ -4869,6 +4880,12 @@ function renderEtcTab() {
             <div style="font-size:11px;color:var(--text3);margin-top:2px;">다른 사람의 가계부를 관리하고 있어요</div>
           </div>
           <button class="btn-sm" style="color:var(--red);border-color:var(--red);" onclick="leaveSharedAccess()">해제</button>
+        </div>` : ''}
+        ${currentUser && _lastUpdatedBy ? `<div class="setting-row" style="border:none;margin-bottom:.75rem;">
+          <div>
+            <div class="setting-label">마지막 수정</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px;">${_lastUpdatedBy === currentUser.id ? '내가' : '상대방이'} 수정했어요 · ${_formatLastUpdated(_lastUpdatedAt)}</div>
+          </div>
         </div>` : ''}
         <div class="setting-row" style="border:none;">
           <div>
