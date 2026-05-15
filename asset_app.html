@@ -2009,7 +2009,7 @@ function drawGraph(mode) {
   const cW = W - PAD_L - PAD_R;
   const cH = H - PAD_T - PAD_B;
   const d = graphData;
-  const isDark = d.isDark;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const tcol = isDark ? 'rgba(255,255,255,.3)' : 'rgba(0,0,0,.25)';
   const gcol = isDark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.06)';
 
