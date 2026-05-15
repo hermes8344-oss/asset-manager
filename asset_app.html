@@ -298,6 +298,9 @@ body {
 .del-btn { font-size: 12px; color: var(--red); background: none; border: none; cursor: pointer; padding: .1rem .3rem; }
 tr.acc-drag-active { opacity: 0.35; }
 tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; background: rgba(83,74,183,.07); }
+.fc-drag-handle { cursor: grab; color: var(--text3); padding: 0 4px; font-size: 14px; touch-action: none; user-select: none; }
+.fc-drag-active { opacity: 0.35; }
+.fixed-row.fc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; background: rgba(83,74,183,.07); border-radius: 6px; }
 
 /* ── 특별지출 아이템 ── */
 .special-item { display: flex; justify-content: space-between; align-items: center; padding: .38rem 0; border-bottom: 1px solid var(--border); font-size: 13px; }
@@ -314,7 +317,7 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 
 /* ── 고정비 ── */
 .fixed-hdr { display: grid; grid-template-columns: 22% 16% 11% 18% 14% 19%; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
-.fixed-row { display: grid; grid-template-columns: 22% 16% 11% 18% 14% 19%; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; }
+.fixed-row { display: grid; grid-template-columns: 20px 20% 15% 10% 17% 13% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; }
 .fixed-row > * { min-width: 0; }
 .fixed-hdr > :first-child,
 .fixed-row > :first-child { text-align: left; }
@@ -3717,6 +3720,7 @@ function renderSettings() {
     </div>
     <div style="height:.5rem;"></div>
   `;
+  if (tab === 'fixed') setTimeout(setupFcTouchDrag, 0);
 }
 function selectSettingTab(t) { state.settingTab = t; renderSettings(); }
 
@@ -3815,6 +3819,7 @@ function renderFixedTab() {
            </select>`
         : `<span style="font-size:11px;color:var(--text3);">${cfg.member1Name}</span>`;
       return `<div class="fixed-row" style="align-items:center;background:var(--accent-light);border-radius:var(--r-xs);">
+        <span></span>
         <input class="input-field" id="fx-edit-label" value="${f.label}" placeholder="항목명" style="width:90%;display:block;margin:0 auto;font-size:13px;padding:.15rem .3rem;text-align:left;min-width:0;"/>
         <input class="input-field" id="fx-edit-amount" inputmode="numeric" value="${fmt(f.amount)}" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" style="width:90%;display:block;margin:0 auto;font-size:13px;padding:.15rem .3rem;text-align:right;min-width:0;"/>
         <select class="input-field" id="fx-edit-cycle" onchange="renderFixedEditCycleFields(${i})" style="width:90%;display:block;margin:0 auto;font-size:13px;padding:.15rem .1rem;text-align:center;min-width:0;">
@@ -3831,15 +3836,15 @@ function renderFixedTab() {
         </div>
       </div>`;
     }
-    return `<div class="fixed-row">
+    return `<div class="fixed-row fc-draggable" draggable="true" data-fc-id="${f.id}"
+      ondragstart="dragFcStart(event)" ondragover="dragFcOver(event)" ondrop="dragFcDrop(event)" ondragend="dragFcEnd(event)">
+      <span class="fc-drag-handle">⠿</span>
       <span>${f.label}</span>
       <span>${fmtW(f.amount)}</span>
       <span><span class="pill ${pillClass}">${f.cycle}</span></span>
       <span style="font-size:11px;color:var(--text3);">${monthLabel}</span>
       <span>${ownerBadge(f.owner)}</span>
       <div style="display:flex;gap:2px;justify-content:center;align-items:center;">
-        <button class="del-btn" style="color:var(--text3);font-size:10px;padding:.1rem .2rem;" onclick="moveFixed(${i},-1)" ${i===0?'disabled style="opacity:.25;cursor:default;"':''}>▲</button>
-        <button class="del-btn" style="color:var(--text3);font-size:10px;padding:.1rem .2rem;" onclick="moveFixed(${i},1)" ${i===state.fixedCosts.length-1?'disabled style="opacity:.25;cursor:default;"':''}>▼</button>
         <button class="del-btn" style="color:var(--text2);" onclick="startFixedEdit(${i})">✎</button>
         <button class="del-btn" onclick="deleteFixed(${i})">✕</button>
       </div>
@@ -3885,6 +3890,67 @@ function moveFixed(i, dir) {
   saveState();
   renderSettings();
 }
+
+let _dragFcId = null;
+function dragFcStart(e) {
+  _dragFcId = e.currentTarget.dataset.fcId;
+  setTimeout(() => e.currentTarget.classList.add('fc-drag-active'), 0);
+}
+function dragFcOver(e) {
+  e.preventDefault();
+  document.querySelectorAll('.fc-drag-target').forEach(el => el.classList.remove('fc-drag-target'));
+  if (e.currentTarget.dataset.fcId !== _dragFcId) e.currentTarget.classList.add('fc-drag-target');
+}
+function dragFcDrop(e) {
+  e.preventDefault();
+  const src = state.fixedCosts.find(f => f.id === _dragFcId);
+  const tgt = state.fixedCosts.find(f => f.id === e.currentTarget.dataset.fcId);
+  if (!src || !tgt || src === tgt) return;
+  const i = state.fixedCosts.indexOf(src), j = state.fixedCosts.indexOf(tgt);
+  [state.fixedCosts[i], state.fixedCosts[j]] = [state.fixedCosts[j], state.fixedCosts[i]];
+  _dragFcId = null;
+  saveState(); renderSettings();
+}
+function dragFcEnd(e) {
+  e.currentTarget.classList.remove('fc-drag-active');
+  document.querySelectorAll('.fc-drag-target').forEach(el => el.classList.remove('fc-drag-target'));
+  _dragFcId = null;
+}
+function setupFcTouchDrag() {
+  let dragSrcId = null, lastTarget = null;
+  document.querySelectorAll('.fc-drag-handle').forEach(handle => {
+    const row = handle.closest('.fc-draggable');
+    if (!row) return;
+    handle.addEventListener('touchstart', e => {
+      e.preventDefault();
+      dragSrcId = row.dataset.fcId;
+      row.classList.add('fc-drag-active');
+    }, { passive: false });
+    handle.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      const targetRow = el?.closest('.fc-draggable');
+      if (lastTarget && lastTarget !== row) lastTarget.classList.remove('fc-drag-target');
+      if (targetRow && targetRow !== row) { targetRow.classList.add('fc-drag-target'); lastTarget = targetRow; }
+    }, { passive: false });
+    handle.addEventListener('touchend', () => {
+      row.classList.remove('fc-drag-active');
+      if (lastTarget) lastTarget.classList.remove('fc-drag-target');
+      if (lastTarget && lastTarget !== row) {
+        const src = state.fixedCosts.find(f => f.id === dragSrcId);
+        const tgt = state.fixedCosts.find(f => f.id === lastTarget.dataset.fcId);
+        if (src && tgt) {
+          const i = state.fixedCosts.indexOf(src), j = state.fixedCosts.indexOf(tgt);
+          [state.fixedCosts[i], state.fixedCosts[j]] = [state.fixedCosts[j], state.fixedCosts[i]];
+          saveState(); renderSettings();
+        }
+      }
+      dragSrcId = null; lastTarget = null;
+    });
+  });
+}
+
 function renderFixedEditCycleFields(i) {
   const cycle = document.getElementById('fx-edit-cycle')?.value;
   const el = document.getElementById(`fx-edit-cycle-field-${i}`);
