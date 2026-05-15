@@ -785,6 +785,9 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 <body>
 <div id="app">
   <div class="safe-top"></div>
+  <div id="shared-banner" style="display:none;background:var(--accent);color:#fff;font-size:12px;font-weight:600;text-align:center;padding:6px 16px;position:sticky;top:0;z-index:100;">
+    공유 가계부 관리 중 &nbsp;<span onclick="leaveSharedAccess()" style="text-decoration:underline;cursor:pointer;">해제</span>
+  </div>
 
   <!-- ══════════════════════════════════
        로그인 화면
@@ -998,6 +1001,7 @@ const SUPABASE_URL = 'https://hnnsyeegapexhbyzybja.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_3ZypE2IlEkSTTnYvE6f_yw_xmHqEl2P';
 const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
+let ownerUserId = localStorage.getItem('ownerUserId') || null;
 let state = {
   config: null,        // userConfig
   accounts: [],        // 계좌 목록
@@ -1055,10 +1059,12 @@ async function _doSave() {
     loans: state.loans,
     autoTransfers: state.autoTransfers,
   };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  const targetId = ownerUserId || currentUser?.id;
+  if (!targetId) return;
+  if (!ownerUserId) localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   if (currentUser) {
     await _sb.from('user_data').upsert(
-      { user_id: currentUser.id, data: payload, updated_at: new Date().toISOString() },
+      { user_id: targetId, data: payload, updated_at: new Date().toISOString() },
       { onConflict: 'user_id' }
     );
   }
@@ -1071,11 +1077,12 @@ function saveState(immediate) {
 }
 async function loadState() {
   let saved = null;
-  if (currentUser) {
-    const { data } = await _sb.from('user_data').select('data').eq('user_id', currentUser.id).single();
+  const targetId = ownerUserId || currentUser?.id;
+  if (currentUser && targetId) {
+    const { data } = await _sb.from('user_data').select('data').eq('user_id', targetId).single();
     if (data) saved = data.data;
   }
-  if (!saved) {
+  if (!saved && !ownerUserId) {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) { try { saved = JSON.parse(raw); } catch(e) {} }
   }
@@ -1228,15 +1235,72 @@ async function checkAndMigrate() {
   );
 }
 async function handleAuthCallback() {
+  const params = new URLSearchParams(location.search);
+  const inviteToken = params.get('invite');
   const { data: { session } } = await _sb.auth.getSession();
   if (session) {
     currentUser = session.user;
+    const pending = localStorage.getItem('pendingInvite');
+    const token = inviteToken || pending;
+    if (token) {
+      localStorage.removeItem('pendingInvite');
+      await handleInviteAccept(token);
+      return;
+    }
     await checkAndMigrate();
     const hasData = await loadState();
     if (hasData) { enterApp(); } else { showOnboarding(); }
   } else {
+    if (inviteToken) localStorage.setItem('pendingInvite', inviteToken);
     showLoginScreen();
   }
+}
+async function generateInviteLink() {
+  const token = crypto.randomUUID();
+  const { error } = await _sb.from('invites').insert({ owner_id: currentUser.id, token });
+  if (error) { showToast('링크 생성 실패', 'error'); return; }
+  const url = `${location.origin}${location.pathname}?invite=${token}`;
+  navigator.clipboard?.writeText(url).catch(() => {});
+  showConfirm('초대 링크가 생성됐어요', '클립보드에 복사됐어요. 상대방에게 공유해주세요.\n\n' + url, () => {}, null, '닫기', null);
+}
+async function handleInviteAccept(token) {
+  const { data: invite } = await _sb.from('invites').select('owner_id').eq('token', token).single();
+  if (!invite) { showToast('유효하지 않은 초대 링크예요', 'error'); history.replaceState({}, '', location.pathname); showLoginScreen(); return; }
+  if (invite.owner_id === currentUser.id) {
+    showToast('본인의 초대 링크는 사용할 수 없어요', 'error');
+    history.replaceState({}, '', location.pathname);
+    const hasData = await loadState(); hasData ? enterApp() : showOnboarding(); return;
+  }
+  history.replaceState({}, '', location.pathname);
+  showConfirm(
+    '가계부 공유 수락',
+    '이 초대를 수락하면 상대방의 가계부를 함께 관리하게 됩니다.',
+    async () => {
+      await _sb.from('shared_access').upsert(
+        { owner_id: invite.owner_id, member_id: currentUser.id },
+        { onConflict: 'owner_id,member_id' }
+      );
+      ownerUserId = invite.owner_id;
+      localStorage.setItem('ownerUserId', ownerUserId);
+      const hasData = await loadState();
+      if (hasData) { enterApp(); showToast('가계부 공유가 시작됐어요'); }
+    },
+    async () => {
+      const hasData = await loadState(); hasData ? enterApp() : showOnboarding();
+    },
+    '수락', '거절'
+  );
+}
+async function leaveSharedAccess() {
+  showConfirm('공유 해제', '이 가계부 공유를 해제할까요?', async () => {
+    await _sb.from('shared_access').delete().eq('owner_id', ownerUserId).eq('member_id', currentUser.id);
+    ownerUserId = null;
+    localStorage.removeItem('ownerUserId');
+    document.getElementById('shared-banner').style.display = 'none';
+    const hasData = await loadState();
+    if (hasData) { enterApp(); } else { showOnboarding(); }
+    showToast('공유가 해제됐어요');
+  }, null, '해제', null);
 }
 
 // ══════════════════════════════════════════
@@ -1247,6 +1311,7 @@ function enterApp() {
   document.getElementById('screen-onboard').style.display = 'none';
   document.getElementById('bottom-nav').style.display = 'flex';
   document.getElementById('safe-bottom').style.display = '';
+  document.getElementById('shared-banner').style.display = ownerUserId ? 'block' : 'none';
   switchTab('dashboard');
 }
 function switchTab(tab) {
@@ -4638,6 +4703,20 @@ function renderEtcTab() {
             <div style="font-size:11px;color:var(--text3);margin-top:2px;">${currentUser.email}</div>
           </div>
           <button class="btn-sm" onclick="signOut()">로그아웃</button>
+        </div>` : ''}
+        ${currentUser && !ownerUserId ? `<div class="setting-row" style="border:none;margin-bottom:.75rem;">
+          <div>
+            <div class="setting-label">가계부 공유</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px;">초대 링크로 다른 사람이 함께 관리할 수 있어요</div>
+          </div>
+          <button class="btn-sm" onclick="generateInviteLink()">링크 생성</button>
+        </div>` : ''}
+        ${currentUser && ownerUserId ? `<div class="setting-row" style="border:none;margin-bottom:.75rem;">
+          <div>
+            <div class="setting-label">공유 중인 가계부</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px;">다른 사람의 가계부를 관리하고 있어요</div>
+          </div>
+          <button class="btn-sm" style="color:var(--red);border-color:var(--red);" onclick="leaveSharedAccess()">해제</button>
         </div>` : ''}
         <div class="setting-row" style="border:none;">
           <div>
