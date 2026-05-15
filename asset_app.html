@@ -344,10 +344,12 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 .pill.card { background: rgba(186,117,23,.15); color: #BA7517; }
 
 /* ── 자동이체 목록 그리드 ── */
-.at-hdr { display: grid; grid-template-columns: 22% 22% 14% 17% 10% 15%; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
-.at-row { display: grid; grid-template-columns: 22% 22% 14% 17% 10% 15%; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; }
+.at-hdr { display: grid; grid-template-columns: 20px 20% 20% 13% 16% 9% 1fr; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
+.at-row { display: grid; grid-template-columns: 20px 20% 20% 13% 16% 9% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; }
 .at-row > * { min-width: 0; }
+.at-row > :nth-child(2) { text-align: left; }
 .at-row:last-child { border: none; }
+.at-row.at-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; background: rgba(83,74,183,.07); border-radius: 6px; }
 
 /* ── 고정비 월 선택 칩 ── */
 .month-chip-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 4px; margin-bottom: .5rem; }
@@ -3721,6 +3723,7 @@ function renderSettings() {
     <div style="height:.5rem;"></div>
   `;
   if (tab === 'fixed') setTimeout(setupFcTouchDrag, 0);
+  if (tab === 'auto') setTimeout(setupAtTouchDrag, 0);
 }
 function selectSettingTab(t) { state.settingTab = t; renderSettings(); }
 
@@ -3943,6 +3946,66 @@ function setupFcTouchDrag() {
         if (src && tgt) {
           const i = state.fixedCosts.indexOf(src), j = state.fixedCosts.indexOf(tgt);
           [state.fixedCosts[i], state.fixedCosts[j]] = [state.fixedCosts[j], state.fixedCosts[i]];
+          saveState(); renderSettings();
+        }
+      }
+      dragSrcId = null; lastTarget = null;
+    });
+  });
+}
+
+let _dragAtId = null;
+function dragAtStart(e) {
+  _dragAtId = e.currentTarget.dataset.atId;
+  setTimeout(() => e.currentTarget.classList.add('fc-drag-active'), 0);
+}
+function dragAtOver(e) {
+  e.preventDefault();
+  document.querySelectorAll('.at-drag-target').forEach(el => el.classList.remove('at-drag-target'));
+  if (e.currentTarget.dataset.atId !== _dragAtId) e.currentTarget.classList.add('at-drag-target');
+}
+function dragAtDrop(e) {
+  e.preventDefault();
+  const ats = state.autoTransfers;
+  const si = ats.findIndex(a => (a.id||String(ats.indexOf(a))) === _dragAtId);
+  const ti = ats.findIndex(a => (a.id||String(ats.indexOf(a))) === e.currentTarget.dataset.atId);
+  if (si < 0 || ti < 0 || si === ti) return;
+  [ats[si], ats[ti]] = [ats[ti], ats[si]];
+  _dragAtId = null;
+  saveState(); renderSettings();
+}
+function dragAtEnd(e) {
+  e.currentTarget.classList.remove('fc-drag-active');
+  document.querySelectorAll('.at-drag-target').forEach(el => el.classList.remove('at-drag-target'));
+  _dragAtId = null;
+}
+function setupAtTouchDrag() {
+  let dragSrcId = null, lastTarget = null;
+  document.querySelectorAll('.at-draggable .fc-drag-handle').forEach(handle => {
+    const row = handle.closest('.at-draggable');
+    if (!row) return;
+    handle.addEventListener('touchstart', e => {
+      e.preventDefault();
+      dragSrcId = row.dataset.atId;
+      row.classList.add('fc-drag-active');
+    }, { passive: false });
+    handle.addEventListener('touchmove', e => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      const targetRow = el?.closest('.at-draggable');
+      if (lastTarget && lastTarget !== row) lastTarget.classList.remove('at-drag-target');
+      if (targetRow && targetRow !== row) { targetRow.classList.add('at-drag-target'); lastTarget = targetRow; }
+    }, { passive: false });
+    handle.addEventListener('touchend', () => {
+      row.classList.remove('fc-drag-active');
+      if (lastTarget) lastTarget.classList.remove('at-drag-target');
+      if (lastTarget && lastTarget !== row) {
+        const ats = state.autoTransfers;
+        const si = ats.findIndex(a => (a.id||String(ats.indexOf(a))) === dragSrcId);
+        const ti = ats.findIndex(a => (a.id||String(ats.indexOf(a))) === lastTarget.dataset.atId);
+        if (si >= 0 && ti >= 0 && si !== ti) {
+          [ats[si], ats[ti]] = [ats[ti], ats[si]];
           saveState(); renderSettings();
         }
       }
@@ -4195,6 +4258,7 @@ function renderAutoTransferTab() {
 
     if (state.atEditIdx === i) {
       return `<div class="at-row" style="align-items:center;background:var(--accent-light);border-radius:var(--r-xs);">
+        <span></span>
         <input class="input-field" id="at-edit-label" value="${at.label}" placeholder="납부 내용" style="width:50%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:left;min-width:0;"/>
         <button onclick="openAutoTransferSourceEdit(${i})" style="background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r-xs);color:var(--accent);font-weight:600;font-size:9px;width:100%;padding:.2rem .1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;min-width:0;">${sourceLabel} ✎</button>
         <input class="input-field" id="at-edit-amount" inputmode="numeric" value="${at.amount ? fmt(at.amount) : ''}" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" style="width:50%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:right;min-width:0;"/>
@@ -4207,8 +4271,10 @@ function renderAutoTransferTab() {
       </div>`;
     }
 
-    return `<div class="at-row">
-      <span style="text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${at.label}</span>
+    return `<div class="at-row at-draggable" draggable="true" data-at-id="${at.id||i}"
+      ondragstart="dragAtStart(event)" ondragover="dragAtOver(event)" ondrop="dragAtDrop(event)" ondragend="dragAtEnd(event)">
+      <span class="fc-drag-handle">⠿</span>
+      <span style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${at.label}</span>
       <span><span class="pill ${pillClass}" style="font-size:9px;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:inline-block;">${sourceLabel}</span></span>
       <span>${at.amount ? fmtW(at.amount) : '0원'}</span>
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--text3);">${at.payee||'-'}</span>
@@ -4222,7 +4288,7 @@ function renderAutoTransferTab() {
 
   return `
     <div class="card">
-      <div class="at-hdr"><span>납부내용</span><span>계좌/카드</span><span>금액</span><span>받는 곳</span><span>납부일</span><span></span></div>
+      <div class="at-hdr"><span></span><span>납부내용</span><span>계좌/카드</span><span>금액</span><span>받는 곳</span><span>납부일</span><span></span></div>
       ${rows}
     </div>
     <button class="add-btn" onclick="openAutoTransferModal()">+ 자동이체 추가</button>
