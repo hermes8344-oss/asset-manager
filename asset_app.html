@@ -3069,8 +3069,8 @@ function renderCashflow() {
     ? `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:22%;"><col style="width:20%;"></colgroup>`
     : `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>`;
   const thIncome = isEdit
-    ? `<th class="L">내용</th><th>금액</th><th></th>`
-    : `<th class="L">내용</th><th>금액</th>`;
+    ? `<th>내용</th><th>금액</th><th></th>`
+    : `<th>내용</th><th>금액</th>`;
 
   // 지출 테이블
   const expenseFiltered = cf.expense.map((r,i)=>({r,i})).filter(({r})=>cfItemMatchesFilter(r));
@@ -3136,7 +3136,7 @@ function renderCashflow() {
         const prevSpAmt = prevSpRow ? (parseNum(prevSpRow.amount)||0) : 0;
         return `<tr style="vertical-align:middle;">
           <td style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</td>
-          <td class="M" style="text-align:center;color:var(--text3);">${r.memo||''}</td>
+          <td class="M" style="text-align:left;color:var(--text3);">${r.memo||''}</td>
           <td>${prevSpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevSpAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('special',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
           <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
             <button onclick="openRowEditModal('special',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
@@ -3160,7 +3160,7 @@ function renderCashflow() {
       const specialRows = specialFiltered.map(({r}) => {
         return `<tr>
           <td style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</td>
-          <td class="M" style="text-align:center;">${r.memo||''}</td>
+          <td class="M" style="text-align:left;">${r.memo||''}</td>
           <td class="bold" style="color:var(--amber);white-space:nowrap;text-align:right;">${r.amount?fmt(r.amount):''}</td>
         </tr>`;
       }).join('');
@@ -3215,9 +3215,9 @@ function renderCashflow() {
     <table class="data-table" data-cf-live="savings">
       ${isEdit
         ? `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:26%;"><col style="width:16%;"></colgroup>
-      <tr><th>구분</th><th class="L">내용</th><th>금액</th><th></th></tr>`
+      <tr><th>구분</th><th>내용</th><th>금액</th><th></th></tr>`
         : `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>
-      <tr><th>구분</th><th class="L">내용</th><th>금액</th></tr>`}
+      <tr><th>구분</th><th>내용</th><th>금액</th></tr>`}
       ${savingsListRows || `<tr><td colspan="${isEdit?4:3}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 저축 항목 추가 버튼으로 등록해보세요' : '이달 저축 내역이 없어요 · 편집 모드에서 추가할 수 있어요'}</td></tr>`}
     </table>
     ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('savings')">+ 저축 항목 추가</button>` : ''}
@@ -3305,7 +3305,7 @@ function renderCashflow() {
                 ${isEdit
                   ? `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:22%;"><col style="width:20%;"></colgroup>`
                   : `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>`}
-                <tr><th>구분</th><th class="L">내용</th><th>금액</th>${isEdit?'<th></th>':''}</tr>
+                <tr><th>구분</th><th>내용</th><th>금액</th>${isEdit?'<th></th>':''}</tr>
                 ${expenseRows || `<tr><td colspan="${isEdit?4:3}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 지출 항목 추가 버튼으로 등록해보세요' : '이달 지출 내역이 없어요'}</td></tr>`}
               </table>
               ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('expense')">+ 지출 항목 추가</button>` : ''}
