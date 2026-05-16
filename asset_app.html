@@ -250,16 +250,30 @@ body {
 .data-table td.pos { color: var(--green); font-weight: 600; }
 .data-table td.bold { font-weight: 600; }
 .data-table input {
-  background: transparent; border: none;
-  border-bottom: 1.5px solid var(--border);
+  background: transparent; border: none; border-bottom: none;
   border-radius: 0; padding: 2px 0 4px;
   font-size: 13px; color: var(--text1); text-align: left; width: 100%;
   font-family: inherit;
 }
 .data-table input.num { text-align: right; }
-.data-table input:focus { outline: none; border-bottom: 2px solid var(--accent); background: transparent; }
-.data-table input.cell-changed { background: transparent !important; border-bottom: 2px solid var(--accent) !important; transition: border-color .15s; }
-.data-table td [data-acc-nick], .data-table td [data-acc-inst] { width: 100%; min-width: 0; }
+.data-table input:focus { outline: none; background: transparent; }
+.data-table input.cell-changed { background: transparent !important; transition: border-color .15s; }
+/* 금액 input 전용 언더라인 */
+.data-table input.amount-input {
+  border-bottom: 1.5px solid var(--border);
+  text-align: right;
+}
+.data-table input.amount-input:focus { border-bottom: 2px solid var(--accent); }
+.data-table input.amount-input.cell-changed { border-bottom: 2px solid var(--accent) !important; }
+/* 팝업 내 편집 input */
+.row-edit-field {
+  width: 100%; background: transparent; border: none;
+  border-bottom: 1.5px solid var(--border);
+  padding: 6px 0 6px; font-size: 15px; color: var(--text1);
+  font-family: inherit; outline: none;
+}
+.row-edit-field:focus { border-bottom: 2px solid var(--accent); }
+.row-edit-label { font-size: 11px; color: var(--text3); margin-top: 1rem; margin-bottom: 2px; }
 
 /* ── sbar ── */
 .sbar {
@@ -950,6 +964,18 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
     <button class="nav-btn" onclick="switchTab('settings')" id="nav-settings">설정</button>
   </nav>
   <div class="safe-bottom" id="safe-bottom" style="display:none;"></div>
+</div>
+
+<!-- 행 상세 편집 팝업 -->
+<div class="modal-overlay" id="row-edit-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="row-edit-title">항목 수정</div>
+      <button class="close-btn" onclick="closeRowEditModal()">✕</button>
+    </div>
+    <div id="row-edit-content"></div>
+  </div>
 </div>
 
 <!-- 편집 모드 fixed 하단 바 -->
@@ -2337,13 +2363,14 @@ function renderBalance() {
             ondragover="dragAccOver(event,'${a.id}')"
             ondrop="dragAccDrop(event,'${a.id}')"
             ondragend="dragAccEnd()">
-          <td><div style="display:flex;align-items:center;gap:2px;">${badge}<input type="text" data-acc-nick="${a.id}" value="${a.nickname}" placeholder="별명" style="width:100%;min-width:0;"/></div></td>
-          <td><input type="text" data-acc-inst="${a.id}" value="${a.institution}" placeholder="기관" style="width:100%;"/></td>
-          <td><input type="text" value="${balanceMemoTempData[a.id] || ''}" placeholder="메모" oninput="this.classList.add('cell-changed')" onchange="onMemoInput('${a.id}',this)" data-memo-id="${a.id}" style="width:100%;"/></td>
-          <td>${prevBalDisp ? `<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${prevBalDisp}</div>` : ''}<input type="text" inputmode="numeric" value="${val ? fmt(Math.abs(val)) : ''}" placeholder="0" onblur="formatInput(this)" oninput="onBalanceInput('${a.id}',this);this.classList.add('cell-changed')" data-id="${a.id}" style="text-align:right;font-size:13px;width:100%;"/></td>
+          <td><div style="display:flex;align-items:center;gap:4px;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${a.nickname}</span></div></td>
+          <td class="M" style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.institution}</td>
+          <td class="M" style="text-align:center;color:var(--text3);">${balanceMemoTempData[a.id] || ''}</td>
+          <td>${prevBalDisp ? `<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${prevBalDisp}</div>` : ''}<input type="text" inputmode="numeric" value="${val ? fmt(Math.abs(val)) : ''}" placeholder="0" class="amount-input" onblur="formatInput(this)" oninput="onBalanceInput('${a.id}',this);this.classList.add('cell-changed')" data-id="${a.id}" style="font-size:13px;width:100%;"/></td>
           <td>
-            <div style="display:flex;align-items:center;justify-content:center;">
-              <button class="del-btn" onclick="deleteAccount('${a.id}')" title="계좌 삭제" style="min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
+            <div style="display:flex;align-items:center;justify-content:center;gap:2px;">
+              <button onclick="openRowEditModal('balance','${a.id}')" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
+              <button class="del-btn" onclick="deleteAccount('${a.id}')" title="계좌 삭제" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
             </div>
           </td>
         </tr>`;
@@ -2660,14 +2687,7 @@ function saveBalance() {
   document.querySelectorAll('[data-memo-id]').forEach(el => {
     balanceMemoTempData[el.dataset.memoId] = el.value;
   });
-  document.querySelectorAll('[data-acc-nick]').forEach(el => {
-    const acc = state.accounts.find(a => a.id === el.dataset.accNick);
-    if (acc && el.value.trim()) acc.nickname = el.value.trim();
-  });
-  document.querySelectorAll('[data-acc-inst]').forEach(el => {
-    const acc = state.accounts.find(a => a.id === el.dataset.accInst);
-    if (acc && el.value.trim()) acc.institution = el.value.trim();
-  });
+  // 별명/기관은 팝업(openRowEditModal)에서 직접 저장됨
   state.accounts.forEach(a => {
     state.balances[ym][a.id] = balanceTempData[a.id] || 0;
     state.balanceMemos[ym][a.id] = balanceMemoTempData[a.id] || '';
@@ -2992,10 +3012,11 @@ function renderCashflow() {
       return `<tr style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
         <td class="M" style="text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td><input type="text" value="${r.memo||''}" placeholder="메모" oninput="this.classList.add('cell-changed')" onchange="updateCFRow('income',${i},'memo',this.value)" style="width:100%;text-align:center;"/></td>
-        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${amount?fmt(amount):''}" placeholder="0" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('income',${i},'amount',parseNum(this.value))" style="text-align:right;width:100%;font-size:13px;"/></td>
-        <td><div style="display:flex;align-items:center;justify-content:center;">
-          <button class="del-btn" onclick="deleteCFRow('income',${i})" style="min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
+        <td class="M" style="text-align:center;color:var(--text3);">${r.memo||''}</td>
+        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${amount?fmt(amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('income',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
+        <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
+          <button onclick="openRowEditModal('income',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
+          <button class="del-btn" onclick="deleteCFRow('income',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
         </div></td>
       </tr>`;
     } else {
@@ -3031,10 +3052,11 @@ function renderCashflow() {
       return `<tr style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
         <td class="M" style="text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td><input type="text" value="${r.memo||''}" placeholder="메모" oninput="this.classList.add('cell-changed')" onchange="updateCFRow('expense',${i},'memo',this.value)" style="width:100%;text-align:center;"/></td>
-        <td>${prevExpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevExpAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('expense',${i},'amount',parseNum(this.value))" style="text-align:right;width:100%;font-size:13px;"/></td>
-        <td><div style="display:flex;align-items:center;justify-content:center;">
-          <button class="del-btn" onclick="deleteCFRow('expense',${i})" style="min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
+        <td class="M" style="text-align:center;color:var(--text3);">${r.memo||''}</td>
+        <td>${prevExpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevExpAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('expense',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
+        <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
+          <button onclick="openRowEditModal('expense',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
+          <button class="del-btn" onclick="deleteCFRow('expense',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
         </div></td>
       </tr>`;
     } else {
@@ -3084,11 +3106,12 @@ function renderCashflow() {
         const prevSpRow = prevCf.special.find(p => p.label === r.label);
         const prevSpAmt = prevSpRow ? (parseNum(prevSpRow.amount)||0) : 0;
         return `<tr style="vertical-align:middle;">
-          <td><input type="text" value="${(r.label||'').replace(/"/g,'&quot;')}" placeholder="구분" oninput="this.classList.add('cell-changed')" onchange="updateCFRow('special',${i},'label',this.value)" style="width:100%;"/></td>
-          <td><input type="text" value="${r.memo||''}" placeholder="메모" oninput="this.classList.add('cell-changed')" onchange="updateCFRow('special',${i},'memo',this.value)" style="width:100%;"/></td>
-          <td>${prevSpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevSpAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('special',${i},'amount',parseNum(this.value))" style="text-align:right;width:100%;font-size:13px;"/></td>
-          <td><div style="display:flex;align-items:center;justify-content:center;">
-            <button class="del-btn" onclick="deleteCFRow('special',${i})" style="min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
+          <td style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</td>
+          <td class="M" style="text-align:center;color:var(--text3);">${r.memo||''}</td>
+          <td>${prevSpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevSpAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('special',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
+          <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
+            <button onclick="openRowEditModal('special',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
+            <button class="del-btn" onclick="deleteCFRow('special',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
           </div></td>
         </tr>`;
       }).join('');
@@ -3137,10 +3160,11 @@ function renderCashflow() {
       return `<tr style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</span></div></td>
         <td style="text-align:center;font-size:11px;overflow:hidden;"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></td>
-        <td><input type="text" value="${r.memo||''}" placeholder="메모" onchange="updateCFRow('savings',${i},'memo',this.value)" style="width:100%;text-align:center;"/></td>
-        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('savings',${i},'amount',parseNum(this.value))" style="text-align:right;width:100%;font-size:13px;"/></td>
-        <td><div style="display:flex;align-items:center;justify-content:center;">
-          <button class="del-btn" onclick="deleteCFRow('savings',${i})" style="min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
+        <td class="M" style="text-align:center;color:var(--text3);">${r.memo||''}</td>
+        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('savings',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
+        <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
+          <button onclick="openRowEditModal('savings',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
+          <button class="del-btn" onclick="deleteCFRow('savings',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
         </div></td>
       </tr>`;
     } else {
@@ -3347,6 +3371,110 @@ function toggleCashflowEdit() {
 }
 function cancelCashflowEdit() { state.cashflowEditing = false; hideEditBar(); renderCashflow(); }
 function saveCashflow() { saveState(); state.cashflowEditing = false; hideEditBar(); showToast(`${ymLabel(state.currentMonth)} 수입/지출 저장 완료`); renderCashflow(); }
+
+// ── 행 상세 편집 팝업 ──
+let _rowEditCtx = {};
+
+function openRowEditModal(type, idxOrAccId) {
+  const cfg = state.config || {};
+  let data = {};
+  if (type === 'balance') {
+    const a = state.accounts.find(a => a.id === idxOrAccId);
+    if (!a) return;
+    data = {
+      nickname: a.nickname || '',
+      institution: a.institution || '',
+      memo: (balanceMemoTempData && balanceMemoTempData[idxOrAccId]) || ((state.balanceMemos||{})[state.currentMonth]||{})[idxOrAccId] || '',
+      category: a.category || '',
+      owner: a.owner || cfg.member1Name || ''
+    };
+  } else {
+    const cf = state.cashflow[state.currentMonth] || {};
+    const rows = cf[type] || [];
+    const r = rows[idxOrAccId] || {};
+    const owner = r.owner || (type === 'income' && r.member2 ? '공동' : cfg.member1Name || '');
+    data = {
+      label: r.label || '',
+      type_field: r.type || '',
+      memo: r.memo || '',
+      owner
+    };
+  }
+  _rowEditCtx = { type, idxOrAccId, data: { ...data } };
+  document.getElementById('row-edit-title').textContent = type === 'balance' ? '계좌 정보 수정' : '항목 수정';
+  renderRowEditContent();
+  document.getElementById('row-edit-modal').classList.add('open');
+}
+
+function renderRowEditContent() {
+  const { type, data } = _rowEditCtx;
+  const cfg = state.config || {};
+  const members = [cfg.member1Name];
+  if (cfg.memberCount === 2 && cfg.member2Name) members.push(cfg.member2Name);
+
+  let html = '';
+  if (type === 'balance') {
+    html = `
+      <div class="row-edit-label">별명</div>
+      <input class="row-edit-field" id="re-nickname" value="${(data.nickname||'').replace(/"/g,'&quot;')}" placeholder="계좌 별명"/>
+      <div class="row-edit-label">기관</div>
+      <input class="row-edit-field" id="re-institution" value="${(data.institution||'').replace(/"/g,'&quot;')}" placeholder="은행/증권사"/>
+      <div class="row-edit-label">메모</div>
+      <input class="row-edit-field" id="re-memo" value="${(data.memo||'').replace(/"/g,'&quot;')}" placeholder="메모"/>
+    `;
+  } else {
+    const ownerBtns = [...members, ...(cfg.memberCount===2?['공동']:[])].map(m => {
+      const active = data.owner === m;
+      const bg = m === cfg.member1Name ? '#534AB7' : m === cfg.member2Name ? '#0F6E56' : '#BA7517';
+      return `<button onclick="_rowEditCtx.data.owner='${m}';renderRowEditContent()" style="padding:.35rem .75rem;border-radius:20px;border:2px solid ${active?bg:'var(--border)'};background:${active?bg:'transparent'};color:${active?'#fff':'var(--text2)'};font-size:13px;font-weight:600;cursor:pointer;">${m}</button>`;
+    }).join('');
+    html = `
+      <div class="row-edit-label">항목명</div>
+      <input class="row-edit-field" id="re-label" value="${(data.label||'').replace(/"/g,'&quot;')}" placeholder="항목명"/>
+      <div class="row-edit-label">구분/내용</div>
+      <input class="row-edit-field" id="re-type" value="${(data.type_field||'').replace(/"/g,'&quot;')}" placeholder="구분"/>
+      <div class="row-edit-label">메모</div>
+      <input class="row-edit-field" id="re-memo" value="${(data.memo||'').replace(/"/g,'&quot;')}" placeholder="메모"/>
+      ${members.length > 1 ? `<div class="row-edit-label">소유자</div><div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.25rem;">${ownerBtns}</div>` : ''}
+    `;
+  }
+  html += `<div style="display:flex;gap:.5rem;margin-top:1.25rem;margin-bottom:.5rem;">
+    <button class="bar-cancel" onclick="closeRowEditModal()" style="flex:1;">취소</button>
+    <button class="bar-save" onclick="saveRowEditModal()" style="flex:1;">저장</button>
+  </div>`;
+  document.getElementById('row-edit-content').innerHTML = html;
+}
+
+function saveRowEditModal() {
+  const { type, idxOrAccId } = _rowEditCtx;
+  if (type === 'balance') {
+    const a = state.accounts.find(a => a.id === idxOrAccId);
+    if (a) {
+      const nick = document.getElementById('re-nickname').value.trim();
+      const inst = document.getElementById('re-institution').value.trim();
+      if (nick) a.nickname = nick;
+      if (inst) a.institution = inst;
+    }
+    if (!balanceMemoTempData) balanceMemoTempData = {};
+    balanceMemoTempData[idxOrAccId] = document.getElementById('re-memo').value;
+  } else {
+    const label = document.getElementById('re-label').value;
+    const typeField = document.getElementById('re-type').value;
+    const memo = document.getElementById('re-memo').value;
+    const owner = _rowEditCtx.data.owner;
+    updateCFRow(type, idxOrAccId, 'label', label);
+    updateCFRow(type, idxOrAccId, 'memo', memo);
+    if (typeField !== undefined) updateCFRow(type, idxOrAccId, 'type', typeField);
+    if (owner) updateCFRow(type, idxOrAccId, 'owner', owner);
+  }
+  closeRowEditModal();
+  if (type === 'balance') renderBalance();
+  else renderCashflow();
+}
+
+function closeRowEditModal() {
+  document.getElementById('row-edit-modal').classList.remove('open');
+}
 
 function updateCFSummaryLive() {
   let incomeTotal = 0, expenseTotal = 0, savingsTotal = 0;
