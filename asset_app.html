@@ -3066,8 +3066,8 @@ function renderCashflow() {
 
   const incomeTotal = incomeFiltered.reduce((s,{r})=>s+(r.amount!==undefined?(parseNum(r.amount)||0):(parseNum(r.member1)||0)+(parseNum(r.member2)||0)),0);
   const colsIncome = isEdit
-    ? `<colgroup><col style="width:26%;"><col style="width:20%;"><col style="width:34%;"><col style="width:20%;"></colgroup>`
-    : `<colgroup><col style="width:26%;"><col style="width:20%;"><col style="width:54%;"></colgroup>`;
+    ? `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:22%;"><col style="width:20%;"></colgroup>`
+    : `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>`;
   const thIncome = isEdit
     ? `<th>내용</th><th class="R">금액</th><th></th>`
     : `<th>내용</th><th class="R">금액</th>`;
@@ -3214,9 +3214,9 @@ function renderCashflow() {
     </div>
     <table class="data-table" data-cf-live="savings">
       ${isEdit
-        ? `<colgroup><col style="width:26%;"><col style="width:24%;"><col style="width:34%;"><col style="width:16%;"></colgroup>
+        ? `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:26%;"><col style="width:16%;"></colgroup>
       <tr><th>구분</th><th>내용</th><th class="R">금액</th><th></th></tr>`
-        : `<colgroup><col style="width:26%;"><col style="width:24%;"><col style="width:50%;"></colgroup>
+        : `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>
       <tr><th>구분</th><th>내용</th><th class="R">금액</th></tr>`}
       ${savingsListRows || `<tr><td colspan="${isEdit?4:3}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 저축 항목 추가 버튼으로 등록해보세요' : '이달 저축 내역이 없어요 · 편집 모드에서 추가할 수 있어요'}</td></tr>`}
     </table>
@@ -3303,8 +3303,8 @@ function renderCashflow() {
               </div>
               <table class="data-table" data-cf-live="expense">
                 ${isEdit
-                  ? `<colgroup><col style="width:26%;"><col style="width:20%;"><col style="width:34%;"><col style="width:20%;"></colgroup>`
-                  : `<colgroup><col style="width:26%;"><col style="width:20%;"><col style="width:54%;"></colgroup>`}
+                  ? `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:22%;"><col style="width:20%;"></colgroup>`
+                  : `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>`}
                 <tr><th>구분</th><th>내용</th><th class="R">금액</th>${isEdit?'<th></th>':''}</tr>
                 ${expenseRows || `<tr><td colspan="${isEdit?4:3}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 지출 항목 추가 버튼으로 등록해보세요' : '이달 지출 내역이 없어요'}</td></tr>`}
               </table>
