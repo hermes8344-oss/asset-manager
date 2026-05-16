@@ -523,7 +523,18 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
   align-items: center;
 }
 @media (min-width: 900px) {
-  #edit-action-bar { left: 200px; }
+  #edit-action-bar {
+    left: 200px;
+    justify-content: flex-end;
+    padding: .5rem 2rem;
+    gap: .75rem;
+  }
+  #edit-action-bar .bar-cancel,
+  #edit-action-bar .bar-save,
+  #edit-action-bar .bar-add {
+    flex: none;
+    width: 120px;
+  }
 }
 #edit-action-bar .bar-cancel {
   flex: 1; background: var(--surface2); color: var(--text2);
