@@ -2332,7 +2332,7 @@ function renderBalance() {
 
         const prevBalAmt = (state.balances[prevYM(ym)] || {})[a.id];
         const prevBalDisp = prevBalAmt !== undefined && prevBalAmt !== null ? fmt(Math.abs(prevBalAmt)) : '';
-        return `<tr data-acc-id="${a.id}" draggable="true" style="vertical-align:top;"
+        return `<tr data-acc-id="${a.id}" draggable="true" style="vertical-align:middle;"
             ondragstart="dragAccStart(event,'${a.id}')"
             ondragover="dragAccOver(event,'${a.id}')"
             ondrop="dragAccDrop(event,'${a.id}')"
@@ -2989,7 +2989,7 @@ function renderCashflow() {
     if (isEdit) {
       const prevIncomeRow = prevCf.income.find(p => p.label === r.label);
       const prevAmt = prevIncomeRow ? (prevIncomeRow.amount !== undefined ? (parseNum(prevIncomeRow.amount)||0) : (parseNum(prevIncomeRow.member1)||0)+(parseNum(prevIncomeRow.member2)||0)) : 0;
-      return `<tr style="vertical-align:top;">
+      return `<tr style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
         <td class="M" style="text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
         <td><input type="text" value="${r.memo||''}" placeholder="메모" oninput="this.classList.add('cell-changed')" onchange="updateCFRow('income',${i},'memo',this.value)" style="width:100%;text-align:center;"/></td>
@@ -3028,7 +3028,7 @@ function renderCashflow() {
     if (isEdit) {
       const prevExpRow = prevCf.expense.find(p => p.label === r.label);
       const prevExpAmt = prevExpRow ? (parseNum(prevExpRow.amount)||0) : 0;
-      return `<tr style="vertical-align:top;">
+      return `<tr style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
         <td class="M" style="text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
         <td><input type="text" value="${r.memo||''}" placeholder="메모" oninput="this.classList.add('cell-changed')" onchange="updateCFRow('expense',${i},'memo',this.value)" style="width:100%;text-align:center;"/></td>
@@ -3083,7 +3083,7 @@ function renderCashflow() {
       const specialRows = specialFiltered.map(({r,i}) => {
         const prevSpRow = prevCf.special.find(p => p.label === r.label);
         const prevSpAmt = prevSpRow ? (parseNum(prevSpRow.amount)||0) : 0;
-        return `<tr style="vertical-align:top;">
+        return `<tr style="vertical-align:middle;">
           <td><input type="text" value="${(r.label||'').replace(/"/g,'&quot;')}" placeholder="구분" oninput="this.classList.add('cell-changed')" onchange="updateCFRow('special',${i},'label',this.value)" style="width:100%;"/></td>
           <td><input type="text" value="${r.memo||''}" placeholder="메모" oninput="this.classList.add('cell-changed')" onchange="updateCFRow('special',${i},'memo',this.value)" style="width:100%;"/></td>
           <td>${prevSpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevSpAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('special',${i},'amount',parseNum(this.value))" style="text-align:right;width:100%;font-size:13px;"/></td>
@@ -3134,7 +3134,7 @@ function renderCashflow() {
     if (isEdit) {
       const prevRow = (prevCf.savings||[]).find(p => p.label === r.label);
       const prevAmt = prevRow ? (parseNum(prevRow.amount)||0) : 0;
-      return `<tr style="vertical-align:top;">
+      return `<tr style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</span></div></td>
         <td style="text-align:center;font-size:11px;overflow:hidden;"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></td>
         <td><input type="text" value="${r.memo||''}" placeholder="메모" onchange="updateCFRow('savings',${i},'memo',this.value)" style="width:100%;text-align:center;"/></td>
