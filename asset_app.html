@@ -3150,7 +3150,7 @@ function renderCashflow() {
           <div class="cat-total" style="color:var(--amber);">${fmtW(cfSpecialTotal)}</div>
         </div>
         <table class="data-table">${spColgroupEdit}
-          <tr><th class="L">구분</th><th>메모</th><th class="R">금액</th><th></th></tr>
+          <tr><th class="L">구분</th><th>메모</th><th>금액</th><th></th></tr>
           ${specialRows || '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">+ 항목 추가 버튼으로 등록해보세요</td></tr>'}
         </table>
         <button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('special')">+ ${specialName} 추가</button>
@@ -3170,7 +3170,7 @@ function renderCashflow() {
           <div class="cat-total" style="color:var(--amber);">${fmtW(cfSpecialTotal)}</div>
         </div>
         <table class="data-table">${spColgroupView}
-          <tr><th class="L">구분</th><th>메모</th><th class="R">금액</th></tr>
+          <tr><th class="L">구분</th><th>메모</th><th>금액</th></tr>
           ${specialRows || '<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">이달 특별지출 내역이 없어요 · 편집 모드에서 추가할 수 있어요</td></tr>'}
         </table>
         ${specialRows ? '<div style="font-size:11px;color:var(--text3);text-align:right;margin-top:.35rem;">편집 모드에서 항목을 수정·추가할 수 있어요</div>' : ''}
