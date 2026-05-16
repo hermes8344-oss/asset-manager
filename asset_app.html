@@ -258,6 +258,7 @@ body {
 .data-table input.num { text-align: right; }
 .data-table input:focus { outline: none; background: transparent; }
 .data-table input.cell-changed { background: transparent !important; transition: border-color .15s; }
+.row-copied { background: rgba(186, 117, 23, 0.07) !important; }
 /* 금액 input 전용 언더라인 */
 .data-table input.amount-input {
   border-bottom: 1.5px solid var(--border);
@@ -2650,9 +2651,9 @@ function copyCashflowFromPrevMonth() {
     '이전달 수입/지출/저축 항목으로 현재 내용을 덮어씁니다. (특별지출 제외)',
     () => {
       ensureCF(ym);
-      state.cashflow[ym].income = prevIncome.map(r => ({...r}));
-      state.cashflow[ym].expense = prevExpense.map(r => ({...r}));
-      state.cashflow[ym].savings = prevSavings.map(r => ({...r}));
+      state.cashflow[ym].income = prevIncome.map(r => ({...r, _copied: true}));
+      state.cashflow[ym].expense = prevExpense.map(r => ({...r, _copied: true}));
+      state.cashflow[ym].savings = prevSavings.map(r => ({...r, _copied: true}));
       renderCashflow();
       showToast(`${ymLabel(prev)} 수입/지출/저축을 불러왔어요`);
     }, null, '불러오기'
@@ -3042,10 +3043,10 @@ function renderCashflow() {
     if (isEdit) {
       const prevIncomeRow = prevCf.income.find(p => p.label === r.label);
       const prevAmt = prevIncomeRow ? (prevIncomeRow.amount !== undefined ? (parseNum(prevIncomeRow.amount)||0) : (parseNum(prevIncomeRow.member1)||0)+(parseNum(prevIncomeRow.member2)||0)) : 0;
-      return `<tr style="vertical-align:middle;">
+      return `<tr class="${r._copied?'row-copied':''}" style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
         <td class="M" style="text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${amount?fmt(amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('income',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
+        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${amount?fmt(amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.closest('tr')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('income',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
         <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
           <button onclick="openRowEditModal('income',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
           <button class="del-btn" onclick="deleteCFRow('income',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
@@ -3080,10 +3081,10 @@ function renderCashflow() {
     if (isEdit) {
       const prevExpRow = prevCf.expense.find(p => p.label === r.label);
       const prevExpAmt = prevExpRow ? (parseNum(prevExpRow.amount)||0) : 0;
-      return `<tr style="vertical-align:middle;">
+      return `<tr class="${r._copied?'row-copied':''}" style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
         <td class="M" style="text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td>${prevExpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevExpAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('expense',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
+        <td>${prevExpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevExpAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.closest('tr')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('expense',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
         <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
           <button onclick="openRowEditModal('expense',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
           <button class="del-btn" onclick="deleteCFRow('expense',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
@@ -3186,10 +3187,10 @@ function renderCashflow() {
     if (isEdit) {
       const prevRow = (prevCf.savings||[]).find(p => p.label === r.label);
       const prevAmt = prevRow ? (parseNum(prevRow.amount)||0) : 0;
-      return `<tr style="vertical-align:middle;">
+      return `<tr class="${r._copied?'row-copied':''}" style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</span></div></td>
         <td style="text-align:left;font-size:11px;overflow:hidden;color:var(--text3);"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></td>
-        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('savings',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
+        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.closest('tr')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('savings',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
         <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
           <button onclick="openRowEditModal('savings',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
           <button class="del-btn" onclick="deleteCFRow('savings',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
@@ -3898,6 +3899,7 @@ function updateCFRow(type, idx, field, val) {
   const ym = state.currentMonth;
   ensureCF(ym);
   state.cashflow[ym][type][idx][field] = val;
+  delete state.cashflow[ym][type][idx]._copied;
 }
 function addSpecialRow() {
   const label = document.getElementById('sp-label')?.value.trim();
