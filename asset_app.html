@@ -2393,7 +2393,6 @@ function renderBalance() {
             ondragend="dragAccEnd()">
           <td><div style="display:flex;align-items:center;gap:4px;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${a.nickname}</span></div></td>
           <td class="M" style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.institution}</td>
-          <td class="M" style="text-align:center;color:var(--text3);">${balanceMemoTempData[a.id] || ''}</td>
           <td>${prevBalDisp ? `<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${prevBalDisp}</div>` : ''}<input type="text" inputmode="numeric" value="${val ? fmt(Math.abs(val)) : ''}" placeholder="0" class="amount-input" onblur="formatInput(this)" oninput="onBalanceInput('${a.id}',this);this.classList.add('cell-changed')" data-id="${a.id}" style="font-size:13px;width:100%;"/></td>
           <td>
             <div style="display:flex;align-items:center;justify-content:center;gap:2px;">
@@ -2427,7 +2426,6 @@ function renderBalance() {
         return `<tr>
           <td class="L"><div style="display:flex;align-items:center;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.nickname}</span></div></td>
           <td class="M" style="text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.institution}${a.owner==='공동'?'<br><span style="font-size:9px;color:var(--accent);white-space:nowrap;">공동·'+responsible+'</span>':''}</td>
-          <td class="M">${((state.balanceMemos||{})[ym]||{})[a.id] || ''}</td>
           <td class="${isDebt?'neg':'bold'}" style="white-space:nowrap;text-align:right;">${dispVal}${prevDiffHtml}</td>
           <td></td>
         </tr>`;
@@ -2435,9 +2433,9 @@ function renderBalance() {
     }
 
     const colgroup = isEdit
-      ? `<colgroup><col style="width:26%;"><col style="width:18%;"><col style="width:14%;"><col style="width:24%;"><col style="width:18%;"></colgroup>`
-      : `<colgroup><col style="width:26%;"><col style="width:18%;"><col style="width:16%;"><col style="width:36%;"><col style="width:4%;"></colgroup>`;
-    const thead = `<tr><th class="L">별명</th><th class="L">구분</th><th>메모</th><th class="R">금액</th><th></th></tr>`;
+      ? `<colgroup><col style="width:32%;"><col style="width:24%;"><col style="width:26%;"><col style="width:18%;"></colgroup>`
+      : `<colgroup><col style="width:32%;"><col style="width:24%;"><col style="width:40%;"><col style="width:4%;"></colgroup>`;
+    const thead = `<tr><th class="L">별명</th><th class="L">구분</th><th class="R">금액</th><th></th></tr>`;
     const catTotalHtml = accs.length > 0
       ? `<div class="cat-total" style="color:${isDebt ? 'var(--red)' : 'var(--accent)'};">${isDebt ? (dispTotal ? '-'+fmtW(Math.abs(dispTotal)) : '-') : fmtW(total)}</div>`
       : '';
@@ -3047,7 +3045,6 @@ function renderCashflow() {
       return `<tr style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
         <td class="M" style="text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td class="M" style="text-align:center;color:var(--text3);">${r.memo||''}</td>
         <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${amount?fmt(amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('income',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
         <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
           <button onclick="openRowEditModal('income',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
@@ -3062,7 +3059,6 @@ function renderCashflow() {
       return `<tr>
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
         <td class="M" style="text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td class="M" style="text-align:center;">${r.memo||''}</td>
         <td class="pos bold" style="white-space:nowrap;text-align:right;">${amount?fmt(amount):''}${viewDiffHtml}</td>
       </tr>`;
     }
@@ -3070,11 +3066,11 @@ function renderCashflow() {
 
   const incomeTotal = incomeFiltered.reduce((s,{r})=>s+(r.amount!==undefined?(parseNum(r.amount)||0):(parseNum(r.member1)||0)+(parseNum(r.member2)||0)),0);
   const colsIncome = isEdit
-    ? `<colgroup><col style="width:26%;"><col style="width:16%;"><col style="width:18%;"><col style="width:24%;"><col style="width:16%;"></colgroup>`
-    : `<colgroup><col style="width:26%;"><col style="width:16%;"><col style="width:18%;"><col style="width:40%;"></colgroup>`;
+    ? `<colgroup><col style="width:26%;"><col style="width:20%;"><col style="width:34%;"><col style="width:20%;"></colgroup>`
+    : `<colgroup><col style="width:26%;"><col style="width:20%;"><col style="width:54%;"></colgroup>`;
   const thIncome = isEdit
-    ? `<th>내용</th><th>메모</th><th class="R">금액</th><th></th>`
-    : `<th>내용</th><th>메모</th><th class="R">금액</th>`;
+    ? `<th>내용</th><th class="R">금액</th><th></th>`
+    : `<th>내용</th><th class="R">금액</th>`;
 
   // 지출 테이블
   const expenseFiltered = cf.expense.map((r,i)=>({r,i})).filter(({r})=>cfItemMatchesFilter(r));
@@ -3087,7 +3083,6 @@ function renderCashflow() {
       return `<tr style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
         <td class="M" style="text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td class="M" style="text-align:center;color:var(--text3);">${r.memo||''}</td>
         <td>${prevExpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevExpAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('expense',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
         <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
           <button onclick="openRowEditModal('expense',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
@@ -3102,7 +3097,6 @@ function renderCashflow() {
       return `<tr>
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
         <td class="M" style="text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td class="M" style="text-align:center;">${r.memo||''}</td>
         <td class="neg bold" style="white-space:nowrap;text-align:right;">${r.amount?fmt(r.amount):''}${expViewDiffHtml}</td>
       </tr>`;
     }
@@ -3195,7 +3189,6 @@ function renderCashflow() {
       return `<tr style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</span></div></td>
         <td style="text-align:center;font-size:11px;overflow:hidden;color:var(--text3);"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></td>
-        <td class="M" style="text-align:center;color:var(--text3);">${r.memo||''}</td>
         <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('savings',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
         <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
           <button onclick="openRowEditModal('savings',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
@@ -3210,7 +3203,6 @@ function renderCashflow() {
       return `<tr>
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</span></div></td>
         <td class="M" style="text-align:center;">${r.label||''}</td>
-        <td class="M" style="text-align:center;">${r.memo||''}</td>
         <td class="bold" style="color:var(--blue);white-space:nowrap;text-align:right;">${r.amount?fmt(r.amount):''}${diffHtml}</td>
       </tr>`;
     }
@@ -3222,11 +3214,11 @@ function renderCashflow() {
     </div>
     <table class="data-table" data-cf-live="savings">
       ${isEdit
-        ? `<colgroup><col style="width:22%;"><col style="width:18%;"><col style="width:20%;"><col style="width:24%;"><col style="width:16%;"></colgroup>
-      <tr><th class="L">구분</th><th>내용</th><th>메모</th><th class="R">금액</th><th></th></tr>`
-        : `<colgroup><col style="width:22%;"><col style="width:18%;"><col style="width:20%;"><col style="width:40%;"></colgroup>
-      <tr><th class="L">구분</th><th>내용</th><th>메모</th><th class="R">금액</th></tr>`}
-      ${savingsListRows || `<tr><td colspan="${isEdit?5:4}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 저축 항목 추가 버튼으로 등록해보세요' : '이달 저축 내역이 없어요 · 편집 모드에서 추가할 수 있어요'}</td></tr>`}
+        ? `<colgroup><col style="width:26%;"><col style="width:24%;"><col style="width:34%;"><col style="width:16%;"></colgroup>
+      <tr><th class="L">구분</th><th>내용</th><th class="R">금액</th><th></th></tr>`
+        : `<colgroup><col style="width:26%;"><col style="width:24%;"><col style="width:50%;"></colgroup>
+      <tr><th class="L">구분</th><th>내용</th><th class="R">금액</th></tr>`}
+      ${savingsListRows || `<tr><td colspan="${isEdit?4:3}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 저축 항목 추가 버튼으로 등록해보세요' : '이달 저축 내역이 없어요 · 편집 모드에서 추가할 수 있어요'}</td></tr>`}
     </table>
     ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('savings')">+ 저축 항목 추가</button>` : ''}
     <div class="sbar"><span class="sbar-label">총저축</span><span class="sbar-value" style="color:var(--blue);">${fmtW(cfSavingsListTotal)}</span></div>
@@ -3295,7 +3287,7 @@ function renderCashflow() {
               </div>
               <table class="data-table" data-cf-live="income">${colsIncome}
                 <tr><th class="L">구분</th>${thIncome}</tr>
-                ${incomeRows || `<tr><td colspan="${isEdit?5:4}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 수입 항목 추가 버튼으로 등록해보세요' : '이달 수입 내역이 없어요'}</td></tr>`}
+                ${incomeRows || `<tr><td colspan="${isEdit?4:3}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 수입 항목 추가 버튼으로 등록해보세요' : '이달 수입 내역이 없어요'}</td></tr>`}
               </table>
               ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('income')">+ 수입 항목 추가</button>` : ''}
               <div class="sbar"><span class="sbar-label">총수입</span><span class="sbar-value" style="color:var(--green);">${fmtW(incomeTotal)}</span></div>
@@ -3311,10 +3303,10 @@ function renderCashflow() {
               </div>
               <table class="data-table" data-cf-live="expense">
                 ${isEdit
-                  ? `<colgroup><col style="width:26%;"><col style="width:16%;"><col style="width:18%;"><col style="width:24%;"><col style="width:16%;"></colgroup>`
-                  : `<colgroup><col style="width:26%;"><col style="width:16%;"><col style="width:18%;"><col style="width:40%;"></colgroup>`}
-                <tr><th class="L">구분</th><th>내용</th><th>메모</th><th class="R">금액</th>${isEdit?'<th></th>':''}</tr>
-                ${expenseRows || `<tr><td colspan="${isEdit?5:4}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 지출 항목 추가 버튼으로 등록해보세요' : '이달 지출 내역이 없어요'}</td></tr>`}
+                  ? `<colgroup><col style="width:26%;"><col style="width:20%;"><col style="width:34%;"><col style="width:20%;"></colgroup>`
+                  : `<colgroup><col style="width:26%;"><col style="width:20%;"><col style="width:54%;"></colgroup>`}
+                <tr><th class="L">구분</th><th>내용</th><th class="R">금액</th>${isEdit?'<th></th>':''}</tr>
+                ${expenseRows || `<tr><td colspan="${isEdit?4:3}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 지출 항목 추가 버튼으로 등록해보세요' : '이달 지출 내역이 없어요'}</td></tr>`}
               </table>
               ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('expense')">+ 지출 항목 추가</button>` : ''}
               <div class="sbar"><span class="sbar-label">총지출</span><span class="sbar-value" style="color:var(--red);">${fmtW(expenseTotal)}</span></div>
