@@ -273,7 +273,7 @@ body {
   font-family: inherit; outline: none;
 }
 .row-edit-field:focus { border-bottom: 2px solid var(--accent); }
-.row-edit-label { font-size: 11px; color: var(--text3); margin-top: 1rem; margin-bottom: 2px; }
+.row-edit-label { font-size: 12px; font-weight: 500; color: var(--text3); margin-top: 1.1rem; margin-bottom: 3px; letter-spacing: -.01em; }
 
 /* ── sbar ── */
 .sbar {
@@ -542,6 +542,16 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
   padding: .3rem .85rem; font-size: 13px; font-weight: 700;
   border: none; border-radius: var(--r-sm);
   background: var(--accent); color: #fff; cursor: pointer;
+}
+.bar-cancel {
+  background: var(--surface2); color: var(--text2);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: .65rem 1rem; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.bar-save {
+  background: var(--accent); color: #fff;
+  border: none; border-radius: var(--r-sm);
+  padding: .65rem 1rem; font-size: 14px; font-weight: 700; cursor: pointer;
 }
 #edit-action-bar .bar-cancel {
   flex: 1; background: var(--surface2); color: var(--text2);
@@ -3467,11 +3477,13 @@ function renderRowEditContent() {
       ${members.length > 1 ? `<div class="row-edit-label">소유자</div><div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.25rem;">${ownerBtns}</div>` : ''}
     `;
   }
-  html += `<div style="display:flex;gap:.5rem;margin-top:1.25rem;margin-bottom:.5rem;">
+  html += `<div style="display:flex;gap:.625rem;margin-top:1.5rem;margin-bottom:.25rem;">
     <button class="bar-cancel" onclick="closeRowEditModal()" style="flex:1;">취소</button>
     <button class="bar-save" onclick="saveRowEditModal()" style="flex:1;">저장</button>
   </div>`;
-  document.getElementById('row-edit-content').innerHTML = html;
+  const contentEl = document.getElementById('row-edit-content');
+  contentEl.style.padding = '0 .25rem .75rem';
+  contentEl.innerHTML = html;
 }
 
 function saveRowEditModal() {
