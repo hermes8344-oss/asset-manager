@@ -2435,7 +2435,7 @@ function renderBalance() {
     const colgroup = isEdit
       ? `<colgroup><col style="width:32%;"><col style="width:24%;"><col style="width:26%;"><col style="width:18%;"></colgroup>`
       : `<colgroup><col style="width:32%;"><col style="width:24%;"><col style="width:40%;"><col style="width:4%;"></colgroup>`;
-    const thead = `<tr><th>별명</th><th>구분</th><th>금액</th><th></th></tr>`;
+    const thead = `<tr><th>별명</th><th class="L">구분</th><th>금액</th><th></th></tr>`;
     const catTotalHtml = accs.length > 0
       ? `<div class="cat-total" style="color:${isDebt ? 'var(--red)' : 'var(--accent)'};">${isDebt ? (dispTotal ? '-'+fmtW(Math.abs(dispTotal)) : '-') : fmtW(total)}</div>`
       : '';
@@ -3069,8 +3069,8 @@ function renderCashflow() {
     ? `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:22%;"><col style="width:20%;"></colgroup>`
     : `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>`;
   const thIncome = isEdit
-    ? `<th>내용</th><th class="R">금액</th><th></th>`
-    : `<th>내용</th><th class="R">금액</th>`;
+    ? `<th class="L">내용</th><th>금액</th><th></th>`
+    : `<th class="L">내용</th><th>금액</th>`;
 
   // 지출 테이블
   const expenseFiltered = cf.expense.map((r,i)=>({r,i})).filter(({r})=>cfItemMatchesFilter(r));
@@ -3215,9 +3215,9 @@ function renderCashflow() {
     <table class="data-table" data-cf-live="savings">
       ${isEdit
         ? `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:26%;"><col style="width:16%;"></colgroup>
-      <tr><th>구분</th><th>내용</th><th class="R">금액</th><th></th></tr>`
+      <tr><th>구분</th><th class="L">내용</th><th>금액</th><th></th></tr>`
         : `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>
-      <tr><th>구분</th><th>내용</th><th class="R">금액</th></tr>`}
+      <tr><th>구분</th><th class="L">내용</th><th>금액</th></tr>`}
       ${savingsListRows || `<tr><td colspan="${isEdit?4:3}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 저축 항목 추가 버튼으로 등록해보세요' : '이달 저축 내역이 없어요 · 편집 모드에서 추가할 수 있어요'}</td></tr>`}
     </table>
     ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('savings')">+ 저축 항목 추가</button>` : ''}
@@ -3305,7 +3305,7 @@ function renderCashflow() {
                 ${isEdit
                   ? `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:22%;"><col style="width:20%;"></colgroup>`
                   : `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>`}
-                <tr><th>구분</th><th>내용</th><th class="R">금액</th>${isEdit?'<th></th>':''}</tr>
+                <tr><th>구분</th><th class="L">내용</th><th>금액</th>${isEdit?'<th></th>':''}</tr>
                 ${expenseRows || `<tr><td colspan="${isEdit?4:3}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 지출 항목 추가 버튼으로 등록해보세요' : '이달 지출 내역이 없어요'}</td></tr>`}
               </table>
               ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('expense')">+ 지출 항목 추가</button>` : ''}
