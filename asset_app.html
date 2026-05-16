@@ -2435,7 +2435,7 @@ function renderBalance() {
     const colgroup = isEdit
       ? `<colgroup><col style="width:32%;"><col style="width:24%;"><col style="width:26%;"><col style="width:18%;"></colgroup>`
       : `<colgroup><col style="width:32%;"><col style="width:24%;"><col style="width:40%;"><col style="width:4%;"></colgroup>`;
-    const thead = `<tr><th>별명</th><th class="L">구분</th><th>금액</th><th></th></tr>`;
+    const thead = `<tr><th>별명</th><th>구분</th><th>금액</th><th></th></tr>`;
     const catTotalHtml = accs.length > 0
       ? `<div class="cat-total" style="color:${isDebt ? 'var(--red)' : 'var(--accent)'};">${isDebt ? (dispTotal ? '-'+fmtW(Math.abs(dispTotal)) : '-') : fmtW(total)}</div>`
       : '';
