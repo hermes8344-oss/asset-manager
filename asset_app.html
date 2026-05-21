@@ -4154,12 +4154,10 @@ function renderFixedTab() {
           <option value="연1회" ${f.cycle==='연1회'?'selected':''}>연1회</option>
         </select>
         <div id="fx-edit-cycle-field-${i}" style="min-width:0;overflow:hidden;">${cycleFieldHtml}</div>
-        <div style="display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;min-width:0;">
-          ${ownerSelHtml}
-          <div style="display:flex;gap:3px;">
-            <button class="del-btn" style="color:var(--text3);font-size:13px;" onclick="cancelFixedEdit()" title="취소">✗</button>
-            <button class="del-btn" style="color:var(--accent);font-size:13px;" onclick="saveFixedEdit(${i})" title="저장">✓</button>
-          </div>
+        ${ownerSelHtml}
+        <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:6px;padding:.35rem 0 .1rem;border-top:1px solid var(--border);margin-top:.2rem;">
+          <button class="btn btn-secondary" style="padding:.3rem .8rem;font-size:12px;" onclick="cancelFixedEdit()">취소</button>
+          <button class="btn btn-primary" style="padding:.3rem .8rem;font-size:12px;" onclick="saveFixedEdit(${i})">저장</button>
         </div>
       </div>`;
     }
@@ -4614,16 +4612,14 @@ function renderAutoTransferTab() {
     if (state.atEditIdx === i) {
       return `<div class="at-row" style="align-items:center;background:var(--accent-light);border-radius:var(--r-xs);">
         <span></span>
-        <input class="input-field" id="at-edit-label" value="${at.label}" placeholder="납부 내용" style="width:50%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:left;min-width:0;"/>
+        <input class="input-field" id="at-edit-label" value="${at.label}" placeholder="납부 내용" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:left;min-width:0;"/>
         <button onclick="openAutoTransferSourceEdit(${i})" style="background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r-xs);color:var(--accent);font-weight:600;font-size:9px;width:100%;padding:.2rem .1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;min-width:0;">${sourceLabel} ✎</button>
-        <input class="input-field" id="at-edit-amount" inputmode="numeric" value="${at.amount ? fmt(at.amount) : ''}" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" style="width:50%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:right;min-width:0;"/>
-        <input class="input-field" id="at-edit-payee" value="${at.payee||''}" placeholder="받는 곳" style="width:50%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:left;min-width:0;"/>
-        <div style="display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center;min-width:0;">
-          ${daySelectHtml('at-edit-day', at.day, 'width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;min-width:0;')}
-          <div style="display:flex;gap:3px;">
-            <button class="del-btn" style="color:var(--text3);font-size:13px;" onclick="cancelAutoTransferEdit()" title="취소">✗</button>
-            <button class="del-btn" style="color:var(--accent);font-size:13px;" onclick="saveAutoTransferEdit(${i})" title="저장">✓</button>
-          </div>
+        <input class="input-field" id="at-edit-amount" inputmode="numeric" value="${at.amount ? fmt(at.amount) : ''}" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:right;min-width:0;"/>
+        <input class="input-field" id="at-edit-payee" value="${at.payee||''}" placeholder="받는 곳" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:left;min-width:0;"/>
+        ${daySelectHtml('at-edit-day', at.day, 'width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;min-width:0;')}
+        <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:6px;padding:.35rem 0 .1rem;border-top:1px solid var(--border);margin-top:.2rem;">
+          <button class="btn btn-secondary" style="padding:.3rem .8rem;font-size:12px;" onclick="cancelAutoTransferEdit()">취소</button>
+          <button class="btn btn-primary" style="padding:.3rem .8rem;font-size:12px;" onclick="saveAutoTransferEdit(${i})">저장</button>
         </div>
       </div>`;
     }
