@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+
++<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8"/>
@@ -189,6 +190,7 @@ body {
 @media (max-width: 899px) {
   .balance-pc-layout { display: flex; flex-direction: column; }
   .balance-pc-side { order: -1; }
+  .balance-side-editing { display: none; }
 }
 
 /* ── 대시보드 새 레이아웃 ── */
@@ -200,6 +202,7 @@ body {
 .dash-row2 > .card:last-child { margin-bottom: 0; }
 
 /* ── 도넛 범례 ── */
+.donut-inner { display: flex; flex-direction: column; align-items: center; margin-top: .5rem; }
 .donut-legend { display: flex; flex-direction: column; gap: 5px; margin-top: .6rem; }
 .donut-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
 .donut-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
@@ -246,9 +249,11 @@ body {
 .data-table td { padding: .38rem 3px; border-bottom: 1px solid var(--border); text-align: center; color: var(--text1); word-break: break-all; }
 .data-table td.L { text-align: left; color: var(--text2); }
 .data-table td.M { text-align: left; color: var(--text3); font-size: 12px; }
-.data-table td.neg { color: var(--red); font-weight: 600; }
-.data-table td.pos { color: var(--green); font-weight: 600; }
-.data-table td.bold { font-weight: 600; }
+.data-table td.neg { color: var(--red); font-weight: 600; font-variant-numeric: tabular-nums; }
+.data-table td.pos { color: var(--green); font-weight: 600; font-variant-numeric: tabular-nums; }
+.data-table td.bold { font-weight: 600; font-variant-numeric: tabular-nums; }
+.data-table tbody tr:nth-child(even) td { background: rgba(0,0,0,.018); }
+[data-theme="dark"] .data-table tbody tr:nth-child(even) td { background: rgba(255,255,255,.025); }
 .data-table input {
   background: transparent; border: none; border-bottom: none;
   border-radius: 0; padding: 2px 0 4px;
@@ -780,6 +785,8 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
   .donut-tab-btns { display: none; }
   .donut-tab-card { display: block !important; }
   .chart-container { height: 180px; }
+  .donut-inner { flex-direction: row; align-items: center; gap: 1rem; }
+  .donut-inner .donut-legend { margin-top: 0; flex: 1; }
 
   /* ── 수입/지출: 2열 나란히 ── */
   .cf-tables-grid {
@@ -862,6 +869,36 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
     padding-right: 48px;
   }
 }
+
+/* ── 저장 체크마크 피드백 ── */
+@keyframes checkPop {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.25); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.btn-saved { background: var(--green) !important; color: #fff !important; transition: background .2s, color .2s; }
+.btn-saved::after { content: ' ✓'; display: inline-block; animation: checkPop .25s ease forwards; }
+
+/* ── 모바일 FAB ── */
+.fab {
+  position: fixed; right: 1.25rem;
+  bottom: calc(56px + 1rem);
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: var(--accent); color: #fff;
+  font-size: 26px; font-weight: 300; line-height: 1;
+  box-shadow: 0 4px 16px rgba(83,74,183,.4);
+  display: flex; align-items: center; justify-content: center;
+  border: none; cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  z-index: 90;
+}
+.fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(83,74,183,.25); }
+@media (min-width: 900px) { .fab { display: none !important; } }
+
+/* ── 편집 셀 하이라이트 ── */
+tr.row-changed td { background: rgba(83,74,183,.07) !important; }
+[data-theme="dark"] tr.row-changed td { background: rgba(83,74,183,.15) !important; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -985,6 +1022,9 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
     <div class="page-content" id="settings-content"></div>
   </div>
 
+  <!-- 모바일 FAB -->
+  <button id="global-fab" class="fab" onclick="fabAction()" style="display:none;">+</button>
+
   <!-- 하단 네비 -->
   <nav id="bottom-nav" style="display:none;">
     <button class="nav-btn active" onclick="switchTab('dashboard')" id="nav-dashboard">대시보드</button>
@@ -996,7 +1036,7 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 </div>
 
 <!-- 행 상세 편집 팝업 -->
-<div class="modal-overlay" id="row-edit-modal">
+<div class="modal-overlay" id="row-edit-modal" onclick="if(event.target===this)closeRowEditModal()">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-header">
@@ -1015,7 +1055,7 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 </div>
 
 <!-- 계좌 추가 모달 -->
-<div class="modal-overlay" id="account-modal">
+<div class="modal-overlay" id="account-modal" onclick="if(event.target===this)closeAccountModal()">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-header">
@@ -1029,7 +1069,7 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 </div>
 
 <!-- 수입/지출 추가 모달 -->
-<div class="modal-overlay" id="cf-modal">
+<div class="modal-overlay" id="cf-modal" onclick="if(event.target===this)closeCFModal()">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-header">
@@ -1043,7 +1083,7 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 </div>
 
 <!-- 고정비 추가 모달 -->
-<div class="modal-overlay" id="fixed-modal">
+<div class="modal-overlay" id="fixed-modal" onclick="if(event.target===this)closeFixedModal()">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-header">
@@ -1057,7 +1097,7 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 </div>
 
 <!-- 자동이체 추가 모달 -->
-<div class="modal-overlay" id="auto-transfer-modal">
+<div class="modal-overlay" id="auto-transfer-modal" onclick="if(event.target===this)closeAutoTransferModal()">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-header">
@@ -1071,7 +1111,7 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 </div>
 
 <!-- 목표 추가 모달 -->
-<div class="modal-overlay" id="goal-modal">
+<div class="modal-overlay" id="goal-modal" onclick="if(event.target===this)closeGoalModal()">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-header">
@@ -1427,6 +1467,7 @@ function enterApp() {
   document.getElementById('safe-bottom').style.display = '';
   document.getElementById('shared-banner').style.display = ownerUserId ? 'block' : 'none';
   switchTab('dashboard');
+  setupSwipeNav();
 }
 function switchTab(tab) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -1439,6 +1480,7 @@ function switchTab(tab) {
   if (tab === 'balance') { state.balanceEditing = false; renderBalance(); }
   if (tab === 'cashflow') { state.cashflowEditing = false; renderCashflow(); }
   if (tab === 'settings') renderSettings();
+  updateFab();
 }
 
 // ══════════════════════════════════════════
@@ -1720,15 +1762,15 @@ function renderDashboard() {
         <div class="hero-card">
           <div>
             <div class="hero-label">순자산</div>
-            <div class="hero-value ${net<0?'neg':''}">${net<0?'-':''}${fmtAbs(Math.abs(net))}</div>
+            <div class="hero-value ${net<0?'neg':''}" data-raw="${net}">${net<0?'-':''}${fmtAbs(Math.abs(net))}</div>
             <div class="hero-delta" style="color:${netDiff===null?'var(--text3)':netDiff>=0?'var(--green)':'var(--red)'};">
               ${netDiff===null ? '전월 데이터 없음' : (netDiff>=0?'▲ +':'▼ ')+fmtAbs(Math.abs(netDiff))+' 전월比'}
             </div>
           </div>
           <div class="hero-right" style="text-align:right;">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:.15rem;">총자산</div>
-            <div style="font-size:15px;font-weight:700;color:var(--text1);">${fmtAbs(totalAsset)}</div>
-            ${totalDebt > 0 ? `<div style="font-size:11px;color:var(--red);margin-top:.2rem;">부채 -${fmtAbs(totalDebt)}</div>` : ''}
+            <div style="font-size:12px;color:var(--text3);margin-bottom:.2rem;">총자산</div>
+            <div style="font-size:18px;font-weight:700;color:var(--text1);">${fmtAbs(totalAsset)}</div>
+            ${totalDebt > 0 ? `<div style="font-size:12px;color:var(--text3);margin-top:.5rem;margin-bottom:.2rem;">부채</div><div style="font-size:15px;font-weight:700;color:var(--red);">-${fmtAbs(totalDebt)}</div>` : ''}
           </div>
         </div>`}
 
@@ -1739,7 +1781,7 @@ function renderDashboard() {
             const valStyle = c.valueColor ? `style="color:${c.valueColor};"` : '';
             return `<div class="metric-card" style="border-left-color:${c.hex};">
               <div class="metric-label">${c.name}</div>
-              <div class="metric-value" ${valStyle}>${fmtAbs(cats[c.name]||0)}</div>
+              <div class="metric-value" ${valStyle} data-raw="${cats[c.name]||0}">${fmtAbs(cats[c.name]||0)}</div>
             </div>`;
           }).join('')}
         </div>
@@ -1778,18 +1820,22 @@ function renderDashboard() {
           <div class="card donut-tab-card ${dashDonutTab==='income'?'active':''}" data-tab="income">
             <div class="section-title">이달 수입 구성</div>
             ${incomeDonutSegs.length > 0 ? `
-            <svg id="income-donut-svg" width="100%" style="max-width:160px;aspect-ratio:1;display:block;margin:0 auto;overflow:visible;"></svg>
-            <div class="donut-legend">
-              ${incomeDonutSegs.map(seg=>`<div class="donut-legend-item"><div class="donut-legend-dot" style="background:${seg.color};"></div>${seg.label} <span style="color:var(--text3);font-size:11px;">${fmtAbs(seg.value)}</span></div>`).join('')}
+            <div class="donut-inner">
+              <svg id="income-donut-svg" width="100%" style="max-width:140px;aspect-ratio:1;display:block;overflow:visible;flex-shrink:0;"></svg>
+              <div class="donut-legend">
+                ${incomeDonutSegs.map(seg=>`<div class="donut-legend-item"><div class="donut-legend-dot" style="background:${seg.color};"></div>${seg.label} <span style="color:var(--text3);font-size:11px;">${fmtAbs(seg.value)}</span></div>`).join('')}
+              </div>
             </div>` : `<div class="hint-box" style="margin-top:.5rem;"><div class="hint-text">이달 수입 데이터 없음</div></div>`}
           </div>
 
           <div class="card donut-tab-card ${dashDonutTab==='expense'?'active':''}" data-tab="expense">
             <div class="section-title">이달 지출 구성</div>
             ${expenseDonutSegs.length > 0 ? `
-            <svg id="expense-donut-svg" width="100%" style="max-width:160px;aspect-ratio:1;display:block;margin:0 auto;overflow:visible;"></svg>
-            <div class="donut-legend">
-              ${expenseDonutSegs.map(seg=>`<div class="donut-legend-item"><div class="donut-legend-dot" style="background:${seg.color};"></div>${seg.label} <span style="color:var(--text3);font-size:11px;">${fmtAbs(seg.value)}</span></div>`).join('')}
+            <div class="donut-inner">
+              <svg id="expense-donut-svg" width="100%" style="max-width:140px;aspect-ratio:1;display:block;overflow:visible;flex-shrink:0;"></svg>
+              <div class="donut-legend">
+                ${expenseDonutSegs.map(seg=>`<div class="donut-legend-item"><div class="donut-legend-dot" style="background:${seg.color};"></div>${seg.label} <span style="color:var(--text3);font-size:11px;">${fmtAbs(seg.value)}</span></div>`).join('')}
+              </div>
             </div>` : `<div class="hint-box" style="margin-top:.5rem;"><div class="hint-text">이달 지출 데이터 없음</div></div>`}
           </div>
 
@@ -1803,7 +1849,7 @@ function renderDashboard() {
       <div class="dash-aside">
         <div class="card">
           <div class="section-title">이달 지출 순위</div>
-          <svg id="top-exp-svg" width="100%" style="display:block;overflow:visible;height:100%;"></svg>
+          <svg id="top-exp-svg" width="100%" style="display:block;overflow:visible;"></svg>
         </div>
         <div class="card" style="margin-top:.75rem;">
           <div class="section-title">목표 관리</div>
@@ -1836,6 +1882,10 @@ function renderDashboard() {
   if (!_isMobile || dashDonutTab === 'income')  { if (incomeDonutSegs.length)  drawDonutChart('income-donut-svg',  incomeDonutSegs); }
   if (!_isMobile || dashDonutTab === 'expense') { if (expenseDonutSegs.length) drawDonutChart('expense-donut-svg', expenseDonutSegs); }
   _updateThemeIcon();
+  document.querySelectorAll('[data-raw]').forEach(function(el) {
+    const val = parseFloat(el.dataset.raw);
+    if (!isNaN(val)) animateCount(el, val);
+  });
 }
 
 // BAL_TREND_CAT_HEX → CAT_HEX 로 통합 (CATEGORY_CONFIG 참고)
@@ -1945,7 +1995,7 @@ function drawAnnualStackedBar(svgId, year, force=false) {
       .map(c => `<span style="color:${CAT_HEX[c]}"> · ${c} ${fmtAbs(d.cats[c])}</span>`)
       .join('<br>');
     annualTipData[i] = `<b>${i+1}월</b><br><span style="color:${assetColor}">■ 자산 ${fmtAbs(d.asset)}</span><br>${catLines}${catLines?'<br>':''}<span style="color:${debtColor}">■ 부채 ${fmtAbs(d.debt)}</span><br><span style="color:${netColor}">● 순자산 ${fmtW(d.net)}</span>`;
-    svgStr += `<rect x="${PAD_L+i*barSlotW}" y="${PAD_T}" width="${barSlotW}" height="${cH+PAD_B}" fill="transparent" onmouseover="showAnnualTip(event,${i})" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()"/>`;
+    svgStr += `<rect x="${PAD_L+i*barSlotW}" y="${PAD_T}" width="${barSlotW}" height="${cH+PAD_B}" fill="transparent" onmouseover="showAnnualTip(event,${i})" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" ontouchstart="showAnnualTip(event,${i});event.preventDefault()" ontouchend="hideChartTip()"/>`;
   });
 
   // 순자산 라인 + 원형 마커
@@ -2001,7 +2051,7 @@ function initGraphs() {
     if (netVal !== null) {
       netData.push(netVal); netDashData.push(null);
     } else {
-      netData.push(null); netDashData.push(0);
+      netData.push(null); netDashData.push(null);
     }
   }
 
@@ -2021,9 +2071,10 @@ function showChartTip(evt, html) {
 }
 function moveChartTip(evt) {
   const tip = document.getElementById('chart-tip');
-  const x = evt.clientX + 14;
-  const y = evt.clientY - 44;
-  tip.style.left = (x + tip.offsetWidth > window.innerWidth ? evt.clientX - tip.offsetWidth - 8 : x) + 'px';
+  const src = evt.touches ? evt.touches[0] : evt;
+  const x = src.clientX + 14;
+  const y = src.clientY - 44;
+  tip.style.left = (x + tip.offsetWidth > window.innerWidth ? src.clientX - tip.offsetWidth - 8 : x) + 'px';
   tip.style.top = Math.max(4, y) + 'px';
 }
 function hideChartTip() {
@@ -2063,7 +2114,7 @@ function drawDonutChart(svgId, segments) {
       const ix2 = (cx + innerR * cos2).toFixed(2), iy2 = (cy + innerR * sin2).toFixed(2);
       const large = sweep > Math.PI ? 1 : 0;
       const tip = `${seg.label}: ${fmtW(v)}`;
-      svgStr += `<path d="M${ix1},${iy1} L${x1},${y1} A${outerR},${outerR} 0 ${large},1 ${x2},${y2} L${ix2},${iy2} A${innerR},${innerR} 0 ${large},0 ${ix1},${iy1}Z" fill="${seg.color}" onmouseover="showChartTip(event,'${tip}')" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" style="cursor:default"/>`;
+      svgStr += `<path d="M${ix1},${iy1} L${x1},${y1} A${outerR},${outerR} 0 ${large},1 ${x2},${y2} L${ix2},${iy2} A${innerR},${innerR} 0 ${large},0 ${ix1},${iy1}Z" fill="${seg.color}" onmouseover="showChartTip(event,'${tip}')" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" ontouchstart="showChartTip(event,'${tip}');event.preventDefault()" ontouchend="hideChartTip()" style="cursor:default"/>`;
       angle += sweep + GAP;
     });
     svgStr += `<text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="10" fill="var(--text2)">합계</text>`;
@@ -2082,6 +2133,7 @@ function drawTopExpenses(svgId, dataYM) {
   const items = raw.slice(0, 10);
   if (items.length === 0) {
     el.setAttribute('viewBox', '0 0 240 50');
+    el.setAttribute('height', 50);
     el.innerHTML = `<text x="120" y="30" text-anchor="middle" font-size="11" fill="var(--text2)">이달 지출 데이터 없음</text>`;
     return;
   }
@@ -2096,11 +2148,12 @@ function drawTopExpenses(svgId, dataYM) {
     const tip = `${exp.label}: ${fmtW(exp.amount)}`;
     svgStr += `<text x="${PAD_L-6}" y="${y+4}" text-anchor="end" font-size="11" fill="var(--text1)">${lbl}</text>`;
     svgStr += `<rect x="${PAD_L}" y="${y-7}" width="${barW}" height="14" rx="3" fill="var(--surface2)"/>`;
-    svgStr += `<rect x="${PAD_L}" y="${y-7}" width="${bw}" height="14" rx="3" fill="#F5A0A0" onmouseover="showChartTip(event,'${tip}')" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" style="cursor:default"/>`;
+    svgStr += `<rect x="${PAD_L}" y="${y-7}" width="${bw}" height="14" rx="3" fill="#F5A0A0" onmouseover="showChartTip(event,'${tip}')" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" ontouchstart="showChartTip(event,'${tip}');event.preventDefault()" ontouchend="hideChartTip()" style="cursor:default"/>`;
     svgStr += `<text x="${PAD_L+barW+5}" y="${y+4}" text-anchor="start" font-size="10" fill="var(--text2)">${fmtAbs(exp.amount)}</text>`;
   });
   el.setAttribute('viewBox', `0 0 ${W} ${H}`);
   el.setAttribute('preserveAspectRatio', 'xMidYMin meet');
+  el.setAttribute('height', H);
   el.innerHTML = svgStr;
 }
 
@@ -2204,14 +2257,14 @@ function drawGraph(mode) {
       const v = d.cleanNetData[i];
       if (v !== null) {
         svgStr += `<circle cx="${xPos(i)}" cy="${yPos(v)}" r="2" fill="#534AB7"/>`;
-        svgStr += `<circle cx="${xPos(i)}" cy="${yPos(v)}" r="10" fill="transparent" style="cursor:default" onmouseover="showChartTip(event,'<b>${d.months[i]}월</b> 순자산<br>${fmtW(v)}')" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()"/>`;
+        svgStr += `<circle cx="${xPos(i)}" cy="${yPos(v)}" r="10" fill="transparent" style="cursor:default" onmouseover="showChartTip(event,'<b>${d.months[i]}월</b> 순자산<br>${fmtW(v)}')" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" ontouchstart="showChartTip(event,'<b>${d.months[i]}월</b> 순자산<br>${fmtW(v)}');event.preventDefault()" ontouchend="hideChartTip()"/>`;
       }
     }
     // 점선 포인트 hover 영역
     for (let i = 0; i < 12; i++) {
       const v = d.cleanNetDash[i];
       if (v !== null && d.cleanNetData[i] === null) {
-        svgStr += `<circle cx="${xPos(i)}" cy="${yPos(v)}" r="10" fill="transparent" style="cursor:default" onmouseover="showChartTip(event,'<b>${d.months[i]}월</b> 순자산 (예측)<br>${fmtW(v)}')" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()"/>`;
+        svgStr += `<circle cx="${xPos(i)}" cy="${yPos(v)}" r="10" fill="transparent" style="cursor:default" onmouseover="showChartTip(event,'<b>${d.months[i]}월</b> 순자산 (예측)<br>${fmtW(v)}')" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" ontouchstart="showChartTip(event,'<b>${d.months[i]}월</b> 순자산 (예측)<br>${fmtW(v)}');event.preventDefault()" ontouchend="hideChartTip()"/>`;
       }
     }
   }
@@ -2387,14 +2440,18 @@ function renderBalance() {
 
         const prevBalAmt = (state.balances[prevYM(ym)] || {})[a.id];
         const prevBalDisp = prevBalAmt !== undefined && prevBalAmt !== null ? fmt(Math.abs(prevBalAmt)) : '';
+        const prevBalAbsAmt = prevBalAmt !== undefined && prevBalAmt !== null ? Math.abs(prevBalAmt) : undefined;
+        const curBalAbsAmt = val ? Math.abs(val) : 0;
+        const balMatch = prevBalAbsAmt !== undefined && curBalAbsAmt === prevBalAbsAmt;
+        const balHintBg = balMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
         return `<tr data-acc-id="${a.id}" draggable="true" style="vertical-align:middle;"
             ondragstart="dragAccStart(event,'${a.id}')"
             ondragover="dragAccOver(event,'${a.id}')"
             ondrop="dragAccDrop(event,'${a.id}')"
             ondragend="dragAccEnd()">
-          <td><div style="display:flex;align-items:center;gap:4px;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${a.nickname}</span></div></td>
+          <td><div style="display:flex;align-items:center;gap:4px;">${badge}<span style="overflow:hidden;word-break:break-word;font-size:13px;">${a.nickname}</span></div></td>
           <td class="M" style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.institution}</td>
-          <td>${prevBalDisp ? `<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${prevBalDisp}</div>` : ''}<input type="text" inputmode="numeric" value="${val ? fmt(Math.abs(val)) : ''}" placeholder="0" class="amount-input" onblur="formatInput(this)" oninput="onBalanceInput('${a.id}',this);this.classList.add('cell-changed')" data-id="${a.id}" style="font-size:13px;width:100%;"/></td>
+          <td>${prevBalDisp ? `<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;"><span style="${balHintBg}">전달 ${prevBalDisp}</span></div>` : ''}<input type="text" inputmode="numeric" value="${val ? fmt(Math.abs(val)) : ''}" placeholder="0" class="amount-input" onblur="formatInput(this)" oninput="onBalanceInput('${a.id}',this);this.classList.add('cell-changed');this.closest('tr')?.classList.add('row-changed');syncHintColor(this)" data-id="${a.id}" data-prev-amt="${prevBalAbsAmt ?? ''}" style="font-size:13px;width:100%;"/></td>
           <td>
             <div style="display:flex;align-items:center;justify-content:center;gap:2px;">
               <button onclick="openRowEditModal('balance','${a.id}')" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
@@ -2425,7 +2482,7 @@ function renderBalance() {
           ? `<div style="font-size:11px;color:${diffColor};text-align:right;margin-top:1px;">${prevDiff>0?'▲ +':'▼ '}${fmtAbs(Math.abs(prevDiff))}</div>`
           : '';
         return `<tr>
-          <td class="L"><div style="display:flex;align-items:center;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.nickname}</span></div></td>
+          <td class="L"><div style="display:flex;align-items:center;">${badge}<span style="overflow:hidden;word-break:break-word;">${a.nickname}</span></div></td>
           <td class="M" style="text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.institution}${a.owner==='공동'?'<br><span style="font-size:9px;color:var(--accent);white-space:nowrap;">공동·'+responsible+'</span>':''}</td>
           <td class="${isDebt?'neg':'bold'}" style="white-space:nowrap;text-align:right;">${dispVal}${prevDiffHtml}</td>
           <td></td>
@@ -2493,7 +2550,7 @@ function renderBalance() {
       <div style="display:flex;align-items:center;gap:6px;">
         <button class="month-nav-btn" onclick="openMonthPicker('balance','prev')" ${isEdit?'disabled':''}>‹</button>
         <span class="month-pill" style="cursor:default;">${ymLabel(ym)}</span>
-        <button class="month-nav-btn" onclick="openMonthPicker('balance','next')" ${isEdit?'disabled':''}>›</button>
+        <button class="month-nav-btn" onclick="openMonthPicker('balance','next')" ${isEdit||ym>=currentYM()?'disabled':''}>›</button>
         <button class="today-btn ${ym===currentYM()||isEdit?'disabled':''}" onclick="goToday('balance')" ${ym===currentYM()||isEdit?'disabled':''}>오늘</button>
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
@@ -2526,7 +2583,7 @@ function renderBalance() {
         ${balCatGrid}
       </div>
 
-      <div class="balance-pc-side">
+      <div class="balance-pc-side${isEdit?' balance-side-editing':''}">
         <div class="card">
           <div class="section-title" style="margin-bottom:.75rem;">자산 요약</div>
           <div class="sum-row"><span class="sum-label">현금성</span><span id="bal-live-현금성" class="sum-val" style="color:var(--blue);">${fmtW(catSum['현금성']||0)}</span></div>
@@ -2564,6 +2621,7 @@ function renderBalance() {
 
   // 첫 방문 시 코치마크
   setTimeout(() => showCoachMark('balance'), 400);
+  updateFab();
 }
 
 let balanceTempData = {};
@@ -2666,6 +2724,17 @@ function cancelBalanceEdit() {
   hideEditBar();
   renderBalance();
 }
+function syncHintColor(input) {
+  if (!input.dataset.prevAmt) return;
+  const prevAmt = Number(input.dataset.prevAmt);
+  const curAmt = parseNum(input.value) || 0;
+  const span = input.parentNode.querySelector('div > span');
+  if (!span) return;
+  const match = curAmt === prevAmt;
+  span.style.background = match ? 'rgba(83,74,183,0.13)' : '';
+  span.style.borderRadius = match ? '3px' : '';
+  span.style.padding = match ? '0 3px' : '';
+}
 function onBalanceInput(accId, el) {
   if (!balanceTempData) balanceTempData = {};
   const raw = parseNum(el.value);
@@ -2731,6 +2800,7 @@ function saveBalance() {
   balanceTempData = {};
   balanceMemoTempData = {};
   hideEditBar();
+  flashSaved();
   showToast(`${ymLabel(ym)} 잔고 저장 완료`);
   renderBalance();
 }
@@ -3020,6 +3090,7 @@ function renderCashflow() {
   const prevCf = state.cashflow[prevYM(ym)] || { income:[], expense:[], special:[] };
 
   // 사용자 필터
+  if (!state.cfUserFilter) state.cfUserFilter = '모두';
   const cfFilter = state.cfUserFilter;
   function cfItemMatchesFilter(item) {
     if (cfFilter === '모두') return true;
@@ -3043,10 +3114,12 @@ function renderCashflow() {
     if (isEdit) {
       const prevIncomeRow = prevCf.income.find(p => p.label === r.label);
       const prevAmt = prevIncomeRow ? (prevIncomeRow.amount !== undefined ? (parseNum(prevIncomeRow.amount)||0) : (parseNum(prevIncomeRow.member1)||0)+(parseNum(prevIncomeRow.member2)||0)) : 0;
+      const incMatch = prevAmt && amount === prevAmt;
+      const incHintBg = incMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
       return `<tr class="${r._copied?'row-copied':''}" style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
         <td class="M" style="text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${amount?fmt(amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.closest('tr')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('income',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
+        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;"><span style="${incHintBg}">전달 ${fmt(prevAmt)}</span></div>`:''}<input type="text" inputmode="numeric" value="${amount?fmt(amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" oninput="this.classList.add('cell-changed');this.closest('tr')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',');syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('income',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
         <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
           <button onclick="openRowEditModal('income',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
           <button class="del-btn" onclick="deleteCFRow('income',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
@@ -3081,10 +3154,13 @@ function renderCashflow() {
     if (isEdit) {
       const prevExpRow = prevCf.expense.find(p => p.label === r.label);
       const prevExpAmt = prevExpRow ? (parseNum(prevExpRow.amount)||0) : 0;
+      const curExpAmt = parseNum(r.amount)||0;
+      const expMatch = prevExpAmt && curExpAmt === prevExpAmt;
+      const expHintBg = expMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
       return `<tr class="${r._copied?'row-copied':''}" style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
         <td class="M" style="text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td>${prevExpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevExpAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.closest('tr')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('expense',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
+        <td>${prevExpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;"><span style="${expHintBg}">전달 ${fmt(prevExpAmt)}</span></div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevExpAmt||''}" oninput="this.classList.add('cell-changed');this.closest('tr')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',');syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('expense',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
         <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
           <button onclick="openRowEditModal('expense',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
           <button class="del-btn" onclick="deleteCFRow('expense',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
@@ -3133,10 +3209,12 @@ function renderCashflow() {
     const spColgroupView = `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>`;
     if (isEdit) {
       const specialRows = specialFiltered.map(({r,i}) => {
+        const spOwner = r.owner || cfg.member1Name;
+        const spBadge = cfOwnerBadge(spOwner);
         const prevSpRow = prevCf.special.find(p => p.label === r.label);
         const prevSpAmt = prevSpRow ? (parseNum(prevSpRow.amount)||0) : 0;
         return `<tr style="vertical-align:middle;">
-          <td style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</td>
+          <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${spBadge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
           <td class="M" style="text-align:left;color:var(--text3);">${r.memo||''}</td>
           <td>${prevSpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevSpAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('special',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
           <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
@@ -3159,8 +3237,10 @@ function renderCashflow() {
       </div>`;
     } else {
       const specialRows = specialFiltered.map(({r}) => {
+        const spOwner = r.owner || cfg.member1Name;
+        const spBadge = cfOwnerBadge(spOwner);
         return `<tr>
-          <td style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</td>
+          <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${spBadge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
           <td class="M" style="text-align:left;">${r.memo||''}</td>
           <td class="bold" style="color:var(--amber);white-space:nowrap;text-align:right;">${r.amount?fmt(r.amount):''}</td>
         </tr>`;
@@ -3187,10 +3267,13 @@ function renderCashflow() {
     if (isEdit) {
       const prevRow = (prevCf.savings||[]).find(p => p.label === r.label);
       const prevAmt = prevRow ? (parseNum(prevRow.amount)||0) : 0;
+      const curSavAmt = parseNum(r.amount)||0;
+      const savMatch = prevAmt && curSavAmt === prevAmt;
+      const savHintBg = savMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
       return `<tr class="${r._copied?'row-copied':''}" style="vertical-align:middle;">
         <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</span></div></td>
         <td style="text-align:left;font-size:11px;overflow:hidden;color:var(--text3);"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></td>
-        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.closest('tr')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('savings',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
+        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;"><span style="${savHintBg}">전달 ${fmt(prevAmt)}</span></div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" oninput="this.closest('tr')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('savings',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
         <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
           <button onclick="openRowEditModal('savings',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
           <button class="del-btn" onclick="deleteCFRow('savings',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
@@ -3239,7 +3322,7 @@ function renderCashflow() {
       <div style="display:flex;align-items:center;gap:6px;">
         <button class="month-nav-btn" onclick="openMonthPicker('cashflow','prev')" ${isEdit?'disabled':''}>‹</button>
         <span class="month-pill" style="cursor:default;">${ymLabel(ym)}</span>
-        <button class="month-nav-btn" onclick="openMonthPicker('cashflow','next')" ${isEdit?'disabled':''}>›</button>
+        <button class="month-nav-btn" onclick="openMonthPicker('cashflow','next')" ${isEdit||ym>=currentYM()?'disabled':''}>›</button>
         <button class="today-btn ${ym===currentYM()||isEdit?'disabled':''}" onclick="goToday('cashflow')" ${ym===currentYM()||isEdit?'disabled':''}>오늘</button>
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
@@ -3380,6 +3463,7 @@ function renderCashflow() {
 
   // 첫 방문 시 코치마크
   setTimeout(() => showCoachMark('cashflow'), 400);
+  updateFab();
 }
 
 function ensureCF(ym) {
@@ -3402,7 +3486,7 @@ function toggleCashflowEdit() {
   }
 }
 function cancelCashflowEdit() { state.cashflowEditing = false; hideEditBar(); renderCashflow(); }
-function saveCashflow() { saveState(); state.cashflowEditing = false; hideEditBar(); showToast(`${ymLabel(state.currentMonth)} 수입/지출 저장 완료`); renderCashflow(); }
+function saveCashflow() { saveState(); state.cashflowEditing = false; hideEditBar(); flashSaved(); showToast(`${ymLabel(state.currentMonth)} 수입/지출 저장 완료`); renderCashflow(); }
 
 // ── 행 상세 편집 팝업 ──
 let _rowEditCtx = {};
@@ -3423,17 +3507,16 @@ function openRowEditModal(type, idxOrAccId) {
   } else {
     const cf = state.cashflow[state.currentMonth] || {};
     const rows = cf[type] || [];
-    const r = rows[idxOrAccId] || {};
-    const owner = r.owner || (type === 'income' && r.member2 ? '공동' : cfg.member1Name || '');
-    data = {
-      label: r.label || '',
-      type_field: r.type || '',
-      memo: r.memo || '',
-      owner
-    };
+    if (idxOrAccId === -1) {
+      data = { label: '', type_field: '', memo: '', owner: cfg.member1Name || '' };
+    } else {
+      const r = rows[idxOrAccId] || {};
+      const owner = r.owner || (type === 'income' && r.member2 ? '공동' : cfg.member1Name || '');
+      data = { label: r.label || '', type_field: r.type || '', memo: r.memo || '', owner };
+    }
   }
   _rowEditCtx = { type, idxOrAccId, data: { ...data } };
-  document.getElementById('row-edit-title').textContent = type === 'balance' ? '계좌 정보 수정' : '항목 수정';
+  document.getElementById('row-edit-title').textContent = type === 'balance' ? '계좌 정보 수정' : (idxOrAccId === -1 ? '항목 추가' : '항목 수정');
   renderRowEditContent();
   document.getElementById('row-edit-modal').classList.add('open');
 }
@@ -3463,8 +3546,8 @@ function renderRowEditContent() {
     html = `
       <div class="row-edit-label">항목명</div>
       <input class="row-edit-field" id="re-label" value="${(data.label||'').replace(/"/g,'&quot;')}" placeholder="항목명"/>
-      <div class="row-edit-label">구분/내용</div>
-      <input class="row-edit-field" id="re-type" value="${(data.type_field||'').replace(/"/g,'&quot;')}" placeholder="구분"/>
+      ${type !== 'special' ? `<div class="row-edit-label">구분/내용</div>
+      <input class="row-edit-field" id="re-type" value="${(data.type_field||'').replace(/"/g,'&quot;')}" placeholder="구분"/>` : ''}
       <div class="row-edit-label">메모</div>
       <input class="row-edit-field" id="re-memo" value="${(data.memo||'').replace(/"/g,'&quot;')}" placeholder="메모"/>
       ${members.length > 1 ? `<div class="row-edit-label">소유자</div><div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.25rem;">${ownerBtns}</div>` : ''}
@@ -3493,13 +3576,20 @@ function saveRowEditModal() {
     balanceMemoTempData[idxOrAccId] = document.getElementById('re-memo').value;
   } else {
     const label = document.getElementById('re-label').value;
-    const typeField = document.getElementById('re-type').value;
+    const typeFieldEl = document.getElementById('re-type');
+    const typeField = typeFieldEl ? typeFieldEl.value : '';
     const memo = document.getElementById('re-memo').value;
     const owner = _rowEditCtx.data.owner;
-    updateCFRow(type, idxOrAccId, 'label', label);
-    updateCFRow(type, idxOrAccId, 'memo', memo);
-    if (typeField !== undefined) updateCFRow(type, idxOrAccId, 'type', typeField);
-    if (owner) updateCFRow(type, idxOrAccId, 'owner', owner);
+    if (idxOrAccId === -1) {
+      const ym = state.currentMonth;
+      ensureCF(ym);
+      state.cashflow[ym][type].push({ label, memo, amount: 0, ...(owner ? { owner } : {}) });
+    } else {
+      updateCFRow(type, idxOrAccId, 'label', label);
+      updateCFRow(type, idxOrAccId, 'memo', memo);
+      if (typeField !== undefined && type !== 'special') updateCFRow(type, idxOrAccId, 'type', typeField);
+      if (owner) updateCFRow(type, idxOrAccId, 'owner', owner);
+    }
   }
   closeRowEditModal();
   if (type === 'balance') renderBalance();
@@ -3541,10 +3631,7 @@ function updateCFSummaryLive() {
 }
 function addCFRow(type) {
   if (type === 'special') {
-    const ym = state.currentMonth;
-    ensureCF(ym);
-    state.cashflow[ym].special.push({ label: '', memo: '', amount: 0 });
-    renderCashflow();
+    openRowEditModal('special', -1);
     return;
   }
   openCFModal(type);
@@ -4726,21 +4813,9 @@ function renderGoalsTab() {
       ${eventsHtml}
     </div>`;
   }).join('') || `
-    <div class="goal-item" style="opacity:0.4;">
-      <div class="goal-lbl" style="align-items:center;">
-        <span class="goal-name" style="color:var(--text3);">목표 이름</span>
-        <span class="goal-pct">0%</span>
-      </div>
-      <div class="goal-bar-bg"><div class="goal-bar-fill" style="width:0%;background:#534AB7;"></div></div>
-      <div class="goal-amt" style="color:var(--text3);">+ 목표 추가 버튼으로 설정해보세요</div>
-    </div>
-    <div class="goal-item" style="opacity:0.25;">
-      <div class="goal-lbl" style="align-items:center;">
-        <span class="goal-name" style="color:var(--text3);">목표 이름</span>
-        <span class="goal-pct">0%</span>
-      </div>
-      <div class="goal-bar-bg"><div class="goal-bar-fill" style="width:0%;background:#BA7517;"></div></div>
-      <div class="goal-amt" style="color:var(--text3);">–</div>
+    <div class="empty-state" style="padding:2rem 1rem;text-align:center;">
+      <div style="color:var(--text2);margin-bottom:.75rem;">등록된 목표가 없어요</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:1rem;">저축 목표나 저축률을 설정해보세요</div>
     </div>
   `;
 
@@ -5334,11 +5409,15 @@ function openMonthPicker(screen, dir) {
   else if (dir === 'next') state.currentMonth = nextYM(ym);
   if (screen === 'balance') renderBalance();
   else renderCashflow();
+  const el = document.getElementById(`screen-${screen}`);
+  if (el) el.scrollTop = 0;
 }
 function goToday(screen) {
   state.currentMonth = currentYM();
   if (screen === 'balance') renderBalance();
   else renderCashflow();
+  const el = document.getElementById(`screen-${screen}`);
+  if (el) el.scrollTop = 0;
 }
 
 // ══════════════════════════════════════════
@@ -5518,6 +5597,90 @@ document.addEventListener('keydown', function(e) {
   const next = e.shiftKey ? inputs[idx - 1] : inputs[idx + 1];
   if (next) { next.focus(); next.select(); }
 });
+
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape') return;
+  const modals = [
+    ['row-edit-modal', () => closeRowEditModal()],
+    ['account-modal',  () => closeAccountModal()],
+    ['cf-modal',       () => closeCFModal()],
+    ['fixed-modal',    () => closeFixedModal()],
+    ['auto-transfer-modal', () => closeAutoTransferModal()],
+    ['goal-modal',     () => closeGoalModal()],
+  ];
+  for (const [id, fn] of modals) {
+    const el = document.getElementById(id);
+    if (el && el.classList.contains('open')) { fn(); break; }
+  }
+});
+
+document.addEventListener('keydown', function(e) {
+  if (!(e.ctrlKey || e.metaKey) || e.key !== 's') return;
+  e.preventDefault();
+  if (state.balanceEditing) saveBalance();
+  else if (state.cashflowEditing) saveCashflow();
+});
+
+function flashSaved() {
+  ['.hdr-save', '#edit-bar-save'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (!el) return;
+    el.classList.add('btn-saved');
+    setTimeout(() => el.classList.remove('btn-saved'), 1400);
+  });
+}
+
+function animateCount(el, target, duration) {
+  duration = duration || 550;
+  const start = performance.now();
+  const sign = target < 0 ? -1 : 1;
+  const abs = Math.abs(target);
+  const update = function(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    el.textContent = fmtAbs(Math.round(abs * ease) * sign);
+    if (t < 1) requestAnimationFrame(update);
+    else el.textContent = fmtAbs(target);
+  };
+  requestAnimationFrame(update);
+}
+
+function fabAction() {
+  if (state.currentTab === 'balance') toggleBalanceEdit();
+  else if (state.currentTab === 'cashflow') toggleCashflowEdit();
+}
+
+function setupSwipeNav() {
+  ['balance', 'cashflow'].forEach(function(tab) {
+    const el = document.getElementById('screen-' + tab);
+    if (!el) return;
+    let sx = 0, sy = 0;
+    el.addEventListener('touchstart', function(e) {
+      if (e.target.closest('.acc-drag-handle,.fc-drag-handle,button,input,select,[ontouchstart]')) return;
+      sx = e.touches[0].clientX;
+      sy = e.touches[0].clientY;
+    }, { passive: true });
+    el.addEventListener('touchend', function(e) {
+      if (!sx) return;
+      const dx = e.changedTouches[0].clientX - sx;
+      const dy = e.changedTouches[0].clientY - sy;
+      sx = 0;
+      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      if (tab === 'balance' && state.balanceEditing) return;
+      if (tab === 'cashflow' && state.cashflowEditing) return;
+      if (dx < 0 && state.currentMonth >= currentYM()) return;
+      openMonthPicker(tab, dx < 0 ? 'next' : 'prev');
+    }, { passive: true });
+  });
+}
+
+function updateFab() {
+  const fab = document.getElementById('global-fab');
+  if (!fab) return;
+  const show = (state.currentTab === 'balance' && !state.balanceEditing) ||
+               (state.currentTab === 'cashflow' && !state.cashflowEditing);
+  fab.style.display = show ? 'flex' : 'none';
+}
 
 window.addEventListener('beforeunload', (e) => {
   if (state.balanceEditing || state.cashflowEditing) {
