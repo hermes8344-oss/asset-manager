@@ -366,19 +366,18 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 
 /* ── 자동이체 목록 그리드 ── */
 .at-hdr { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
-.at-row { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; background: var(--surface); transition: transform .2s ease; }
+.at-row { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; background: var(--surface); transition: transform .2s ease; position: relative; z-index: 1; }
 .at-row > * { min-width: 0; }
 .at-row > :nth-child(2) { text-align: left; }
 .at-swipe-wrap:last-child .at-row { border: none; }
 .at-row.at-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; background: rgba(83,74,183,.07); border-radius: 6px; }
 /* ── 스와이프 액션 ── */
 .at-swipe-wrap { position: relative; overflow: hidden; }
-.at-swipe-btns { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; }
+.at-swipe-btns { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; z-index: 0; }
 .at-swipe-edit-btn { width: 60px; background: var(--accent); color: #fff; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
 .at-swipe-delete-btn { width: 60px; background: var(--red); color: #fff; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
 @media (min-width: 900px) {
-  .at-swipe-btns { opacity: 0; pointer-events: none; transition: opacity .15s; }
-  .at-swipe-wrap:hover .at-swipe-btns { opacity: 1; pointer-events: auto; }
+  .at-swipe-wrap:hover .at-swipe-btns { z-index: 2; }
 }
 
 /* ── 고정비 월 선택 칩 ── */
@@ -4594,10 +4593,6 @@ function renderAutoTransferTab() {
     }
 
     return `<div class="at-swipe-wrap">
-      <div class="at-swipe-btns">
-        <button class="at-swipe-edit-btn" onclick="startAutoTransferEdit(${i})">수정</button>
-        <button class="at-swipe-delete-btn" onclick="deleteAutoTransfer(${i})">삭제</button>
-      </div>
       <div class="at-row at-draggable" draggable="true" data-at-id="${at.id||i}"
         ondragstart="dragAtStart(event)" ondragover="dragAtOver(event)" ondrop="dragAtDrop(event)" ondragend="dragAtEnd(event)">
         <span class="fc-drag-handle">⠿</span>
@@ -4606,6 +4601,10 @@ function renderAutoTransferTab() {
         <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.amount ? fmtW(at.amount) : '0원'}</span>
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--text3);">${at.payee||'-'}</span>
         <span style="font-size:10px;color:var(--text3);">${at.day ? at.day+'일' : '-'}</span>
+      </div>
+      <div class="at-swipe-btns">
+        <button class="at-swipe-edit-btn" onclick="startAutoTransferEdit(${i})">수정</button>
+        <button class="at-swipe-delete-btn" onclick="deleteAutoTransfer(${i})">삭제</button>
       </div>
     </div>`;
   }).join('') || '<div class="empty-state" style="padding:.75rem 0;">등록된 자동이체가 없어요</div>';
