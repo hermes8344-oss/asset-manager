@@ -4774,12 +4774,25 @@ function renderAutoTransferStep1() {
       } else {
         // 해당 기관의 하위 계좌 화면
         const instAccounts = state.accounts.filter(a => a.institution === instFilter);
+        const cfg2 = state.config || {};
         const accHtml = instAccounts.length === 0
           ? `<div style="text-align:center;color:var(--text3);font-size:12px;padding:1rem 0;">등록된 계좌가 없어요</div>`
-          : instAccounts.map(a => `<div class="preset-item ${autoTransferModalData.accountId===a.id?'sel':''}" onclick="selectAutoTransferAccount('${a.id}')">
-            <div style="font-size:10px;font-weight:600;margin-bottom:2px;">${a.institution}</div>
-            <div style="font-size:10px;color:var(--text3);">${a.nickname}</div>
-          </div>`).join('');
+          : instAccounts.map(a => {
+              const owner = a.owner || '공동';
+              const ownerBg    = owner === '공동'           ? 'var(--surface2)'
+                               : owner === cfg2.member1Name ? 'var(--accent-light)'
+                               :                              'var(--green-light)';
+              const ownerColor = owner === '공동'           ? 'var(--text3)'
+                               : owner === cfg2.member1Name ? 'var(--accent)'
+                               :                              'var(--green)';
+              const badge = cfg2.memberCount >= 2
+                ? `<span style="font-size:10px;padding:1px 5px;border-radius:10px;background:${ownerBg};color:${ownerColor};font-weight:600;">${owner}</span>`
+                : '';
+              return `<div class="preset-item ${autoTransferModalData.accountId===a.id?'sel':''}" onclick="selectAutoTransferAccount('${a.id}')">
+                <div style="font-size:11px;font-weight:600;margin-bottom:2px;">${a.nickname}</div>
+                ${badge ? `<div>${badge}</div>` : ''}
+              </div>`;
+            }).join('');
         selectionHtml = `
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:.5rem;">
             <button onclick="setATInstFilter(null)" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:0;line-height:1;">← 뒤로</button>
