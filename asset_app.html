@@ -365,15 +365,20 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 .pill.card { background: rgba(186,117,23,.15); color: #BA7517; }
 
 /* ── 자동이체 목록 그리드 ── */
-.at-hdr { display: grid; grid-template-columns: 20px 20% 20% 13% 16% 9% 1fr; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
-.at-row { display: grid; grid-template-columns: 20px 20% 20% 13% 16% 9% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; }
+.at-hdr { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
+.at-row { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; background: var(--surface); transition: transform .2s ease; }
 .at-row > * { min-width: 0; }
 .at-row > :nth-child(2) { text-align: left; }
-.at-row:last-child { border: none; }
+.at-swipe-wrap:last-child .at-row { border: none; }
 .at-row.at-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; background: rgba(83,74,183,.07); border-radius: 6px; }
+/* ── 스와이프 액션 ── */
+.at-swipe-wrap { position: relative; overflow: hidden; }
+.at-swipe-btns { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; }
+.at-swipe-edit-btn { width: 60px; background: var(--accent); color: #fff; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
+.at-swipe-delete-btn { width: 60px; background: var(--red); color: #fff; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
 @media (min-width: 900px) {
-  .at-row .del-btn { opacity: 0; transition: opacity .15s; }
-  .at-row:hover .del-btn { opacity: 1; }
+  .at-swipe-btns { opacity: 0; pointer-events: none; transition: opacity .15s; }
+  .at-swipe-wrap:hover .at-swipe-btns { opacity: 1; pointer-events: auto; }
 }
 
 /* ── 고정비 월 선택 칩 ── */
@@ -4040,7 +4045,7 @@ function renderSettings() {
     <div style="height:.5rem;"></div>
   `;
   if (tab === 'fixed') setTimeout(setupFcTouchDrag, 0);
-  if (tab === 'auto') setTimeout(setupAtTouchDrag, 0);
+  if (tab === 'auto') { setTimeout(setupAtTouchDrag, 0); setTimeout(setupAtSwipe, 0); }
 }
 function selectSettingTab(t) { state.settingTab = t; renderSettings(); }
 
@@ -4588,24 +4593,26 @@ function renderAutoTransferTab() {
       </div>`;
     }
 
-    return `<div class="at-row at-draggable" draggable="true" data-at-id="${at.id||i}"
-      ondragstart="dragAtStart(event)" ondragover="dragAtOver(event)" ondrop="dragAtDrop(event)" ondragend="dragAtEnd(event)">
-      <span class="fc-drag-handle">⠿</span>
-      <span style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${at.label}</span>
-      <span><span class="pill ${pillClass}" style="font-size:9px;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:inline-block;">${sourceLabel}</span></span>
-      <span>${at.amount ? fmtW(at.amount) : '0원'}</span>
-      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--text3);">${at.payee||'-'}</span>
-      <span style="font-size:10px;color:var(--text3);">${at.day ? at.day+'일' : '-'}</span>
-      <div style="display:flex;gap:2px;justify-content:center;">
-        <button class="del-btn" style="color:var(--text2);" onclick="startAutoTransferEdit(${i})">✎</button>
-        <button class="del-btn" onclick="deleteAutoTransfer(${i})">✕</button>
+    return `<div class="at-swipe-wrap">
+      <div class="at-swipe-btns">
+        <button class="at-swipe-edit-btn" onclick="startAutoTransferEdit(${i})">수정</button>
+        <button class="at-swipe-delete-btn" onclick="deleteAutoTransfer(${i})">삭제</button>
+      </div>
+      <div class="at-row at-draggable" draggable="true" data-at-id="${at.id||i}"
+        ondragstart="dragAtStart(event)" ondragover="dragAtOver(event)" ondrop="dragAtDrop(event)" ondragend="dragAtEnd(event)">
+        <span class="fc-drag-handle">⠿</span>
+        <span style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${at.label}</span>
+        <span><span class="pill ${pillClass}" style="font-size:9px;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:inline-block;">${sourceLabel}</span></span>
+        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.amount ? fmtW(at.amount) : '0원'}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--text3);">${at.payee||'-'}</span>
+        <span style="font-size:10px;color:var(--text3);">${at.day ? at.day+'일' : '-'}</span>
       </div>
     </div>`;
   }).join('') || '<div class="empty-state" style="padding:.75rem 0;">등록된 자동이체가 없어요</div>';
 
   return `
     <div class="card">
-      <div class="at-hdr"><span></span><span>납부내용</span><span>계좌/카드</span><span>금액</span><span>받는 곳</span><span>납부일</span><span></span></div>
+      <div class="at-hdr"><span></span><span>납부내용</span><span>계좌/카드</span><span>금액</span><span>받는 곳</span><span>납부일</span></div>
       ${rows}
     </div>
     <button class="add-btn" onclick="openAutoTransferModal()">+ 자동이체 추가</button>
@@ -4613,7 +4620,37 @@ function renderAutoTransferTab() {
   `;
 }
 
-function startAutoTransferEdit(i) { state.atEditIdx = i; renderSettings(); }
+function openAtSwipe(row) { row.classList.add('at-swiped'); row.style.transform = 'translateX(-120px)'; }
+function closeAtSwipe(row) { row.classList.remove('at-swiped'); row.style.transform = ''; }
+function closeAllSwipes() { document.querySelectorAll('.at-row.at-swiped').forEach(closeAtSwipe); }
+function setupAtSwipe() {
+  document.addEventListener('touchstart', function(e) {
+    if (!e.target.closest('.at-swipe-wrap')) closeAllSwipes();
+  }, { passive: true });
+  document.querySelectorAll('.at-swipe-wrap').forEach(function(wrap) {
+    const row = wrap.querySelector('.at-row');
+    if (!row) return;
+    let sx = 0, sy = 0;
+    wrap.addEventListener('touchstart', function(e) {
+      if (e.target.closest('.fc-drag-handle, .at-swipe-btns')) return;
+      sx = e.touches[0].clientX;
+      sy = e.touches[0].clientY;
+    }, { passive: true });
+    wrap.addEventListener('touchcancel', function() { sx = 0; }, { passive: true });
+    wrap.addEventListener('touchend', function(e) {
+      if (!sx) return;
+      const dx = e.changedTouches[0].clientX - sx;
+      const dy = e.changedTouches[0].clientY - sy;
+      sx = 0;
+      if (Math.abs(dy) > Math.abs(dx) * 0.8) return;
+      const isSwiped = row.classList.contains('at-swiped');
+      if (dx < -40) { closeAllSwipes(); openAtSwipe(row); }
+      else if (dx > 20 && isSwiped) { closeAtSwipe(row); }
+      else if (Math.abs(dx) < 10 && isSwiped) { closeAtSwipe(row); }
+    }, { passive: true });
+  });
+}
+function startAutoTransferEdit(i) { closeAllSwipes(); state.atEditIdx = i; renderSettings(); }
 function cancelAutoTransferEdit() { state.atEditIdx = null; renderSettings(); }
 function saveAutoTransferEdit(i) {
   const label = document.getElementById('at-edit-label')?.value.trim();
