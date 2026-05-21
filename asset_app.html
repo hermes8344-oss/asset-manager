@@ -5656,10 +5656,11 @@ function setupSwipeNav() {
     if (!el) return;
     let sx = 0, sy = 0;
     el.addEventListener('touchstart', function(e) {
-      if (e.target.closest('.acc-drag-handle,.fc-drag-handle,button,input,select,[ontouchstart]')) return;
+      if (e.target.closest('.acc-drag-handle,.fc-drag-handle,button,input,select,[ontouchstart]')) { sx = 0; return; }
       sx = e.touches[0].clientX;
       sy = e.touches[0].clientY;
     }, { passive: true });
+    el.addEventListener('touchcancel', function() { sx = 0; }, { passive: true });
     el.addEventListener('touchend', function(e) {
       if (!sx) return;
       const dx = e.changedTouches[0].clientX - sx;
