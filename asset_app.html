@@ -377,7 +377,8 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 .at-swipe-edit-btn { width: 60px; background: var(--accent); color: #fff; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
 .at-swipe-delete-btn { width: 60px; background: var(--red); color: #fff; border: none; font-size: 12px; font-weight: 600; cursor: pointer; }
 @media (min-width: 900px) {
-  .at-swipe-wrap:hover .at-swipe-btns { z-index: 2; }
+  .at-swipe-btns { opacity: 0; pointer-events: none; transition: opacity .15s; }
+  .at-swipe-wrap:hover .at-swipe-btns { opacity: 1; pointer-events: auto; z-index: 2; }
 }
 
 /* ── 고정비 월 선택 칩 ── */
