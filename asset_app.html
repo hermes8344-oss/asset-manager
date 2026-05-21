@@ -4708,7 +4708,7 @@ let autoTransferSourceEditIdx = null;
 
 function openAutoTransferModal() {
   autoTransferSourceEditIdx = null;
-  autoTransferModalData = { type: 'account', accountId: null, cardCompany: null, catFilter: '전체' };
+  autoTransferModalData = { type: 'account', accountId: null, cardCompany: null, instFilter: null };
   document.querySelector('#auto-transfer-modal .modal-title').textContent = '자동이체 추가';
   renderAutoTransferStep1();
   document.getElementById('auto-transfer-modal').classList.add('open');
@@ -4716,7 +4716,7 @@ function openAutoTransferModal() {
 function openAutoTransferSourceEdit(i) {
   const at = state.autoTransfers[i];
   autoTransferSourceEditIdx = i;
-  autoTransferModalData = { type: at.type, accountId: at.accountId, cardCompany: at.cardCompany };
+  autoTransferModalData = { type: at.type, accountId: at.accountId, cardCompany: at.cardCompany, instFilter: null };
   document.querySelector('#auto-transfer-modal .modal-title').textContent = '출금 수단 변경';
   renderAutoTransferStep1();
   document.getElementById('auto-transfer-modal').classList.add('open');
@@ -4758,19 +4758,34 @@ function renderAutoTransferStep1() {
     if (state.accounts.length === 0) {
       selectionHtml = `<div class="hint-box"><div class="hint-text">계좌잔고 탭에서 계좌를 먼저 추가해주세요</div></div>`;
     } else {
-      const curFilter = autoTransferModalData.catFilter || '전체';
-      const catChips = ['전체', ...CATEGORIES].map(c => {
-        const active = curFilter === c;
-        return `<span class="cat-chip" style="background:${active?'var(--accent)':'var(--surface2)'};color:${active?'#fff':'var(--text2)'};border:1px solid ${active?'transparent':'var(--border)'};cursor:pointer;font-size:12px;" onclick="setATCatFilter('${c}')">${c}</span>`;
-      }).join('');
-      const filtered = curFilter === '전체' ? state.accounts : state.accounts.filter(a => a.category === curFilter);
-      const gridHtml = filtered.length === 0
-        ? `<div style="text-align:center;color:var(--text3);font-size:12px;padding:1rem 0;">${curFilter} 카테고리에 등록된 계좌가 없어요</div>`
-        : filtered.map(a => `<div class="preset-item ${autoTransferModalData.accountId===a.id?'sel':''}" onclick="selectAutoTransferAccount('${a.id}')">
-          <div style="font-size:10px;font-weight:600;margin-bottom:2px;">${a.institution}</div>
-          <div style="font-size:10px;color:var(--text3);">${a.nickname}</div>
-        </div>`).join('');
-      selectionHtml = `<div class="cat-chips" style="margin-bottom:.75rem;">${catChips}</div><div class="preset-grid">${gridHtml}</div>`;
+      const instFilter = autoTransferModalData.instFilter;
+      if (instFilter === null) {
+        // 기관 목록 화면
+        const institutions = [...new Set(state.accounts.map(a => a.institution))];
+        const instHtml = institutions.map(inst => {
+          const count = state.accounts.filter(a => a.institution === inst).length;
+          return `<div class="preset-item" onclick="setATInstFilter('${inst.replace(/'/g,"\\'")}')">
+            <div style="font-size:11px;font-weight:600;">${inst}</div>
+            <div style="font-size:10px;color:var(--text3);">${count}개 계좌</div>
+          </div>`;
+        }).join('');
+        selectionHtml = `<div class="preset-grid">${instHtml}</div>`;
+      } else {
+        // 해당 기관의 하위 계좌 화면
+        const instAccounts = state.accounts.filter(a => a.institution === instFilter);
+        const accHtml = instAccounts.length === 0
+          ? `<div style="text-align:center;color:var(--text3);font-size:12px;padding:1rem 0;">등록된 계좌가 없어요</div>`
+          : instAccounts.map(a => `<div class="preset-item ${autoTransferModalData.accountId===a.id?'sel':''}" onclick="selectAutoTransferAccount('${a.id}')">
+            <div style="font-size:10px;font-weight:600;margin-bottom:2px;">${a.institution}</div>
+            <div style="font-size:10px;color:var(--text3);">${a.nickname}</div>
+          </div>`).join('');
+        selectionHtml = `
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:.5rem;">
+            <button onclick="setATInstFilter(null)" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:0;line-height:1;">← 뒤로</button>
+            <span style="font-size:13px;font-weight:600;">${instFilter}</span>
+          </div>
+          <div class="preset-grid">${accHtml}</div>`;
+      }
     }
   } else {
     selectionHtml = `<div class="preset-grid">${CARD_COMPANIES.map(c =>
@@ -4795,15 +4810,16 @@ function renderAutoTransferStep1() {
   document.getElementById('at-modal-step1').style.display = '';
 }
 
-function setATCatFilter(cat) {
-  autoTransferModalData.catFilter = cat;
+function setATInstFilter(inst) {
+  autoTransferModalData.instFilter = inst;
+  if (inst === null) autoTransferModalData.accountId = null;
   renderAutoTransferStep1();
 }
 function setAutoTransferType(type) {
   autoTransferModalData.type = type;
   autoTransferModalData.accountId = null;
   autoTransferModalData.cardCompany = null;
-  autoTransferModalData.catFilter = '전체';
+  autoTransferModalData.instFilter = null;
   renderAutoTransferStep1();
 }
 function selectAutoTransferAccount(id) {
