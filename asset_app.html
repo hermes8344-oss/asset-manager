@@ -337,14 +337,14 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 .inline-add .btn-add-item { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: .3rem .6rem; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 
 /* ── 고정비 ── */
-.fixed-hdr { display: grid; grid-template-columns: 20px 20% 15% 10% 17% 13% 1fr; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
-.fixed-row { display: grid; grid-template-columns: 20px 20% 15% 10% 17% 13% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; }
+.fixed-hdr { display: grid; grid-template-columns: 20px 25% 18% 12% 20% 1fr; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
+.fixed-row { display: grid; grid-template-columns: 20px 25% 18% 12% 20% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; position: relative; z-index: 1; background: var(--surface); }
 .fixed-row > * { min-width: 0; }
 .fixed-hdr > :nth-child(2),
 .fixed-row > :nth-child(2) { text-align: left; }
 .fixed-hdr > :nth-child(3),
 .fixed-row > :nth-child(3) { text-align: right; }
-.fixed-row:last-child { border: none; }
+.at-swipe-wrap:last-child .fixed-row { border: none; }
 .fixed-view-toggle { display: flex; gap: 4px; margin-bottom: .75rem; }
 .fixed-view-btn { padding: .3rem .8rem; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text2); font-size: 12px; font-weight: 600; cursor: pointer; }
 .fixed-view-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -4043,7 +4043,7 @@ function renderSettings() {
     </div>
     <div style="height:.5rem;"></div>
   `;
-  if (tab === 'fixed') setTimeout(setupFcTouchDrag, 0);
+  if (tab === 'fixed') { setTimeout(setupFcTouchDrag, 0); setTimeout(setupFcSwipe, 0); }
   if (tab === 'auto') { setTimeout(setupAtTouchDrag, 0); setTimeout(setupAtSwipe, 0); }
 }
 function selectSettingTab(t) { state.settingTab = t; renderSettings(); }
@@ -4160,17 +4160,19 @@ function renderFixedTab() {
         </div>
       </div>`;
     }
-    return `<div class="fixed-row fc-draggable" draggable="true" data-fc-id="${f.id}"
-      ondragstart="dragFcStart(event)" ondragover="dragFcOver(event)" ondrop="dragFcDrop(event)" ondragend="dragFcEnd(event)">
-      <span class="fc-drag-handle">⠿</span>
-      <span>${f.label}</span>
-      <span>${fmtW(f.amount)}</span>
-      <span><span class="pill ${pillClass}">${f.cycle}</span></span>
-      <span style="font-size:11px;color:var(--text3);">${monthLabel}</span>
-      <span>${ownerBadge(f.owner)}</span>
-      <div style="display:flex;gap:2px;justify-content:center;align-items:center;">
-        <button class="del-btn" style="color:var(--text2);" onclick="startFixedEdit(${i})">✎</button>
-        <button class="del-btn" onclick="deleteFixed(${i})">✕</button>
+    return `<div class="at-swipe-wrap">
+      <div class="fixed-row fc-draggable" draggable="true" data-fc-id="${f.id}"
+        ondragstart="dragFcStart(event)" ondragover="dragFcOver(event)" ondrop="dragFcDrop(event)" ondragend="dragFcEnd(event)">
+        <span class="fc-drag-handle">⠿</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.label}</span>
+        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${fmtW(f.amount)}</span>
+        <span><span class="pill ${pillClass}" style="font-size:9px;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:inline-block;">${f.cycle}</span></span>
+        <span style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${monthLabel}</span>
+        <span>${ownerBadge(f.owner)}</span>
+      </div>
+      <div class="at-swipe-btns">
+        <button class="at-swipe-edit-btn" onclick="startFixedEdit(${i})">수정</button>
+        <button class="at-swipe-delete-btn" onclick="deleteFixed(${i})">삭제</button>
       </div>
     </div>`;
   }).join('') || '<div class="empty-state" style="padding:.75rem 0;">등록된 고정비가 없어요</div>';
@@ -4193,7 +4195,7 @@ function renderFixedTab() {
     </div>
     ${fixedViewMode === 'calendar' ? renderFixedCalendar() : `
     <div class="card">
-      <div class="fixed-hdr"><span></span><span>항목</span><span>금액</span><span>주기</span><span>해당월/일</span><span>담당</span><span></span></div>
+      <div class="fixed-hdr"><span></span><span>항목</span><span>금액</span><span>주기</span><span>해당월/일</span><span>담당</span></div>
       ${rows}
     </div>
     <button class="add-btn" onclick="showAddFixed()">+ 고정비 항목 추가</button>
@@ -4205,7 +4207,36 @@ function renderFixedTab() {
     <div id="add-fixed-form"></div>`}
   `;
 }
-function startFixedEdit(i) { state.fixedEditIdx = i; renderSettings(); }
+function openFcSwipe(row) { row.classList.add('fc-swiped'); row.style.transform = 'translateX(-120px)'; }
+function closeFcSwipe(row) { row.classList.remove('fc-swiped'); row.style.transform = ''; }
+function closeAllFcSwipes() { document.querySelectorAll('.fixed-row.fc-swiped').forEach(closeFcSwipe); }
+function setupFcSwipe() {
+  document.addEventListener('touchstart', function(e) {
+    if (!e.target.closest('.at-swipe-wrap')) closeAllFcSwipes();
+  }, { passive: true });
+  document.querySelectorAll('.fixed-row').forEach(function(row) {
+    const wrap = row.closest('.at-swipe-wrap');
+    if (!wrap) return;
+    let sx = 0, sy = 0;
+    wrap.addEventListener('touchstart', function(e) {
+      if (e.target.closest('.fc-drag-handle, .at-swipe-btns')) return;
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    }, { passive: true });
+    wrap.addEventListener('touchcancel', function() { sx = 0; }, { passive: true });
+    wrap.addEventListener('touchend', function(e) {
+      if (!sx) return;
+      const dx = e.changedTouches[0].clientX - sx;
+      const dy = e.changedTouches[0].clientY - sy;
+      sx = 0;
+      if (Math.abs(dy) > Math.abs(dx) * 0.8) return;
+      const isSwiped = row.classList.contains('fc-swiped');
+      if (dx < -40) { closeAllFcSwipes(); openFcSwipe(row); }
+      else if (dx > 20 && isSwiped) { closeFcSwipe(row); }
+      else if (Math.abs(dx) < 10 && isSwiped) { closeFcSwipe(row); }
+    }, { passive: true });
+  });
+}
+function startFixedEdit(i) { closeAllFcSwipes(); state.fixedEditIdx = i; renderSettings(); }
 function cancelFixedEdit() { state.fixedEditIdx = null; renderSettings(); }
 function moveFixed(i, dir) {
   const j = i + dir;
