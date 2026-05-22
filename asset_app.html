@@ -3196,6 +3196,26 @@ function renderCashflow() {
   const cfSavingsListTotal = (cf.savings||[]).reduce((s,r)=>s+(parseNum(r.amount)||0),0);
   const cfRemaining = incomeTotal - expenseTotal - cfAutoTransferTotal - cfSavingsTotal - cfSavingsListTotal;
 
+  // 다가오는 자동이체: 납부일별 그룹화
+  const _todayD   = new Date();
+  const _todayDay = _todayD.getDate();
+  const _todayMon = _todayD.getMonth() + 1;
+  const _todayYr  = _todayD.getFullYear();
+  const _upcomingMap = {};
+  (state.autoTransfers || []).forEach(at => {
+    if (!at.day) return;
+    let m, y;
+    if (at.day >= _todayDay) { m = _todayMon; y = _todayYr; }
+    else if (_todayMon === 12) { m = 1; y = _todayYr + 1; }
+    else { m = _todayMon + 1; y = _todayYr; }
+    const key = `${y}-${String(m).padStart(2,'0')}-${String(at.day).padStart(2,'0')}`;
+    if (!_upcomingMap[key]) _upcomingMap[key] = { month: m, day: at.day, total: 0 };
+    _upcomingMap[key].total += at.amount || 0;
+  });
+  const upcomingATList = Object.entries(_upcomingMap)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([,v]) => v);
+
   // 특별지출
   const specialEnabled = cfg.specialAccountEnabled;
   const specialName = cfg.specialAccountName || '특별지출';
@@ -3415,7 +3435,14 @@ function renderCashflow() {
           <div class="sum-row"><span class="sum-label">총수입</span><span class="sum-val" id="cf-live-income" style="color:var(--green);">${fmtW(incomeTotal)}</span></div>
           <div class="sum-row"><span class="sum-label">총지출</span><span class="sum-val" id="cf-live-expense" style="color:var(--red);">${fmtW(expenseTotal)}</span></div>
           ${cfAutoTransferTotal > 0 ? `<div class="sum-row"><span class="sum-label">자동이체</span><span class="sum-val" style="color:var(--red);">${fmtW(cfAutoTransferTotal)}</span></div>` : ''}
-          ${cfSavingsTotal > 0 ? `<div class="sum-row"><span class="sum-label">자동이체 저축</span><span class="sum-val" style="color:var(--accent);">${fmtW(cfSavingsTotal)}</span></div>` : ''}
+          ${upcomingATList.map((item, idx) => `
+            <div class="sum-row">
+              <span class="sum-label">${idx === 0 ? '다가오는 자동이체' : ''}</span>
+              <span class="sum-val" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
+                <span style="font-size:10px;color:var(--text3);">${item.month}/${item.day}</span>
+                <span style="color:var(--red);">${fmtW(item.total)}</span>
+              </span>
+            </div>`).join('')}
           ${cfSavingsListTotal > 0 ? `<div class="sum-row"><span class="sum-label">이달 저축</span><span id="cf-live-savings" class="sum-val" style="color:var(--blue);">${fmtW(cfSavingsListTotal)}</span></div>` : `<div class="sum-row" style="display:${isEdit?'flex':'none'};"><span class="sum-label">이달 저축</span><span id="cf-live-savings" class="sum-val" style="color:var(--blue);">-</span></div>`}
           <div class="sum-row" style="border-top:1px solid var(--border);margin-top:.5rem;padding-top:.5rem;">
             <span class="sum-label" style="font-weight:600;">남은 돈</span>
