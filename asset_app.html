@@ -4685,10 +4685,10 @@ function renderAutoTransferTab() {
     if (state.atEditIdx === i) {
       return `<div class="at-row" style="align-items:center;background:var(--accent-light);border-radius:var(--r-xs);">
         <span></span>
-        <input class="input-field" id="at-edit-label" value="${at.label}" placeholder="납부 내용" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:left;min-width:0;"/>
-        <button onclick="openAutoTransferSourceEdit(${i})" style="background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r-xs);color:var(--accent);font-weight:600;font-size:9px;width:100%;padding:.2rem .1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;min-width:0;">${sourceLabelFull} ✎</button>
-        <input class="input-field" id="at-edit-amount" inputmode="numeric" value="${at.amount ? fmt(at.amount) : ''}" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:right;min-width:0;"/>
-        <input class="input-field" id="at-edit-payee" value="${at.payee||''}" placeholder="받는 곳" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:left;min-width:0;"/>
+        <input class="input-field" id="at-edit-label" value="${at.label}" placeholder="납부 내용" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:center;min-width:0;"/>
+        <button onclick="openAutoTransferSourceEdit(${i})" style="background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r-xs);color:var(--accent);font-weight:600;font-size:9px;width:100%;padding:.2rem .1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;min-width:0;text-align:center;">${sourceLabelFull} ✎</button>
+        <input class="input-field" id="at-edit-amount" inputmode="numeric" value="${at.amount ? fmt(at.amount) : ''}" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:center;min-width:0;"/>
+        <input class="input-field" id="at-edit-payee" value="${at.payee||''}" placeholder="받는 곳" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:center;min-width:0;"/>
         ${daySelectHtml('at-edit-day', at.day, 'width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;min-width:0;')}
         <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:6px;padding:.35rem 0 .1rem;border-top:1px solid var(--border);margin-top:.2rem;">
           <button class="btn btn-secondary" style="padding:.3rem .8rem;font-size:12px;" onclick="cancelAutoTransferEdit()">취소</button>
