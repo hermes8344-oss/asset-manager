@@ -4202,8 +4202,8 @@ function renderFixedTab() {
     return `<div class="at-swipe-wrap">
       <div class="fixed-row fc-draggable" draggable="true" data-fc-id="${f.id}"
         ondragstart="dragFcStart(event)" ondragover="dragFcOver(event)" ondrop="dragFcDrop(event)" ondragend="dragFcEnd(event)">
-        <span class="fc-drag-handle">⠿</span>
-        <span style="overflow:hidden;text-overflow:ellipsis;text-align:left;">
+        <span class="fc-drag-handle" style="padding-left:3.25rem;">⠿</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;text-align:left;padding-left:3.25rem;">
           <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.label}</div>
           ${atBadge}
         </span>
