@@ -340,8 +340,8 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 .fixed-hdr { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
 .fixed-row { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; position: relative; z-index: 1; background: var(--surface); }
 .fixed-row > * { min-width: 0; }
-.fixed-hdr > :nth-child(2),
-.fixed-row > :nth-child(2) { text-align: center; }
+.fixed-hdr > :nth-child(2) { text-align: center; }
+.fixed-row > :nth-child(2) { text-align: left; }
 .fixed-hdr > :nth-child(3),
 .fixed-row > :nth-child(3) { text-align: center; }
 .at-swipe-wrap:last-child .fixed-row { border: none; }
@@ -4167,18 +4167,18 @@ function renderFixedTab() {
       : '';
     if (state.fixedEditIdx === i) {
       const cycleFieldHtml = f.cycle === '매월'
-        ? daySelectHtml('fx-edit-day', f.day, 'width:40%;display:block;margin:0 auto;font-size:13px;padding:.15rem .2rem;min-width:0;')
+        ? daySelectHtml('fx-edit-day', f.day, 'width:30%;display:block;margin:0 auto;font-size:13px;padding:.15rem .2rem;min-width:0;text-align:center;')
         : renderInlineMonthChips(f.months||[], 'fx-edit-months');
       const ownerSelHtml = cfg.memberCount === 2
-        ? `<select class="input-field" id="fx-edit-owner" style="width:90%;display:block;margin:0 auto;font-size:12px;padding:.15rem .1rem;text-align:center;min-width:0;">
+        ? `<select class="input-field" id="fx-edit-owner" style="width:67.5%;display:block;margin:0 auto;font-size:12px;padding:.15rem .1rem;text-align:center;min-width:0;">
             ${ownerOptions().map(o=>`<option value="${o}" ${(f.owner||'공동')===o?'selected':''}>${o}</option>`).join('')}
            </select>`
         : `<span style="font-size:11px;color:var(--text3);">${cfg.member1Name}</span>`;
       return `<div class="fixed-row" style="align-items:center;background:var(--accent-light);border-radius:var(--r-xs);">
         <span></span>
-        <input class="input-field" id="fx-edit-label" value="${f.label}" placeholder="항목명" style="width:67.5%;display:block;margin:0 auto;font-size:13px;padding:.15rem .3rem;text-align:center;min-width:0;"/>
+        <input class="input-field" id="fx-edit-label" value="${f.label}" placeholder="항목명" style="width:67.5%;display:block;margin:0 auto;font-size:13px;padding:.15rem .3rem;text-align:left;min-width:0;"/>
         <input class="input-field" id="fx-edit-amount" inputmode="numeric" value="${fmt(f.amount)}" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" style="width:60%;display:block;margin:0 auto;font-size:13px;padding:.15rem .3rem;text-align:center;min-width:0;"/>
-        <select class="input-field" id="fx-edit-cycle" onchange="renderFixedEditCycleFields(${i})" style="width:90%;display:block;margin:0 auto;font-size:13px;padding:.15rem .1rem;text-align:center;min-width:0;">
+        <select class="input-field" id="fx-edit-cycle" onchange="renderFixedEditCycleFields(${i})" style="width:67.5%;display:block;margin:0 auto;font-size:13px;padding:.15rem .1rem;text-align:center;min-width:0;">
           <option value="매월" ${f.cycle==='매월'?'selected':''}>매월</option>
           <option value="격월" ${f.cycle==='격월'?'selected':''}>격월</option>
           <option value="연2회" ${f.cycle==='연2회'?'selected':''}>연2회</option>
