@@ -336,6 +336,10 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 .inline-add input:focus { outline: none; border-color: var(--accent); }
 .inline-add .btn-add-item { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: .3rem .6rem; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 
+/* ── 행 indent (모바일만) ── */
+.row-indent { padding-left: 3.25rem; }
+@media (min-width: 900px) { .row-indent { padding-left: 0; } }
+
 /* ── 고정비 ── */
 .fixed-hdr { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
 .fixed-row { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; position: relative; z-index: 1; background: var(--surface); }
@@ -4214,8 +4218,8 @@ function renderFixedTab() {
     return `<div class="at-swipe-wrap">
       <div class="fixed-row fc-draggable" draggable="true" data-fc-id="${f.id}"
         ondragstart="dragFcStart(event)" ondragover="dragFcOver(event)" ondrop="dragFcDrop(event)" ondragend="dragFcEnd(event)">
-        <span class="fc-drag-handle" style="padding-left:3.25rem;">⠿</span>
-        <span style="overflow:hidden;text-overflow:ellipsis;padding-left:3.25rem;">
+        <span class="fc-drag-handle row-indent">⠿</span>
+        <span class="row-indent" style="overflow:hidden;text-overflow:ellipsis;">
           <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.label}</div>
           ${atBadge}
         </span>
@@ -4723,8 +4727,8 @@ function renderAutoTransferTab() {
     return `<div class="at-swipe-wrap">
       <div class="at-row at-draggable" draggable="true" data-at-id="${at.id||i}"
         ondragstart="dragAtStart(event)" ondragover="dragAtOver(event)" ondrop="dragAtDrop(event)" ondragend="dragAtEnd(event)">
-        <span class="fc-drag-handle" style="padding-left:3.25rem;">⠿</span>
-        <span style="text-align:left;overflow:hidden;text-overflow:ellipsis;padding-left:3.25rem;">
+        <span class="fc-drag-handle row-indent">⠿</span>
+        <span class="row-indent" style="text-align:left;overflow:hidden;text-overflow:ellipsis;">
           <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.label}</div>
           ${linkedFCHtml}
         </span>
