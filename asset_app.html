@@ -4176,8 +4176,8 @@ function renderFixedTab() {
         : `<span style="font-size:11px;color:var(--text3);">${cfg.member1Name}</span>`;
       return `<div class="fixed-row" style="align-items:center;background:var(--accent-light);border-radius:var(--r-xs);">
         <span></span>
-        <input class="input-field" id="fx-edit-label" value="${f.label}" placeholder="항목명" style="width:90%;display:block;margin:0 auto;font-size:13px;padding:.15rem .3rem;text-align:left;min-width:0;"/>
-        <input class="input-field" id="fx-edit-amount" inputmode="numeric" value="${fmt(f.amount)}" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" style="width:90%;display:block;margin:0 auto;font-size:13px;padding:.15rem .3rem;text-align:right;min-width:0;"/>
+        <input class="input-field" id="fx-edit-label" value="${f.label}" placeholder="항목명" style="width:67.5%;display:block;margin:0 auto;font-size:13px;padding:.15rem .3rem;text-align:center;min-width:0;"/>
+        <input class="input-field" id="fx-edit-amount" inputmode="numeric" value="${fmt(f.amount)}" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" style="width:60%;display:block;margin:0 auto;font-size:13px;padding:.15rem .3rem;text-align:center;min-width:0;"/>
         <select class="input-field" id="fx-edit-cycle" onchange="renderFixedEditCycleFields(${i})" style="width:90%;display:block;margin:0 auto;font-size:13px;padding:.15rem .1rem;text-align:center;min-width:0;">
           <option value="매월" ${f.cycle==='매월'?'selected':''}>매월</option>
           <option value="격월" ${f.cycle==='격월'?'selected':''}>격월</option>
