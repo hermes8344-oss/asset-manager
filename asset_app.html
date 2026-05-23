@@ -4161,6 +4161,10 @@ function renderFixedTab() {
   const rows = state.fixedCosts.map((f,i) => {
     const pillClass = f.cycle === '매월' ? 'mo' : f.cycle === '격월' ? 'bi' : f.cycle === '연1회' ? 'yn' : 'an';
     const monthLabel = f.cycle === '매월' ? `매월 ${f.day||''}일` : (f.months||[]).join(', ')+'월';
+    const linkedAt = f.autoTransferId ? (state.autoTransfers||[]).find(at => at.id === f.autoTransferId) : null;
+    const atBadge = linkedAt
+      ? `<span style="font-size:8px;padding:1px 5px;border-radius:10px;background:#e8f1fb;color:var(--blue,#378ADD);font-weight:600;display:inline-block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;" title="${linkedAt.label}">↪ ${linkedAt.label}</span>`
+      : '';
     if (state.fixedEditIdx === i) {
       const cycleFieldHtml = f.cycle === '매월'
         ? daySelectHtml('fx-edit-day', f.day, 'width:40%;display:block;margin:0 auto;font-size:13px;padding:.15rem .2rem;min-width:0;')
@@ -4182,6 +4186,13 @@ function renderFixedTab() {
         </select>
         <div id="fx-edit-cycle-field-${i}" style="min-width:0;overflow:hidden;">${cycleFieldHtml}</div>
         ${ownerSelHtml}
+        ${(state.autoTransfers||[]).length > 0 ? `<div style="grid-column:1/-1;display:flex;align-items:center;gap:6px;padding:.25rem 0 0;">
+          <label style="font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0;">자동이체 연동</label>
+          <select class="input-field" id="fx-edit-autoTransfer" style="flex:1;font-size:11px;padding:.15rem .3rem;min-width:0;">
+            <option value="">없음</option>
+            ${(state.autoTransfers).map(at => `<option value="${at.id}" ${(f.autoTransferId||'')=== at.id?'selected':''}>${at.label}</option>`).join('')}
+          </select>
+        </div>` : ''}
         <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:6px;padding:.35rem 0 .1rem;border-top:1px solid var(--border);margin-top:.2rem;">
           <button class="btn btn-secondary" style="padding:.3rem .8rem;font-size:12px;" onclick="cancelFixedEdit()">취소</button>
           <button class="btn btn-primary" style="padding:.3rem .8rem;font-size:12px;" onclick="saveFixedEdit(${i})">저장</button>
@@ -4192,7 +4203,10 @@ function renderFixedTab() {
       <div class="fixed-row fc-draggable" draggable="true" data-fc-id="${f.id}"
         ondragstart="dragFcStart(event)" ondragover="dragFcOver(event)" ondrop="dragFcDrop(event)" ondragend="dragFcEnd(event)">
         <span class="fc-drag-handle">⠿</span>
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.label}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;text-align:left;">
+          <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.label}</div>
+          ${atBadge}
+        </span>
         <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${fmtW(f.amount)}</span>
         <span><span class="pill ${pillClass}" style="font-size:9px;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:inline-block;">${f.cycle}</span></span>
         <span style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${monthLabel}</span>
@@ -4420,7 +4434,8 @@ function saveFixedEdit(i) {
     months = raw.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
   }
   const owner = document.getElementById('fx-edit-owner')?.value || state.fixedCosts[i].owner || '공동';
-  state.fixedCosts[i] = { ...state.fixedCosts[i], label, amount, cycle, months, day, owner };
+  const autoTransferId = document.getElementById('fx-edit-autoTransfer')?.value || null;
+  state.fixedCosts[i] = { ...state.fixedCosts[i], label, amount, cycle, months, day, owner, autoTransferId };
   state.fixedEditIdx = null;
   saveState();
   showToast('저장됐어요');
@@ -4561,6 +4576,14 @@ function renderFixedModalStep2() {
         ).join('')}
       </div>
     </div>` : ''}
+    ${(state.autoTransfers||[]).length > 0 ? `
+    <div class="input-group">
+      <label class="input-label">자동이체 연동 <span style="font-size:11px;color:var(--text3);font-weight:400;">(선택)</span></label>
+      <select class="input-field" id="fm-autoTransfer" style="font-size:13px;">
+        <option value="">없음</option>
+        ${(state.autoTransfers).map(at => `<option value="${at.id}" ${(fixedModalData.autoTransferId||'')=== at.id?'selected':''}>${at.label}</option>`).join('')}
+      </select>
+    </div>` : ''}
     <div class="btn-row" style="padding-top:.5rem;">
       <button class="btn btn-secondary" onclick="renderFixedModalStep1()">← 이전</button>
       <button class="btn btn-primary" onclick="addFixedFromModal()">추가</button>
@@ -4571,8 +4594,10 @@ function renderFixedModalStep2() {
 function setFixedOwner(owner) {
   const amount = document.getElementById('fm-amount')?.value || '';
   const label = document.getElementById('fm-label')?.value || fixedModalData.label;
+  const autoTransferId = document.getElementById('fm-autoTransfer')?.value || null;
   fixedModalData.owner = owner;
   fixedModalData.label = label;
+  fixedModalData.autoTransferId = autoTransferId;
   renderFixedModalStep2();
   const amountEl = document.getElementById('fm-amount');
   if (amountEl && amount) amountEl.value = amount;
@@ -4580,8 +4605,10 @@ function setFixedOwner(owner) {
 function setFixedModalCycle(cycle) {
   const amount = document.getElementById('fm-amount')?.value || '';
   const label = document.getElementById('fm-label')?.value || fixedModalData.label;
+  const autoTransferId = document.getElementById('fm-autoTransfer')?.value || null;
   fixedModalData.cycle = cycle;
   fixedModalData.label = label;
+  fixedModalData.autoTransferId = autoTransferId;
   fixedModalData.day = null;
   if (cycle === '매월') fixedModalData.months = [1,2,3,4,5,6,7,8,9,10,11,12];
   else if (cycle === '격월') fixedModalData.months = [1,3,5,7,9,11];
@@ -4606,7 +4633,8 @@ function addFixedFromModal() {
     if (!months.length) months = fixedModalData.months;
   }
   const owner = state.config.memberCount === 2 ? (fixedModalData.owner || '공동') : state.config.member1Name;
-  state.fixedCosts.push({ id:uuid(), label, amount, cycle, months, day, owner });
+  const autoTransferId = document.getElementById('fm-autoTransfer')?.value || fixedModalData.autoTransferId || null;
+  state.fixedCosts.push({ id:uuid(), label, amount, cycle, months, day, owner, autoTransferId });
   saveState();
   closeFixedModal();
   renderSettings();
@@ -4649,6 +4677,10 @@ function renderAutoTransferTab() {
     const sourceLabelFull = (at.type === 'account' && acc && cfg.memberCount >= 2)
       ? `${sourceLabel} (${owner || '공동'})`
       : sourceLabel;
+    const linkedFCs = (state.fixedCosts||[]).filter(f => f.autoTransferId === at.id);
+    const linkedFCHtml = linkedFCs.length > 0
+      ? `<div style="font-size:8px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${linkedFCs.map(f=>f.label).join(' · ')}</div>`
+      : '';
 
     if (state.atEditIdx === i) {
       return `<div class="at-row" style="align-items:center;background:var(--accent-light);border-radius:var(--r-xs);">
@@ -4669,8 +4701,11 @@ function renderAutoTransferTab() {
       <div class="at-row at-draggable" draggable="true" data-at-id="${at.id||i}"
         ondragstart="dragAtStart(event)" ondragover="dragAtOver(event)" ondrop="dragAtDrop(event)" ondragend="dragAtEnd(event)">
         <span class="fc-drag-handle">⠿</span>
-        <span style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${at.label}</span>
-        <span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;"><span class="pill ${pillClass}" style="font-size:9px;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:inline-block;">${sourceLabel}</span>${ownerBadgeHtml}</span>
+        <span style="text-align:left;overflow:hidden;text-overflow:ellipsis;">
+          <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.label}</div>
+          ${linkedFCHtml}
+        </span>
+        <span style="display:flex;flex-direction:row;align-items:center;gap:4px;flex-wrap:wrap;"><span class="pill ${pillClass}" style="font-size:9px;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:100%;">${sourceLabel}</span>${ownerBadgeHtml}</span>
         <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.amount ? fmtW(at.amount) : '0원'}</span>
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--text3);">${at.payee||'-'}</span>
         <span style="font-size:10px;color:var(--text3);">${at.day ? at.day+'일' : '-'}</span>
