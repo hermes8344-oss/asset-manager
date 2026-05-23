@@ -2594,7 +2594,6 @@ function renderBalance() {
         const prevDiffHtml = prevDiff !== null && prevDiff !== 0
           ? `<div style="font-size:11px;color:${diffColor};text-align:right;margin-top:1px;">${prevDiff>0?'▲ +':'▼ '}${fmtAbs(Math.abs(prevDiff))}</div>`
           : '';
-        const linkedLoan = (state.loans||[]).find(l => l.linkedAccountId === a.id);
         const loanLinkBadge = linkedLoan ? `<span style="font-size:9px;color:var(--accent);white-space:nowrap;margin-left:3px;">🔗대출연동</span>` : '';
         return `<tr>
           <td class="L"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${badge}<span style="overflow:hidden;word-break:break-word;">${a.nickname}</span>${loanLinkBadge}</div></td>
