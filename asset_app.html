@@ -1112,13 +1112,13 @@ tr.row-changed td { background: rgba(83,74,183,.07) !important; }
           style="width:100%;font-size:13px;color:var(--text1);"/>
       </div>
       <div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">기간 (개월)</div>
-        <input id="le-term" class="input-field" inputmode="numeric" placeholder="예) 360"
-          style="width:100%;font-size:13px;text-align:right;"/>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">총 기간 (개월) <span id="le-term-hint" style="color:var(--accent);font-size:10px;"></span></div>
+        <input id="le-term" class="input-field" inputmode="numeric" placeholder="예) 480 (40년)"
+          oninput="updateTermHint('le')" style="width:100%;font-size:13px;text-align:right;"/>
       </div>
       <div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">거치기간 (개월)</div>
-        <input id="le-grace" class="input-field" inputmode="numeric" placeholder="예) 24"
+        <input id="le-grace" class="input-field" inputmode="numeric" placeholder="예) 12 (1년)"
           style="width:100%;font-size:13px;text-align:right;"/>
       </div>
       <div style="grid-column:1/-1;">
@@ -5620,8 +5620,14 @@ function renderLoanSection() {
         <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">총 대출금</div><input id="ln-principal" class="input-field" inputmode="numeric" placeholder="예) 200,000,000" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" style="width:100%;font-size:12px;text-align:right;"/></div>
         <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">연이율 (%)</div><input id="ln-rate" class="input-field" inputmode="decimal" placeholder="예) 3.5" style="width:100%;font-size:12px;text-align:right;"/></div>
         <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">시작 연월</div><input id="ln-start" class="input-field" type="month" style="width:100%;font-size:12px;color:var(--text1);" value="${curYM}"/></div>
-        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">기간 (개월)</div><input id="ln-term" class="input-field" inputmode="numeric" placeholder="예) 360" style="width:100%;font-size:12px;text-align:right;"/></div>
-        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">거치기간 (개월)</div><input id="ln-grace" class="input-field" inputmode="numeric" placeholder="예) 24" style="width:100%;font-size:12px;text-align:right;" value="0"/></div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">총 기간 (개월) <span id="ln-term-hint" style="color:var(--accent);font-size:10px;"></span></div>
+          <input id="ln-term" class="input-field" inputmode="numeric" placeholder="예) 480 (40년)" oninput="updateTermHint('ln')" style="width:100%;font-size:12px;text-align:right;"/>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">거치기간 (개월)</div>
+          <input id="ln-grace" class="input-field" inputmode="numeric" placeholder="예) 12 (1년)" style="width:100%;font-size:12px;text-align:right;" value="0"/>
+        </div>
         <div style="grid-column:1/-1"><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">월 원리금 <span style="color:var(--accent);cursor:pointer;font-size:10px;" onclick="autoCalcPayment('ln')">[자동계산]</span></div><input id="ln-payment" class="input-field" inputmode="numeric" placeholder="예) 583,333" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" style="width:100%;font-size:12px;text-align:right;"/></div>
       </div>
       <div style="display:flex;gap:6px;justify-content:flex-end;">
@@ -5662,6 +5668,15 @@ function deleteLoan(i) {
     saveState();
     renderBalance();
   });
+}
+// 기간 입력 시 "○개월 = ○년 ○개월" 힌트 표시
+function updateTermHint(prefix) {
+  const n = parseInt(document.getElementById(prefix+'-term')?.value) || 0;
+  const hint = document.getElementById(prefix+'-term-hint');
+  if (!hint) return;
+  if (n <= 0) { hint.textContent = ''; return; }
+  const y = Math.floor(n / 12), m = n % 12;
+  hint.textContent = y > 0 ? (m > 0 ? `= ${y}년 ${m}개월` : `= ${y}년`) : `= ${m}개월`;
 }
 // 월 원리금 자동계산 (PMT 공식)
 function autoCalcPayment(prefix) {
