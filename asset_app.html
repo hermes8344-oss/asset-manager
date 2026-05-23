@@ -4690,8 +4690,19 @@ function renderAutoTransferTab() {
       ? `${sourceLabel} (${owner || '공동'})`
       : sourceLabel;
     const linkedFCs = (state.fixedCosts||[]).filter(f => f.autoTransferId === at.id);
+    const AT_FC_BADGE_COLORS = [
+      { bg:'#e8f1fb', color:'#378ADD' },
+      { bg:'#ede9fb', color:'#534AB7' },
+      { bg:'#e6f7f4', color:'#00B493' },
+      { bg:'#fdf3e3', color:'#BA7517' },
+      { bg:'#fde8ea', color:'#F04452' },
+      { bg:'#f3e8fd', color:'#9333EA' },
+      { bg:'#e8fdf4', color:'#059669' },
+      { bg:'#fef9e3', color:'#CA8A04' },
+    ];
+    const fcBadgeClr = AT_FC_BADGE_COLORS[i % AT_FC_BADGE_COLORS.length];
     const linkedFCHtml = linkedFCs.length > 0
-      ? `<div style="font-size:8px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${linkedFCs.map(f=>f.label).join(' · ')}</div>`
+      ? `<span style="font-size:8px;padding:1px 5px;border-radius:10px;background:${fcBadgeClr.bg};color:${fcBadgeClr.color};font-weight:600;display:inline-block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">${linkedFCs.map(f=>f.label).join(' · ')}</span>`
       : '';
 
     if (state.atEditIdx === i) {
