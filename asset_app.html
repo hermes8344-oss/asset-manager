@@ -3471,22 +3471,34 @@ function renderCashflow() {
           </div>
         </div>` : ''}
 
-        ${(cf.savings||[]).length > 0 ? `
-        <div class="card">
-          <div class="section-title" style="margin-bottom:.5rem;">이달 저축</div>
-          ${(cf.savings||[]).map(r => `
-            <div class="sum-row">
-              <span class="sum-label" style="display:flex;flex-direction:column;gap:1px;">
-                <span>${r.label||''}</span>
-                ${r.memo ? `<span style="font-size:10px;color:var(--text3);">${r.memo}</span>` : ''}
-              </span>
-              <span class="sum-val" style="color:#1D9E75;">${fmtW(parseNum(r.amount)||0)}</span>
-            </div>`).join('')}
-          <div class="sum-row" style="border-top:1px solid var(--border);margin-top:.35rem;padding-top:.35rem;">
-            <span class="sum-label" style="font-weight:600;">합계</span>
-            <span class="sum-val" style="color:#1D9E75;">${fmtW(cfSavingsListTotal)}</span>
-          </div>
-        </div>` : ''}
+        ${(()=>{
+          const memos = cf.memos || [];
+          const memoListHtml = memos.map((m, idx) => `
+            <div class="sum-row" style="align-items:center;">
+              <span class="sum-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">${m.text||''}</span>
+              ${m.amount ? `<span class="sum-val" style="white-space:nowrap;flex-shrink:0;">${fmtW(m.amount)}</span>` : '<span></span>'}
+              <button onclick="deleteCFMemo(${idx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 0 0 6px;flex-shrink:0;line-height:1;">✕</button>
+            </div>`).join('');
+          const memoFormHtml = cfMemoFormOpen ? `
+            <div style="display:flex;flex-direction:column;gap:6px;padding:.5rem 0 0;border-top:1px solid var(--border);margin-top:.25rem;">
+              <input class="input-field" id="cf-memo-text" placeholder="메모 내용" style="font-size:12px;"/>
+              <input class="input-field" id="cf-memo-amount" inputmode="numeric" placeholder="금액 (선택)"
+                oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')"
+                style="font-size:12px;text-align:right;"/>
+              <div style="display:flex;gap:6px;justify-content:flex-end;">
+                <button class="btn btn-secondary" style="padding:.3rem .7rem;font-size:12px;" onclick="cancelCFMemoForm()">취소</button>
+                <button class="btn btn-primary" style="padding:.3rem .7rem;font-size:12px;" onclick="addCFMemo()">추가</button>
+              </div>
+            </div>` : '';
+          return `<div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
+              <div class="section-title">이달 메모</div>
+              ${!cfMemoFormOpen ? `<button onclick="openCFMemoForm()" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;padding:0;">+ 메모 추가하기</button>` : ''}
+            </div>
+            ${memoListHtml || (!cfMemoFormOpen ? `<div style="font-size:12px;color:var(--text3);padding:.1rem 0;">아직 메모가 없어요</div>` : '')}
+            ${memoFormHtml}
+          </div>`;
+        })()}
       </div>
     </div>
 
@@ -4020,6 +4032,33 @@ function deleteCFRow(type, idx) {
   const ym = state.currentMonth;
   ensureCF(ym);
   state.cashflow[ym][type].splice(idx, 1);
+  renderCashflow();
+}
+
+// ── 이달 메모 ──
+let cfMemoFormOpen = false;
+function openCFMemoForm() { cfMemoFormOpen = true; renderCashflow(); setTimeout(()=>document.getElementById('cf-memo-text')?.focus(),50); }
+function cancelCFMemoForm() { cfMemoFormOpen = false; renderCashflow(); }
+function addCFMemo() {
+  const text = document.getElementById('cf-memo-text')?.value.trim();
+  if (!text) { showToast('메모 내용을 입력해주세요', 'error'); return; }
+  const amountVal = document.getElementById('cf-memo-amount')?.value;
+  const amount = amountVal ? parseNum(amountVal) : null;
+  const ym = state.currentMonth;
+  ensureCF(ym);
+  if (!state.cashflow[ym].memos) state.cashflow[ym].memos = [];
+  state.cashflow[ym].memos.push({ id: uuid(), text, amount });
+  saveState();
+  cfMemoFormOpen = false;
+  renderCashflow();
+  showToast('메모가 추가됐어요');
+}
+function deleteCFMemo(idx) {
+  const ym = state.currentMonth;
+  ensureCF(ym);
+  if (!state.cashflow[ym].memos) return;
+  state.cashflow[ym].memos.splice(idx, 1);
+  saveState();
   renderCashflow();
 }
 function updateCFRow(type, idx, field, val) {
