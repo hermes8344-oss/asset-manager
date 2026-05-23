@@ -4162,8 +4162,20 @@ function renderFixedTab() {
     const pillClass = f.cycle === '매월' ? 'mo' : f.cycle === '격월' ? 'bi' : f.cycle === '연1회' ? 'yn' : 'an';
     const monthLabel = f.cycle === '매월' ? `매월 ${f.day||''}일` : (f.months||[]).join(', ')+'월';
     const linkedAt = f.autoTransferId ? (state.autoTransfers||[]).find(at => at.id === f.autoTransferId) : null;
+    const AT_BADGE_COLORS = [
+      { bg:'#e8f1fb', color:'#378ADD' },
+      { bg:'#ede9fb', color:'#534AB7' },
+      { bg:'#e6f7f4', color:'#00B493' },
+      { bg:'#fdf3e3', color:'#BA7517' },
+      { bg:'#fde8ea', color:'#F04452' },
+      { bg:'#f3e8fd', color:'#9333EA' },
+      { bg:'#e8fdf4', color:'#059669' },
+      { bg:'#fef9e3', color:'#CA8A04' },
+    ];
+    const linkedAtIdx = linkedAt ? (state.autoTransfers||[]).findIndex(at => at.id === f.autoTransferId) : 0;
+    const badgeClr = AT_BADGE_COLORS[linkedAtIdx % AT_BADGE_COLORS.length];
     const atBadge = linkedAt
-      ? `<span style="font-size:8px;padding:1px 5px;border-radius:10px;background:#e8f1fb;color:var(--blue,#378ADD);font-weight:600;display:inline-block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;" title="${linkedAt.label}">↪ ${linkedAt.label}</span>`
+      ? `<span style="font-size:8px;padding:1px 5px;border-radius:10px;background:${badgeClr.bg};color:${badgeClr.color};font-weight:600;display:inline-block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;" title="${linkedAt.label}">↪ ${linkedAt.label}</span>`
       : '';
     if (state.fixedEditIdx === i) {
       const cycleFieldHtml = f.cycle === '매월'
