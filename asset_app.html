@@ -4698,7 +4698,7 @@ function renderAutoTransferTab() {
     }
 
     return `<div class="at-swipe-wrap">
-      <div class="at-row at-draggable" draggable="true" data-at-id="${at.id||i}"
+      <div class="at-row at-draggable" draggable="true" data-at-id="${at.id||i}" style="padding-left:3.25rem;"
         ondragstart="dragAtStart(event)" ondragover="dragAtOver(event)" ondrop="dragAtDrop(event)" ondragend="dragAtEnd(event)">
         <span class="fc-drag-handle">⠿</span>
         <span style="text-align:left;overflow:hidden;text-overflow:ellipsis;">
