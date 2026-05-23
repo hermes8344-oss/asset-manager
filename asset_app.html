@@ -1616,7 +1616,7 @@ function calcNetAsset() {
   let total = 0;
   const ym = state.currentMonth;
   state.accounts.forEach(a => {
-    const amt = (state.balances[ym]||{})[a.id] || 0;
+    const amt = getAccountBalance(a, ym) || 0;
     total += a.category === '부채' ? -Math.abs(amt) : amt;
   });
   return total;
@@ -1624,7 +1624,7 @@ function calcNetAsset() {
 function calcNetAssetForMonth(ym) {
   let total = 0;
   state.accounts.forEach(a => {
-    const amt = (state.balances[ym]||{})[a.id] || 0;
+    const amt = getAccountBalance(a, ym) || 0;
     total += a.category === '부채' ? -Math.abs(amt) : amt;
   });
   return total;
@@ -1633,7 +1633,7 @@ function calcAssetByCategory(ym) {
   const m = ym || state.currentMonth;
   const cats = zeroCats();
   state.accounts.forEach(a => {
-    const amt = (state.balances[m]||{})[a.id] || 0;
+    const amt = getAccountBalance(a, m) || 0;
     if (cats[a.category] !== undefined) cats[a.category] += Math.abs(amt);
   });
   return cats;
@@ -1641,7 +1641,7 @@ function calcAssetByCategory(ym) {
 function calcCatsByMonth(ym) {
   const cats = zeroCats();
   state.accounts.forEach(a => {
-    const amt = (state.balances[ym]||{})[a.id] || 0;
+    const amt = getAccountBalance(a, ym) || 0;
     if (cats[a.category] !== undefined) cats[a.category] += Math.abs(amt);
   });
   return cats;
@@ -2141,13 +2141,13 @@ function initGraphs() {
     const exp = (cf.expense||[]).reduce((s,r)=>s+(parseNum(r.amount)||0),0);
     incomeData.push(inc);
     expenseData.push(exp);
-    const hasBalData = state.balances[ym] &&
-      state.accounts.some(a => (state.balances[ym]||{})[a.id] !== undefined);
+    const hasBalData = (state.balances[ym] && state.accounts.some(a => (state.balances[ym]||{})[a.id] !== undefined))
+      || (state.loans||[]).some(l => l.linkedAccountId && l.startYM && l.startYM <= ym);
     let netVal = null;
     if (hasBalData) {
       let net = 0;
       state.accounts.forEach(a => {
-        const amt = (state.balances[ym]||{})[a.id] || 0;
+        const amt = getAccountBalance(a, ym) || 0;
         net += a.category === '부채' ? -Math.abs(amt) : amt;
       });
       netVal = net;
@@ -2493,11 +2493,6 @@ function renderBalance() {
   const isEdit = state.balanceEditing;
   const twoMember = cfg.memberCount === 2;
 
-  // 연동 대출 계좌 — 미입력 월 자동 채우기 (미래 월 제외, 기존값 보호)
-  if (ym <= currentYM()) {
-    (state.loans||[]).forEach(loan => syncLoanToBalance(loan, ym));
-  }
-
   // 사용자 필터 칩
   const bFilter = state.balanceUserFilter;
   const bFilterMembers = [cfg.member1Name];
@@ -2528,7 +2523,7 @@ function renderBalance() {
     });
     const isDebt = cat === '부채';
     let total = 0;
-    accs.forEach(a => { total += (state.balances[ym]||{})[a.id] || 0; });
+    accs.forEach(a => { total += getAccountBalance(a, ym) || 0; });
     const dispTotal = isDebt ? -Math.abs(total) : total;
 
     const catCol = CAT_COLORS[cat];
@@ -2541,18 +2536,24 @@ function renderBalance() {
       rows = `<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:.6rem 0;font-size:11px;">${hint}</td></tr>`;
     } else if (isEdit) {
       rows = accs.map((a, accsIdx) => {
-        const val = balanceTempData[a.id] !== undefined
-          ? balanceTempData[a.id]
-          : ((state.balances[ym]||{})[a.id] || 0);
+        const linkedLoan = (state.loans||[]).find(l => l.linkedAccountId === a.id);
+        const computedVal = linkedLoan ? computeLoanRemaining(linkedLoan, ym) : undefined;
+        const val = computedVal !== undefined
+          ? computedVal
+          : (balanceTempData[a.id] !== undefined ? balanceTempData[a.id] : ((state.balances[ym]||{})[a.id] || 0));
         const responsible = a.owner === '공동' ? (a.jointOwner || cfg.member1Name) : a.owner;
         const badge = ownerBadge(responsible);
 
-        const prevBalAmt = (state.balances[prevYM(ym)] || {})[a.id];
-        const prevBalDisp = prevBalAmt !== undefined && prevBalAmt !== null ? fmt(Math.abs(prevBalAmt)) : '';
-        const prevBalAbsAmt = prevBalAmt !== undefined && prevBalAmt !== null ? Math.abs(prevBalAmt) : undefined;
+        const prevBalRaw = linkedLoan ? computeLoanRemaining(linkedLoan, prevYM(ym)) : (state.balances[prevYM(ym)] || {})[a.id];
+        const prevBalAmt = prevBalRaw !== undefined && prevBalRaw !== null ? prevBalRaw : undefined;
+        const prevBalDisp = prevBalAmt !== undefined ? fmt(Math.abs(prevBalAmt)) : '';
+        const prevBalAbsAmt = prevBalAmt !== undefined ? Math.abs(prevBalAmt) : undefined;
         const curBalAbsAmt = val ? Math.abs(val) : 0;
-        const balMatch = prevBalAbsAmt !== undefined && curBalAbsAmt === prevBalAbsAmt;
+        const balMatch = !linkedLoan && prevBalAbsAmt !== undefined && curBalAbsAmt === prevBalAbsAmt;
         const balHintBg = balMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
+        const inputCell = linkedLoan
+          ? `<div style="font-size:9px;color:var(--accent);text-align:right;margin-bottom:2px;">🔗 대출 자동계산</div><input type="text" value="${fmt(Math.abs(val))}" disabled style="font-size:13px;width:100%;opacity:.55;cursor:not-allowed;"/>`
+          : `${prevBalDisp ? `<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;"><span style="${balHintBg}">전달 ${prevBalDisp}</span></div>` : ''}<input type="text" inputmode="numeric" value="${val ? fmt(Math.abs(val)) : ''}" placeholder="0" class="amount-input" onblur="formatInput(this)" oninput="onBalanceInput('${a.id}',this);this.classList.add('cell-changed');this.closest('tr')?.classList.add('row-changed');syncHintColor(this)" data-id="${a.id}" data-prev-amt="${prevBalAbsAmt ?? ''}" style="font-size:13px;width:100%;"/>`;
         return `<tr data-acc-id="${a.id}" draggable="true" style="vertical-align:middle;"
             ondragstart="dragAccStart(event,'${a.id}')"
             ondragover="dragAccOver(event,'${a.id}')"
@@ -2560,7 +2561,7 @@ function renderBalance() {
             ondragend="dragAccEnd()">
           <td><div style="display:flex;align-items:center;gap:4px;">${badge}<span style="overflow:hidden;word-break:break-word;font-size:13px;">${a.nickname}</span></div></td>
           <td class="M" style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.institution}</td>
-          <td>${prevBalDisp ? `<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;"><span style="${balHintBg}">전달 ${prevBalDisp}</span></div>` : ''}<input type="text" inputmode="numeric" value="${val ? fmt(Math.abs(val)) : ''}" placeholder="0" class="amount-input" onblur="formatInput(this)" oninput="onBalanceInput('${a.id}',this);this.classList.add('cell-changed');this.closest('tr')?.classList.add('row-changed');syncHintColor(this)" data-id="${a.id}" data-prev-amt="${prevBalAbsAmt ?? ''}" style="font-size:13px;width:100%;"/></td>
+          <td>${inputCell}</td>
           <td>
             <div style="display:flex;align-items:center;justify-content:center;gap:2px;">
               <button onclick="openRowEditModal('balance','${a.id}')" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
@@ -2571,7 +2572,9 @@ function renderBalance() {
       }).join('');
     } else {
       rows = accs.map(a => {
-        const raw = (state.balances[ym]||{})[a.id];
+        const linkedLoan = (state.loans||[]).find(l => l.linkedAccountId === a.id);
+        const rawStored = (state.balances[ym]||{})[a.id];
+        const raw = linkedLoan ? computeLoanRemaining(linkedLoan, ym) : rawStored;
         const hasVal = raw !== undefined && raw !== null;
         const val = hasVal ? raw : 0;
         const responsible = a.owner === '공동' ? (a.jointOwner || cfg.member1Name) : a.owner;
@@ -2579,8 +2582,9 @@ function renderBalance() {
         const dispVal = hasVal
           ? (isDebt ? '-'+fmt(Math.abs(val)) : fmt(Math.abs(val)))
           : `<span style="color:var(--text3);font-weight:400;">—</span>`;
-        const prevBal = (state.balances[prevYM(ym)] || {})[a.id];
-        const prevDiff = (hasVal && prevBal !== undefined && prevBal !== null)
+        const prevBalRaw = linkedLoan ? computeLoanRemaining(linkedLoan, prevYM(ym)) : (state.balances[prevYM(ym)] || {})[a.id];
+        const prevBal = prevBalRaw !== undefined && prevBalRaw !== null ? prevBalRaw : undefined;
+        const prevDiff = (hasVal && prevBal !== undefined)
           ? val - prevBal : null;
         // 부채는 증가(양수 차이)가 나쁨 → 색상 반전
         const diffColor = prevDiff === null ? null
@@ -2630,7 +2634,7 @@ function renderBalance() {
   // 우측 요약패널용 카테고리별 합계
   const catSum = {};
   CATEGORIES.forEach(c => {
-    const t = state.accounts.filter(a => a.category === c).reduce((s,a) => s + ((state.balances[ym]||{})[a.id]||0), 0);
+    const t = state.accounts.filter(a => a.category === c).reduce((s,a) => s + (getAccountBalance(a, ym)||0), 0);
     catSum[c] = c === '부채' ? -Math.abs(t) : t;
   });
   const balTotalAsset = ['현금성','투자','저축','노후자금','장기자산'].reduce((s,c) => s + (catSum[c]||0), 0);
@@ -2638,19 +2642,21 @@ function renderBalance() {
 
   // 전월 대비
   const prevYm2 = prevYM(ym);
-  const hasPrevBalance = Object.keys(state.balances[prevYm2]||{}).length > 0;
+  const hasPrevBalance = Object.keys(state.balances[prevYm2]||{}).length > 0 || (state.loans||[]).some(l => l.linkedAccountId);
   const prevNetWorth = hasPrevBalance ? (() => {
     let pn = 0;
     state.accounts.forEach(a => {
-      const amt = (state.balances[prevYm2]||{})[a.id] || 0;
+      const amt = getAccountBalance(a, prevYm2) || 0;
       pn += a.category === '부채' ? -Math.abs(amt) : amt;
     });
     return pn;
   })() : null;
   const netWorthDiff = prevNetWorth !== null ? balNetWorth - prevNetWorth : null;
 
-  // 미입력 계좌 수
+  // 미입력 계좌 수 (연동 대출 계좌는 항상 값 있음 → 제외)
   const missingCount = state.accounts.filter(a => {
+    const linkedLoan2 = (state.loans||[]).find(l => l.linkedAccountId === a.id);
+    if (linkedLoan2) return false;
     const v = (state.balances[ym]||{})[a.id];
     return v === undefined || v === null;
   }).length;
@@ -2871,7 +2877,8 @@ function updateAllBalanceSums() {
 function updateBalanceSummaryLive() {
   const catTotals = zeroCats();
   state.accounts.forEach(a => {
-    const v = balanceTempData[a.id] || 0;
+    const linkedLoan = (state.loans||[]).find(l => l.linkedAccountId === a.id);
+    const v = linkedLoan ? computeLoanRemaining(linkedLoan, state.currentMonth) : (balanceTempData[a.id] || 0);
     if (catTotals[a.category] !== undefined) catTotals[a.category] += v;
   });
   const totalAsset = CATEGORY_CONFIG.filter(c => !c.isDebt).reduce((s, c) => s + (catTotals[c.name]||0), 0);
@@ -2903,8 +2910,12 @@ function saveBalance() {
     balanceMemoTempData[el.dataset.memoId] = el.value;
   });
   // 별명/기관은 팝업(openRowEditModal)에서 직접 저장됨
+  // 연동 대출 계좌는 항상 computeLoanRemaining으로 계산 → state.balances에 저장 불필요
   state.accounts.forEach(a => {
-    state.balances[ym][a.id] = balanceTempData[a.id] || 0;
+    const linkedLoan = (state.loans||[]).find(l => l.linkedAccountId === a.id);
+    if (!linkedLoan) {
+      state.balances[ym][a.id] = balanceTempData[a.id] || 0;
+    }
     state.balanceMemos[ym][a.id] = balanceMemoTempData[a.id] || '';
   });
   saveState();
@@ -5722,15 +5733,11 @@ function computeLoanRemaining(loan, targetYM) {
     return Math.max(0, Math.round(principal - payment * elapsed));
   }
 }
-function syncLoanToBalance(loan, targetYM) {
-  if (!loan || !loan.linkedAccountId) return;
-  const ym = targetYM || currentYM();
-  // 이미 값이 있으면 덮어쓰지 않음 (수동 입력값 보호)
-  if ((state.balances[ym]||{})[loan.linkedAccountId] !== undefined) return;
-  const remaining = computeLoanRemaining(loan, ym);
-  if (!state.balances[ym]) state.balances[ym] = {};
-  state.balances[ym][loan.linkedAccountId] = remaining;
-  saveState();
+// 연동 대출이 있는 계좌는 항상 computeLoanRemaining 값을 반환 (Single Source of Truth)
+function getAccountBalance(account, ym) {
+  const linkedLoan = (state.loans||[]).find(l => l.linkedAccountId === account.id);
+  if (linkedLoan) return computeLoanRemaining(linkedLoan, ym);
+  return (state.balances[ym]||{})[account.id];
 }
 // 대출 수정 모달
 let loanEditIdx = null;
@@ -5772,11 +5779,6 @@ function saveLoanEdit() {
   if (!label || !principal) { showToast('대출명과 총 대출금을 입력해주세요', 'error'); return; }
   const oldLinkedId = state.loans[loanEditIdx]?.linkedAccountId || '';
   state.loans[loanEditIdx] = { ...state.loans[loanEditIdx], label, principal, rate, monthlyPayment, startYM, termMonths, linkedAccountId, repaymentType, gracePeriodMonths };
-  // 연동 계좌가 바뀌었으면 이달 값을 지워 syncLoanToBalance가 재계산하도록
-  if (linkedAccountId && linkedAccountId !== oldLinkedId) {
-    if (state.balances[currentYM()]) delete state.balances[currentYM()][linkedAccountId];
-  }
-  syncLoanToBalance(state.loans[loanEditIdx], currentYM());
   saveState();
   closeLoanEditModal();
   renderBalance();
