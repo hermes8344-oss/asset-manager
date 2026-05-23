@@ -4701,14 +4701,14 @@ function renderAutoTransferTab() {
       <div class="at-row at-draggable" draggable="true" data-at-id="${at.id||i}"
         ondragstart="dragAtStart(event)" ondragover="dragAtOver(event)" ondrop="dragAtDrop(event)" ondragend="dragAtEnd(event)">
         <span class="fc-drag-handle">⠿</span>
-        <span style="text-align:left;overflow:hidden;text-overflow:ellipsis;">
+        <span style="text-align:center;overflow:hidden;text-overflow:ellipsis;">
           <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.label}</div>
           ${linkedFCHtml}
         </span>
-        <span style="display:flex;flex-direction:row;align-items:center;gap:4px;flex-wrap:wrap;"><span class="pill ${pillClass}" style="font-size:9px;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:100%;">${sourceLabel}</span>${ownerBadgeHtml}</span>
-        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.amount ? fmtW(at.amount) : '0원'}</span>
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--text3);">${at.payee||'-'}</span>
-        <span style="font-size:10px;color:var(--text3);">${at.day ? at.day+'일' : '-'}</span>
+        <span style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;">${ownerBadgeHtml}<span class="pill ${pillClass}" style="font-size:9px;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:100%;">${sourceLabel}</span></span>
+        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;">${at.amount ? fmtW(at.amount) : '0원'}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--text3);text-align:center;">${at.payee||'-'}</span>
+        <span style="font-size:10px;color:var(--text3);text-align:center;">${at.day ? at.day+'일' : '-'}</span>
       </div>
       <div class="at-swipe-btns">
         <button class="at-swipe-edit-btn" onclick="startAutoTransferEdit(${i})">수정</button>
