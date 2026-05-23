@@ -2480,6 +2480,11 @@ function renderBalance() {
   const isEdit = state.balanceEditing;
   const twoMember = cfg.memberCount === 2;
 
+  // 연동 대출 계좌 — 미입력 월 자동 채우기 (미래 월 제외, 기존값 보호)
+  if (ym <= currentYM()) {
+    (state.loans||[]).forEach(loan => syncLoanToBalance(loan, ym));
+  }
+
   // 사용자 필터 칩
   const bFilter = state.balanceUserFilter;
   const bFilterMembers = [cfg.member1Name];
@@ -5639,13 +5644,25 @@ function deleteLoan(i) {
   });
 }
 // 대출 → 부채 계좌 잔고 자동 동기화
-function syncLoanToBalance(loan) {
+function syncLoanToBalance(loan, targetYM) {
   if (!loan || !loan.linkedAccountId) return;
-  const curYM = currentYM();
-  const elapsed = Math.max(0, monthDiff(loan.startYM || curYM, curYM));
-  const remaining = Math.max(0, (loan.principal||0) - (loan.monthlyPayment||0) * elapsed);
-  if (!state.balances[curYM]) state.balances[curYM] = {};
-  state.balances[curYM][loan.linkedAccountId] = Math.round(remaining);
+  const ym = targetYM || currentYM();
+  // 이미 값이 있으면 덮어쓰지 않음 (수동 입력값 보호)
+  if ((state.balances[ym]||{})[loan.linkedAccountId] !== undefined) return;
+  // 전월 잔고 기반 증분 계산 우선 (정확도 ↑)
+  const prev = prevYM(ym);
+  const prevBal = (state.balances[prev]||{})[loan.linkedAccountId];
+  let remaining;
+  if (prevBal !== undefined && prevBal !== null) {
+    remaining = Math.max(0, prevBal - (loan.monthlyPayment||0));
+  } else {
+    // 전월 잔고 없으면 원금 공식으로 폴백
+    const elapsed = Math.max(0, monthDiff(loan.startYM || ym, ym));
+    remaining = Math.max(0, (loan.principal||0) - (loan.monthlyPayment||0) * elapsed);
+  }
+  if (!state.balances[ym]) state.balances[ym] = {};
+  state.balances[ym][loan.linkedAccountId] = Math.round(remaining);
+  saveState();
 }
 // 대출 수정 모달
 let loanEditIdx = null;
@@ -5681,8 +5698,13 @@ function saveLoanEdit() {
   const termMonths = parseInt(document.getElementById('le-term')?.value) || 0;
   const linkedAccountId = document.getElementById('le-account')?.value || '';
   if (!label || !principal) { showToast('대출명과 총 대출금을 입력해주세요', 'error'); return; }
+  const oldLinkedId = state.loans[loanEditIdx]?.linkedAccountId || '';
   state.loans[loanEditIdx] = { ...state.loans[loanEditIdx], label, principal, rate, monthlyPayment, startYM, termMonths, linkedAccountId };
-  syncLoanToBalance(state.loans[loanEditIdx]);
+  // 연동 계좌가 바뀌었으면 이달 값을 지워 syncLoanToBalance가 재계산하도록
+  if (linkedAccountId && linkedAccountId !== oldLinkedId) {
+    if (state.balances[currentYM()]) delete state.balances[currentYM()][linkedAccountId];
+  }
+  syncLoanToBalance(state.loans[loanEditIdx], currentYM());
   saveState();
   closeLoanEditModal();
   renderBalance();
