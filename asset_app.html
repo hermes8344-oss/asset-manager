@@ -1053,14 +1053,23 @@ tr.row-changed td { background: rgba(83,74,183,.07) !important; }
   <div class="modal-sheet" style="max-width:430px;">
     <div class="modal-handle"></div>
     <div class="modal-header">
-      <div class="modal-title">메모 상세</div>
+      <div class="modal-title">메모 수정</div>
       <button class="close-btn" onclick="closeCFMemoDetail()">✕</button>
     </div>
-    <div id="cf-memo-detail-body" style="padding:.5rem 0 .75rem;word-break:break-all;white-space:pre-wrap;font-size:15px;line-height:1.7;color:var(--text1);"></div>
-    <div id="cf-memo-detail-amount" style="font-size:13px;color:var(--text3);padding-bottom:.75rem;"></div>
-    <div class="btn-row" style="padding-top:.25rem;border-top:1px solid var(--border);">
-      <button class="btn btn-secondary" onclick="closeCFMemoDetail()">닫기</button>
+    <div class="input-group" style="margin-top:.25rem;">
+      <label class="input-label">메모 내용</label>
+      <textarea id="cf-memo-detail-text" class="input-field" rows="4"
+        style="width:100%;resize:vertical;font-size:14px;line-height:1.6;word-break:break-all;"></textarea>
+    </div>
+    <div class="input-group">
+      <label class="input-label">금액 (선택)</label>
+      <input id="cf-memo-detail-amount" class="input-field" inputmode="numeric" placeholder="0"
+        oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')"
+        style="text-align:right;font-size:14px;"/>
+    </div>
+    <div class="btn-row" style="padding-top:.25rem;border-top:1px solid var(--border);margin-top:.25rem;">
       <button class="btn" style="background:var(--red);color:#fff;border:none;" onclick="deleteCFMemoFromPopup()">삭제</button>
+      <button class="btn btn-primary" onclick="saveCFMemoEdit()">저장</button>
     </div>
   </div>
 </div>
@@ -4084,15 +4093,32 @@ function showCFMemoDetail(idx) {
   const m = (state.cashflow[ym]?.memos || [])[idx];
   if (!m) return;
   cfMemoDetailIdx = idx;
-  document.getElementById('cf-memo-detail-body').textContent = m.text || '';
-  const amountEl = document.getElementById('cf-memo-detail-amount');
-  amountEl.textContent = m.amount ? '금액: ' + fmtW(m.amount) : '';
-  amountEl.style.display = m.amount ? '' : 'none';
+  document.getElementById('cf-memo-detail-text').value = m.text || '';
+  document.getElementById('cf-memo-detail-amount').value = m.amount ? fmt(m.amount) : '';
   document.getElementById('cf-memo-detail-modal').classList.add('open');
+  setTimeout(() => document.getElementById('cf-memo-detail-text')?.focus(), 100);
 }
 function closeCFMemoDetail() {
   document.getElementById('cf-memo-detail-modal').classList.remove('open');
   cfMemoDetailIdx = null;
+}
+function saveCFMemoEdit() {
+  if (cfMemoDetailIdx === null) return;
+  const text = document.getElementById('cf-memo-detail-text')?.value.trim();
+  if (!text) { showToast('메모 내용을 입력해주세요', 'error'); return; }
+  const amountVal = document.getElementById('cf-memo-detail-amount')?.value;
+  const amount = amountVal ? parseNum(amountVal) : null;
+  const ym = state.currentMonth;
+  ensureCF(ym);
+  if (!state.cashflow[ym].memos) return;
+  state.cashflow[ym].memos[cfMemoDetailIdx] = {
+    ...state.cashflow[ym].memos[cfMemoDetailIdx],
+    text, amount
+  };
+  saveState();
+  closeCFMemoDetail();
+  renderCashflow();
+  showToast('메모가 수정됐어요');
 }
 function deleteCFMemoFromPopup() {
   if (cfMemoDetailIdx === null) return;
