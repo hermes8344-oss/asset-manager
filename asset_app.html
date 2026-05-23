@@ -1074,6 +1074,58 @@ tr.row-changed td { background: rgba(83,74,183,.07) !important; }
   </div>
 </div>
 
+<!-- 대출 수정 모달 -->
+<div class="modal-overlay" id="loan-edit-modal" onclick="if(event.target===this)closeLoanEditModal()">
+  <div class="modal-sheet" style="max-width:430px;">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">대출 수정</div>
+      <button class="close-btn" onclick="closeLoanEditModal()">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 1rem .75rem;">
+      <div style="grid-column:1/-1;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">대출명</div>
+        <input id="le-label" class="input-field" placeholder="예) 전세대출" style="width:100%;font-size:13px;"/>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">총 대출금</div>
+        <input id="le-principal" class="input-field" inputmode="numeric" placeholder="예) 200,000,000"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')"
+          style="width:100%;font-size:13px;text-align:right;"/>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">연이율 (%)</div>
+        <input id="le-rate" class="input-field" inputmode="decimal" placeholder="예) 3.5"
+          style="width:100%;font-size:13px;text-align:right;"/>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">월 상환액</div>
+        <input id="le-payment" class="input-field" inputmode="numeric" placeholder="예) 583,333"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')"
+          style="width:100%;font-size:13px;text-align:right;"/>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">기간 (개월)</div>
+        <input id="le-term" class="input-field" inputmode="numeric" placeholder="예) 24"
+          style="width:100%;font-size:13px;text-align:right;"/>
+      </div>
+      <div style="grid-column:1/-1;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">시작 연월</div>
+        <input id="le-start" class="input-field" type="month"
+          style="width:100%;font-size:13px;color:var(--text1);"/>
+      </div>
+      <div style="grid-column:1/-1;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">연동 부채 계좌 <span style="color:var(--text3);font-weight:400;">(선택)</span></div>
+        <select id="le-account" class="input-field" style="width:100%;font-size:13px;color:var(--text1);"></select>
+      </div>
+    </div>
+    <div class="btn-row" style="border-top:1px solid var(--border);padding-top:.5rem;margin-top:0;">
+      <button class="btn" style="background:var(--red);color:#fff;border:none;" onclick="deleteLoanFromModal()">삭제</button>
+      <button class="btn btn-primary" onclick="saveLoanEdit()">저장</button>
+    </div>
+  </div>
+</div>
+
 <!-- 행 상세 편집 팝업 -->
 <div class="modal-overlay" id="row-edit-modal" onclick="if(event.target===this)closeRowEditModal()">
   <div class="modal-sheet">
@@ -2520,8 +2572,10 @@ function renderBalance() {
         const prevDiffHtml = prevDiff !== null && prevDiff !== 0
           ? `<div style="font-size:11px;color:${diffColor};text-align:right;margin-top:1px;">${prevDiff>0?'▲ +':'▼ '}${fmtAbs(Math.abs(prevDiff))}</div>`
           : '';
+        const linkedLoan = (state.loans||[]).find(l => l.linkedAccountId === a.id);
+        const loanLinkBadge = linkedLoan ? `<span style="font-size:9px;color:var(--accent);white-space:nowrap;margin-left:3px;">🔗대출연동</span>` : '';
         return `<tr>
-          <td class="L"><div style="display:flex;align-items:center;">${badge}<span style="overflow:hidden;word-break:break-word;">${a.nickname}</span></div></td>
+          <td class="L"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${badge}<span style="overflow:hidden;word-break:break-word;">${a.nickname}</span>${loanLinkBadge}</div></td>
           <td class="M" style="text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.institution}${a.owner==='공동'?'<br><span style="font-size:9px;color:var(--accent);white-space:nowrap;">공동·'+responsible+'</span>':''}</td>
           <td class="${isDebt?'neg':'bold'}" style="white-space:nowrap;text-align:right;">${dispVal}${prevDiffHtml}</td>
           <td></td>
@@ -5520,13 +5574,15 @@ function renderLoanSection() {
     const monthlyInterest = Math.round(remaining * ((loan.rate||0) / 100) / 12);
     const totalMonths = loan.termMonths || 0;
     const leftMonths = Math.max(0, totalMonths - elapsed);
-    return `<div style="padding:.65rem 0;border-bottom:1px solid var(--border);">
+    const linkedAcc = loan.linkedAccountId ? state.accounts.find(a => a.id === loan.linkedAccountId) : null;
+    const linkedBadge = linkedAcc ? `<span style="font-size:10px;color:var(--accent);background:rgba(83,74,183,.12);border-radius:4px;padding:1px 5px;margin-left:4px;white-space:nowrap;">🔗 ${linkedAcc.nickname}</span>` : '';
+    return `<div style="padding:.65rem 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="openLoanEditModal(${i})">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text1);">${loan.label}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--text1);display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${loan.label}${linkedBadge}</div>
           <div style="font-size:11px;color:var(--text3);margin-top:2px;">연 ${loan.rate}% · 월 상환 ${fmtW(loan.monthlyPayment||0)} · 잔여 ${leftMonths}개월</div>
         </div>
-        <button class="del-btn" onclick="deleteLoan(${i})" style="flex-shrink:0;">✕</button>
+        <span style="font-size:14px;color:var(--text3);padding-left:6px;flex-shrink:0;">›</span>
       </div>
       <div style="display:flex;gap:12px;margin-top:.4rem;flex-wrap:wrap;">
         <div style="font-size:12px;"><span style="color:var(--text3);">잔여 원금 </span><span style="font-weight:700;color:var(--red);">${fmtW(Math.round(remaining))}</span></div>
@@ -5538,12 +5594,12 @@ function renderLoanSection() {
   const addForm = loanAddMode ? `
     <div style="padding:.75rem 0;border-top:1px solid var(--border);">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
-        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">대출명</div><input id="ln-label" class="input-field" placeholder="전세대출" style="width:100%;font-size:12px;"/></div>
-        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">총 대출금</div><input id="ln-principal" class="input-field" inputmode="numeric" placeholder="200,000,000" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" style="width:100%;font-size:12px;text-align:right;"/></div>
-        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">연이율 (%)</div><input id="ln-rate" class="input-field" inputmode="decimal" placeholder="3.5" style="width:100%;font-size:12px;text-align:right;"/></div>
-        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">월 상환액</div><input id="ln-payment" class="input-field" inputmode="numeric" placeholder="583,333" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" style="width:100%;font-size:12px;text-align:right;"/></div>
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">대출명</div><input id="ln-label" class="input-field" placeholder="예) 전세대출" style="width:100%;font-size:12px;"/></div>
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">총 대출금</div><input id="ln-principal" class="input-field" inputmode="numeric" placeholder="예) 200,000,000" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" style="width:100%;font-size:12px;text-align:right;"/></div>
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">연이율 (%)</div><input id="ln-rate" class="input-field" inputmode="decimal" placeholder="예) 3.5" style="width:100%;font-size:12px;text-align:right;"/></div>
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">월 상환액</div><input id="ln-payment" class="input-field" inputmode="numeric" placeholder="예) 583,333" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" style="width:100%;font-size:12px;text-align:right;"/></div>
         <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">시작 연월</div><input id="ln-start" class="input-field" type="month" style="width:100%;font-size:12px;color:var(--text1);" value="${curYM}"/></div>
-        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">기간 (개월)</div><input id="ln-term" class="input-field" inputmode="numeric" placeholder="24" style="width:100%;font-size:12px;text-align:right;"/></div>
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">기간 (개월)</div><input id="ln-term" class="input-field" inputmode="numeric" placeholder="예) 24" style="width:100%;font-size:12px;text-align:right;"/></div>
       </div>
       <div style="display:flex;gap:6px;justify-content:flex-end;">
         <button class="btn btn-secondary" style="padding:.35rem .8rem;font-size:12px;" onclick="loanAddMode=false;renderBalance();">취소</button>
@@ -5579,6 +5635,66 @@ function deleteLoan(i) {
   showConfirm('대출 삭제', `"${label}"을 삭제할까요?`, () => {
     state.loans.splice(i, 1);
     saveState();
+    renderBalance();
+  });
+}
+// 대출 → 부채 계좌 잔고 자동 동기화
+function syncLoanToBalance(loan) {
+  if (!loan || !loan.linkedAccountId) return;
+  const curYM = currentYM();
+  const elapsed = Math.max(0, monthDiff(loan.startYM || curYM, curYM));
+  const remaining = Math.max(0, (loan.principal||0) - (loan.monthlyPayment||0) * elapsed);
+  if (!state.balances[curYM]) state.balances[curYM] = {};
+  state.balances[curYM][loan.linkedAccountId] = Math.round(remaining);
+}
+// 대출 수정 모달
+let loanEditIdx = null;
+function openLoanEditModal(i) {
+  const loan = state.loans[i];
+  if (!loan) return;
+  loanEditIdx = i;
+  document.getElementById('le-label').value = loan.label || '';
+  document.getElementById('le-principal').value = loan.principal ? fmt(loan.principal) : '';
+  document.getElementById('le-rate').value = loan.rate ?? '';
+  document.getElementById('le-payment').value = loan.monthlyPayment ? fmt(loan.monthlyPayment) : '';
+  document.getElementById('le-term').value = loan.termMonths || '';
+  document.getElementById('le-start').value = loan.startYM || currentYM();
+  // 연동 부채 계좌 select 채우기
+  const sel = document.getElementById('le-account');
+  const debtAccs = (state.accounts || []).filter(a => a.category === '부채');
+  sel.innerHTML = `<option value="">없음</option>` +
+    debtAccs.map(a => `<option value="${a.id}"${loan.linkedAccountId===a.id?' selected':''}>${a.nickname} (${a.institution})</option>`).join('');
+  document.getElementById('loan-edit-modal').classList.add('open');
+  setTimeout(() => document.getElementById('le-label')?.focus(), 100);
+}
+function closeLoanEditModal() {
+  loanEditIdx = null;
+  document.getElementById('loan-edit-modal').classList.remove('open');
+}
+function saveLoanEdit() {
+  if (loanEditIdx === null) return;
+  const label = document.getElementById('le-label')?.value.trim();
+  const principal = parseNum(document.getElementById('le-principal')?.value);
+  const rate = parseFloat(document.getElementById('le-rate')?.value) || 0;
+  const monthlyPayment = parseNum(document.getElementById('le-payment')?.value);
+  const startYM = document.getElementById('le-start')?.value || currentYM();
+  const termMonths = parseInt(document.getElementById('le-term')?.value) || 0;
+  const linkedAccountId = document.getElementById('le-account')?.value || '';
+  if (!label || !principal) { showToast('대출명과 총 대출금을 입력해주세요', 'error'); return; }
+  state.loans[loanEditIdx] = { ...state.loans[loanEditIdx], label, principal, rate, monthlyPayment, startYM, termMonths, linkedAccountId };
+  syncLoanToBalance(state.loans[loanEditIdx]);
+  saveState();
+  closeLoanEditModal();
+  renderBalance();
+  showToast('대출 정보가 수정됐어요');
+}
+function deleteLoanFromModal() {
+  if (loanEditIdx === null) return;
+  const label = state.loans[loanEditIdx]?.label || '이 대출';
+  showConfirm('대출 삭제', `"${label}"을 삭제할까요?`, () => {
+    state.loans.splice(loanEditIdx, 1);
+    saveState();
+    closeLoanEditModal();
     renderBalance();
   });
 }
