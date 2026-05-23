@@ -1113,7 +1113,12 @@ tr.row-changed td { background: rgba(83,74,183,.07) !important; }
       </div>
       <div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">기간 (개월)</div>
-        <input id="le-term" class="input-field" inputmode="numeric" placeholder="예) 24"
+        <input id="le-term" class="input-field" inputmode="numeric" placeholder="예) 360"
+          style="width:100%;font-size:13px;text-align:right;"/>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:3px;">거치기간 (개월)</div>
+        <input id="le-grace" class="input-field" inputmode="numeric" placeholder="예) 24"
           style="width:100%;font-size:13px;text-align:right;"/>
       </div>
       <div style="grid-column:1/-1;">
@@ -5591,11 +5596,12 @@ function renderLoanSection() {
     const linkedBadge = linkedAcc ? `<span style="font-size:10px;color:var(--accent);background:rgba(83,74,183,.12);border-radius:4px;padding:1px 5px;margin-left:4px;white-space:nowrap;">🔗 ${linkedAcc.nickname}</span>` : '';
     const typeLabel = loan.repaymentType || '기타';
     const paymentLabel = typeLabel === '원리금균등' ? '월 원리금' : typeLabel === '원금균등' ? '월 원금' : '월 상환';
+    const graceLabel = (loan.gracePeriodMonths > 0) ? ` · 거치 ${loan.gracePeriodMonths}개월` : '';
     return `<div style="padding:.65rem 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="openLoanEditModal(${i})">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;color:var(--text1);display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${loan.label}${linkedBadge}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${typeLabel} · 연 ${loan.rate}% · ${paymentLabel} ${fmtW(loan.monthlyPayment||0)} · 잔여 ${leftMonths}개월</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">${typeLabel}${graceLabel} · 연 ${loan.rate}% · ${paymentLabel} ${fmtW(loan.monthlyPayment||0)} · 잔여 ${leftMonths}개월</div>
         </div>
         <span style="font-size:14px;color:var(--text3);padding-left:6px;flex-shrink:0;">›</span>
       </div>
@@ -5614,7 +5620,8 @@ function renderLoanSection() {
         <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">총 대출금</div><input id="ln-principal" class="input-field" inputmode="numeric" placeholder="예) 200,000,000" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" style="width:100%;font-size:12px;text-align:right;"/></div>
         <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">연이율 (%)</div><input id="ln-rate" class="input-field" inputmode="decimal" placeholder="예) 3.5" style="width:100%;font-size:12px;text-align:right;"/></div>
         <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">시작 연월</div><input id="ln-start" class="input-field" type="month" style="width:100%;font-size:12px;color:var(--text1);" value="${curYM}"/></div>
-        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">기간 (개월)</div><input id="ln-term" class="input-field" inputmode="numeric" placeholder="예) 24" style="width:100%;font-size:12px;text-align:right;"/></div>
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">기간 (개월)</div><input id="ln-term" class="input-field" inputmode="numeric" placeholder="예) 360" style="width:100%;font-size:12px;text-align:right;"/></div>
+        <div><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">거치기간 (개월)</div><input id="ln-grace" class="input-field" inputmode="numeric" placeholder="예) 24" style="width:100%;font-size:12px;text-align:right;" value="0"/></div>
         <div style="grid-column:1/-1"><div style="font-size:11px;color:var(--text3);margin-bottom:3px;">월 원리금 <span style="color:var(--accent);cursor:pointer;font-size:10px;" onclick="autoCalcPayment('ln')">[자동계산]</span></div><input id="ln-payment" class="input-field" inputmode="numeric" placeholder="예) 583,333" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" style="width:100%;font-size:12px;text-align:right;"/></div>
       </div>
       <div style="display:flex;gap:6px;justify-content:flex-end;">
@@ -5640,8 +5647,9 @@ function saveLoan() {
   const startYM = document.getElementById('ln-start')?.value || currentYM();
   const termMonths = parseInt(document.getElementById('ln-term')?.value) || 0;
   const repaymentType = document.getElementById('ln-type')?.value || '기타';
+  const gracePeriodMonths = parseInt(document.getElementById('ln-grace')?.value) || 0;
   if (!label || !principal) { showToast('대출명과 총 대출금을 입력해주세요', 'error'); return; }
-  state.loans.push({ id: uuid(), label, principal, rate, monthlyPayment, startYM, termMonths, repaymentType });
+  state.loans.push({ id: uuid(), label, principal, rate, monthlyPayment, startYM, termMonths, repaymentType, gracePeriodMonths });
   loanAddMode = false;
   saveState();
   renderBalance();
@@ -5660,9 +5668,12 @@ function autoCalcPayment(prefix) {
   const p = parseNum(document.getElementById(prefix+'-principal')?.value);
   const rate = parseFloat(document.getElementById(prefix+'-rate')?.value) || 0;
   const n = parseInt(document.getElementById(prefix+'-term')?.value) || 0;
+  const grace = parseInt(document.getElementById(prefix+'-grace')?.value) || 0;
   if (!p || !rate || !n) { showToast('원금, 연이율, 기간을 먼저 입력해주세요', 'error'); return; }
+  const repayN = n - grace; // 실제 상환 기간 = 총기간 - 거치기간
+  if (repayN <= 0) { showToast('기간이 거치기간보다 짧아요', 'error'); return; }
   const r = rate / 100 / 12;
-  const payment = p * r * Math.pow(1+r, n) / (Math.pow(1+r, n) - 1);
+  const payment = p * r * Math.pow(1+r, repayN) / (Math.pow(1+r, repayN) - 1);
   document.getElementById(prefix+'-payment').value = fmt(Math.round(payment));
   showToast('월 원리금을 자동 계산했어요');
 }
@@ -5675,18 +5686,23 @@ function computeLoanRemaining(loan, targetYM) {
   const payment = loan.monthlyPayment || 0;
   if (elapsed === 0) return principal;
   const type = loan.repaymentType || '기타';
+  const grace = loan.gracePeriodMonths || 0;
   if (type === '원리금균등' && rate > 0 && payment > 0) {
-    // 반복 상각: 이달이자 = 잔고×(연이율/12/100), 원금부분 = 원리금-이자
+    // 거치기간: 이자만 납부(원금 불변), 이후 원리금균등 상각
     const r = rate / 100 / 12;
     let bal = principal;
     for (let i = 0; i < elapsed; i++) {
+      if (i < grace) continue; // 거치기간: 원금 감소 없음
       const interest = bal * r;
       bal = Math.max(0, bal - Math.max(0, payment - interest));
     }
     return Math.round(bal);
   } else if (type === '원금균등' && loan.termMonths > 0) {
-    const monthlyPrincipal = principal / loan.termMonths;
-    return Math.max(0, Math.round(principal - monthlyPrincipal * elapsed));
+    const repayElapsed = Math.max(0, elapsed - grace);
+    const repayMonths = loan.termMonths - grace;
+    if (repayMonths <= 0) return principal;
+    const monthlyPrincipal = principal / repayMonths;
+    return Math.max(0, Math.round(principal - monthlyPrincipal * repayElapsed));
   } else {
     return Math.max(0, Math.round(principal - payment * elapsed));
   }
@@ -5713,6 +5729,7 @@ function openLoanEditModal(i) {
   document.getElementById('le-rate').value = loan.rate ?? '';
   document.getElementById('le-payment').value = loan.monthlyPayment ? fmt(loan.monthlyPayment) : '';
   document.getElementById('le-term').value = loan.termMonths || '';
+  document.getElementById('le-grace').value = loan.gracePeriodMonths || 0;
   document.getElementById('le-start').value = loan.startYM || currentYM();
   // 연동 부채 계좌 select 채우기
   const sel = document.getElementById('le-account');
@@ -5736,9 +5753,10 @@ function saveLoanEdit() {
   const termMonths = parseInt(document.getElementById('le-term')?.value) || 0;
   const linkedAccountId = document.getElementById('le-account')?.value || '';
   const repaymentType = document.getElementById('le-type')?.value || '기타';
+  const gracePeriodMonths = parseInt(document.getElementById('le-grace')?.value) || 0;
   if (!label || !principal) { showToast('대출명과 총 대출금을 입력해주세요', 'error'); return; }
   const oldLinkedId = state.loans[loanEditIdx]?.linkedAccountId || '';
-  state.loans[loanEditIdx] = { ...state.loans[loanEditIdx], label, principal, rate, monthlyPayment, startYM, termMonths, linkedAccountId, repaymentType };
+  state.loans[loanEditIdx] = { ...state.loans[loanEditIdx], label, principal, rate, monthlyPayment, startYM, termMonths, linkedAccountId, repaymentType, gracePeriodMonths };
   // 연동 계좌가 바뀌었으면 이달 값을 지워 syncLoanToBalance가 재계산하도록
   if (linkedAccountId && linkedAccountId !== oldLinkedId) {
     if (state.balances[currentYM()]) delete state.balances[currentYM()][linkedAccountId];
