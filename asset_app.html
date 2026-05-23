@@ -1056,8 +1056,12 @@ tr.row-changed td { background: rgba(83,74,183,.07) !important; }
       <div class="modal-title">메모 상세</div>
       <button class="close-btn" onclick="closeCFMemoDetail()">✕</button>
     </div>
-    <div id="cf-memo-detail-body" style="padding:.5rem 0 1rem;word-break:break-all;white-space:pre-wrap;font-size:15px;line-height:1.7;color:var(--text1);"></div>
-    <div id="cf-memo-detail-amount" style="font-size:13px;color:var(--text3);padding-bottom:.5rem;"></div>
+    <div id="cf-memo-detail-body" style="padding:.5rem 0 .75rem;word-break:break-all;white-space:pre-wrap;font-size:15px;line-height:1.7;color:var(--text1);"></div>
+    <div id="cf-memo-detail-amount" style="font-size:13px;color:var(--text3);padding-bottom:.75rem;"></div>
+    <div class="btn-row" style="padding-top:.25rem;border-top:1px solid var(--border);">
+      <button class="btn btn-secondary" onclick="closeCFMemoDetail()">닫기</button>
+      <button class="btn" style="background:var(--red);color:#fff;border:none;" onclick="deleteCFMemoFromPopup()">삭제</button>
+    </div>
   </div>
 </div>
 
@@ -3489,8 +3493,8 @@ function renderCashflow() {
           const memoListHtml = memos.map((m, idx) => `
             <div class="sum-row" style="align-items:center;cursor:pointer;" onclick="showCFMemoDetail(${idx})">
               <span class="sum-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">${m.text||''}</span>
-              ${m.amount ? `<span class="sum-val" style="white-space:nowrap;flex-shrink:0;">${fmtW(m.amount)}</span>` : '<span></span>'}
-              <button onclick="event.stopPropagation();deleteCFMemo(${idx})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 0 0 6px;flex-shrink:0;line-height:1;">✕</button>
+              ${m.amount ? `<span class="sum-val" style="white-space:nowrap;flex-shrink:0;">${fmtW(m.amount)}</span>` : ''}
+              <span style="font-size:11px;color:var(--text3);padding-left:6px;flex-shrink:0;">›</span>
             </div>`).join('');
           const memoFormHtml = cfMemoFormOpen ? `
             <div style="display:flex;flex-direction:column;gap:6px;padding:.5rem 0 0;border-top:1px solid var(--border);margin-top:.25rem;">
@@ -4074,10 +4078,12 @@ function deleteCFMemo(idx) {
   saveState();
   renderCashflow();
 }
+let cfMemoDetailIdx = null;
 function showCFMemoDetail(idx) {
   const ym = state.currentMonth;
   const m = (state.cashflow[ym]?.memos || [])[idx];
   if (!m) return;
+  cfMemoDetailIdx = idx;
   document.getElementById('cf-memo-detail-body').textContent = m.text || '';
   const amountEl = document.getElementById('cf-memo-detail-amount');
   amountEl.textContent = m.amount ? '금액: ' + fmtW(m.amount) : '';
@@ -4086,6 +4092,14 @@ function showCFMemoDetail(idx) {
 }
 function closeCFMemoDetail() {
   document.getElementById('cf-memo-detail-modal').classList.remove('open');
+  cfMemoDetailIdx = null;
+}
+function deleteCFMemoFromPopup() {
+  if (cfMemoDetailIdx === null) return;
+  showConfirm('메모 삭제', '이 메모를 삭제할까요?', () => {
+    deleteCFMemo(cfMemoDetailIdx);
+    closeCFMemoDetail();
+  });
 }
 function updateCFRow(type, idx, field, val) {
   const ym = state.currentMonth;
