@@ -4635,12 +4635,26 @@ function renderAutoTransferTab() {
       ? (acc ? `${acc.institution} ${acc.nickname}` : '(삭제된 계좌)')
       : (at.cardCompany || '');
     const pillClass = at.type === 'account' ? 'acc' : 'card';
+    const cfg = state.config || {};
+    const owner = acc ? (acc.owner || '') : '';
+    const ownerBg    = owner === '공동'          ? 'var(--surface2)'
+                     : owner === cfg.member1Name ? 'var(--accent-light)'
+                     :                             'var(--green-light)';
+    const ownerColor = owner === '공동'          ? 'var(--text3)'
+                     : owner === cfg.member1Name ? 'var(--accent)'
+                     :                             'var(--green)';
+    const ownerBadgeHtml = (at.type === 'account' && acc && cfg.memberCount >= 2)
+      ? `<span style="font-size:8px;padding:1px 5px;border-radius:10px;background:${ownerBg};color:${ownerColor};font-weight:600;display:inline-block;margin-top:2px;">${owner || '공동'}</span>`
+      : '';
+    const sourceLabelFull = (at.type === 'account' && acc && cfg.memberCount >= 2)
+      ? `${sourceLabel} (${owner || '공동'})`
+      : sourceLabel;
 
     if (state.atEditIdx === i) {
       return `<div class="at-row" style="align-items:center;background:var(--accent-light);border-radius:var(--r-xs);">
         <span></span>
         <input class="input-field" id="at-edit-label" value="${at.label}" placeholder="납부 내용" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:left;min-width:0;"/>
-        <button onclick="openAutoTransferSourceEdit(${i})" style="background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r-xs);color:var(--accent);font-weight:600;font-size:9px;width:100%;padding:.2rem .1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;min-width:0;">${sourceLabel} ✎</button>
+        <button onclick="openAutoTransferSourceEdit(${i})" style="background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r-xs);color:var(--accent);font-weight:600;font-size:9px;width:100%;padding:.2rem .1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;min-width:0;">${sourceLabelFull} ✎</button>
         <input class="input-field" id="at-edit-amount" inputmode="numeric" value="${at.amount ? fmt(at.amount) : ''}" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:right;min-width:0;"/>
         <input class="input-field" id="at-edit-payee" value="${at.payee||''}" placeholder="받는 곳" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:left;min-width:0;"/>
         ${daySelectHtml('at-edit-day', at.day, 'width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;min-width:0;')}
@@ -4656,7 +4670,7 @@ function renderAutoTransferTab() {
         ondragstart="dragAtStart(event)" ondragover="dragAtOver(event)" ondrop="dragAtDrop(event)" ondragend="dragAtEnd(event)">
         <span class="fc-drag-handle">⠿</span>
         <span style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${at.label}</span>
-        <span><span class="pill ${pillClass}" style="font-size:9px;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:inline-block;">${sourceLabel}</span></span>
+        <span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;"><span class="pill ${pillClass}" style="font-size:9px;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:inline-block;">${sourceLabel}</span>${ownerBadgeHtml}</span>
         <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.amount ? fmtW(at.amount) : '0원'}</span>
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--text3);">${at.payee||'-'}</span>
         <span style="font-size:10px;color:var(--text3);">${at.day ? at.day+'일' : '-'}</span>
