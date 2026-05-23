@@ -4685,7 +4685,7 @@ function renderAutoTransferTab() {
     if (state.atEditIdx === i) {
       return `<div class="at-row" style="align-items:center;background:var(--accent-light);border-radius:var(--r-xs);">
         <span></span>
-        <input class="input-field" id="at-edit-label" value="${at.label}" placeholder="납부 내용" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:center;min-width:0;"/>
+        <input class="input-field" id="at-edit-label" value="${at.label}" placeholder="납부 내용" style="width:60%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:left;min-width:0;"/>
         <button onclick="openAutoTransferSourceEdit(${i})" style="background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r-xs);color:var(--accent);font-weight:600;font-size:9px;width:100%;padding:.2rem .1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;min-width:0;text-align:center;">${sourceLabelFull} ✎</button>
         <input class="input-field" id="at-edit-amount" inputmode="numeric" value="${at.amount ? fmt(at.amount) : ''}" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:center;min-width:0;"/>
         <input class="input-field" id="at-edit-payee" value="${at.payee||''}" placeholder="받는 곳" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:center;min-width:0;"/>
@@ -4701,7 +4701,7 @@ function renderAutoTransferTab() {
       <div class="at-row at-draggable" draggable="true" data-at-id="${at.id||i}"
         ondragstart="dragAtStart(event)" ondragover="dragAtOver(event)" ondrop="dragAtDrop(event)" ondragend="dragAtEnd(event)">
         <span class="fc-drag-handle">⠿</span>
-        <span style="text-align:center;overflow:hidden;text-overflow:ellipsis;">
+        <span style="text-align:left;overflow:hidden;text-overflow:ellipsis;">
           <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.label}</div>
           ${linkedFCHtml}
         </span>
