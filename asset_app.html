@@ -3839,8 +3839,6 @@ function renderRowEditContent() {
       <input class="row-edit-field" id="re-label" value="${(data.label||'').replace(/"/g,'&quot;')}" placeholder="항목명"/>
       ${type !== 'special' ? `<div class="row-edit-label">구분/내용</div>
       <input class="row-edit-field" id="re-type" value="${(data.type_field||'').replace(/"/g,'&quot;')}" placeholder="구분"/>` : ''}
-      <div class="row-edit-label">메모</div>
-      <input class="row-edit-field" id="re-memo" value="${(data.memo||'').replace(/"/g,'&quot;')}" placeholder="메모"/>
       ${members.length > 1 ? `<div class="row-edit-label">소유자</div><div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.25rem;">${ownerBtns}</div>` : ''}
     `;
   }
@@ -3868,15 +3866,13 @@ function saveRowEditModal() {
     const label = document.getElementById('re-label').value;
     const typeFieldEl = document.getElementById('re-type');
     const typeField = typeFieldEl ? typeFieldEl.value : '';
-    const memo = document.getElementById('re-memo').value;
     const owner = _rowEditCtx.data.owner;
     if (idxOrAccId === -1) {
       const ym = state.currentMonth;
       ensureCF(ym);
-      state.cashflow[ym][type].push({ label, memo, amount: 0, ...(owner ? { owner } : {}) });
+      state.cashflow[ym][type].push({ label, amount: 0, ...(owner ? { owner } : {}) });
     } else {
       updateCFRow(type, idxOrAccId, 'label', label);
-      updateCFRow(type, idxOrAccId, 'memo', memo);
       if (typeField !== undefined && type !== 'special') updateCFRow(type, idxOrAccId, 'type', typeField);
       if (owner) updateCFRow(type, idxOrAccId, 'owner', owner);
     }
