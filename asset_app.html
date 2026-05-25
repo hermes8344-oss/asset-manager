@@ -186,12 +186,55 @@ body {
   font-size: 13px; font-weight: 500;
 }
 
-/* ── 모바일: 자산 요약을 계좌 목록 위로 ── */
+/* ── 모바일: 자산 요약을 계좌 목록 아래로 ── */
 @media (max-width: 899px) {
   .balance-pc-layout { display: flex; flex-direction: column; }
-  .balance-pc-side { order: -1; }
   .balance-side-editing { display: none; }
 }
+
+/* ── 계좌잔고 뷰모드 토스 스타일 리스트 ── */
+.acct-list > div:last-child { border-bottom: none; }
+
+/* ── 계좌잔고 편집 행 스와이프 ── */
+.bal-edit-row { transition: transform .2s ease; position: relative; z-index: 1; background: var(--surface); }
+.acct-list > div:last-child .bal-edit-row { border-bottom: none; }
+
+/* ── 계좌잔고 편집 모드 인풋 스타일 (브라우저 기본 사각 테두리 제거) ── */
+.acct-list input {
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--border);
+  border-radius: 0;
+  color: var(--text1);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 3px 0;
+  outline: none;
+  text-align: right;
+  display: block;
+}
+.acct-list input:focus { border-bottom: 2px solid var(--accent); }
+.acct-list input.cell-changed { border-bottom: 2px solid var(--accent) !important; }
+.acct-list input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── 수입/지출 CF 리스트 스타일 ── */
+.cf-list > div:last-child { border-bottom: none !important; }
+.cf-list input {
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid var(--border);
+  border-radius: 0;
+  color: var(--text1);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 3px 0;
+  outline: none;
+  text-align: right;
+  display: block;
+  width: 100%;
+}
+.cf-list input:focus { border-bottom: 2px solid var(--accent); }
+.cf-list input.cell-changed { border-bottom: 2px solid var(--accent) !important; }
 
 /* ── 대시보드 새 레이아웃 ── */
 .dash-row1 { margin-bottom: .75rem; }
@@ -317,8 +360,8 @@ body {
 }
 .add-btn { font-size: 13px; color: var(--accent); background: none; border: none; padding: .35rem 0; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 3px; }
 .del-btn { font-size: 12px; color: var(--red); background: none; border: none; cursor: pointer; padding: .1rem .3rem; }
-tr.acc-drag-active { opacity: 0.35; }
-tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; background: rgba(83,74,183,.07); }
+.acc-drag-active { opacity: 0.35; }
+.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; background: rgba(83,74,183,.07); }
 .fc-drag-handle { cursor: grab; color: var(--text3); padding: 0 4px; font-size: 14px; touch-action: none; user-select: none; }
 .fc-drag-active { opacity: 0.35; }
 .fixed-row.fc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; background: rgba(83,74,183,.07); border-radius: 6px; }
@@ -910,8 +953,8 @@ tr.acc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; bac
 @media (min-width: 900px) { .fab { display: none !important; } }
 
 /* ── 편집 셀 하이라이트 ── */
-tr.row-changed td { background: rgba(83,74,183,.07) !important; }
-[data-theme="dark"] tr.row-changed td { background: rgba(83,74,183,.15) !important; }
+[data-acc-id].row-changed { background: rgba(83,74,183,.07) !important; }
+[data-theme="dark"] [data-acc-id].row-changed { background: rgba(83,74,183,.15) !important; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -2512,6 +2555,11 @@ function renderBalance() {
     const bg = owner === cfg.member1Name ? '#534AB7' : owner === cfg.member2Name ? '#0F6E56' : '#BA7517';
     return `<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${bg};color:#fff;font-size:9px;font-weight:700;flex-shrink:0;margin-right:4px;vertical-align:middle;">${display}</span>`;
   }
+  function ownerBadgeLarge(owner) {
+    const display = owner === '공동' ? '공' : (owner||'?').slice(0,1);
+    const bg = owner === cfg.member1Name ? '#534AB7' : owner === cfg.member2Name ? '#0F6E56' : '#BA7517';
+    return `<div style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:${bg};color:#fff;font-size:15px;font-weight:700;flex-shrink:0;">${display}</div>`;
+  }
 
   // 카테고리별 테이블 (계좌 없어도 항상 표시)
   let tablesHtml = '';
@@ -2533,7 +2581,7 @@ function renderBalance() {
       const hint = isEdit
         ? '아래 버튼으로 계좌를 추가하세요'
         : '등록된 계좌가 없어요';
-      rows = `<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:.6rem 0;font-size:11px;">${hint}</td></tr>`;
+      rows = `<div style="text-align:center;color:var(--text3);padding:.8rem 0;font-size:12px;">${hint}</div>`;
     } else if (isEdit) {
       rows = accs.map((a, accsIdx) => {
         const linkedLoan = (state.loans||[]).find(l => l.linkedAccountId === a.id);
@@ -2542,7 +2590,7 @@ function renderBalance() {
           ? computedVal
           : (balanceTempData[a.id] !== undefined ? balanceTempData[a.id] : ((state.balances[ym]||{})[a.id] || 0));
         const responsible = a.owner === '공동' ? (a.jointOwner || cfg.member1Name) : a.owner;
-        const badge = ownerBadge(responsible);
+        const badge = ownerBadgeLarge(responsible);
 
         const prevBalRaw = linkedLoan ? computeLoanRemaining(linkedLoan, prevYM(ym)) : (state.balances[prevYM(ym)] || {})[a.id];
         const prevBalAmt = prevBalRaw !== undefined && prevBalRaw !== null ? prevBalRaw : undefined;
@@ -2552,23 +2600,28 @@ function renderBalance() {
         const balMatch = !linkedLoan && prevBalAbsAmt !== undefined && curBalAbsAmt === prevBalAbsAmt;
         const balHintBg = balMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
         const inputCell = linkedLoan
-          ? `<div style="font-size:9px;color:var(--accent);text-align:right;margin-bottom:2px;">🔗 대출 자동계산</div><input type="text" value="${fmt(Math.abs(val))}" disabled style="font-size:13px;width:100%;opacity:.55;cursor:not-allowed;"/>`
-          : `${prevBalDisp ? `<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;"><span style="${balHintBg}">전달 ${prevBalDisp}</span></div>` : ''}<input type="text" inputmode="numeric" value="${val ? fmt(Math.abs(val)) : ''}" placeholder="0" class="amount-input" onblur="formatInput(this)" oninput="onBalanceInput('${a.id}',this);this.classList.add('cell-changed');this.closest('tr')?.classList.add('row-changed');syncHintColor(this)" data-id="${a.id}" data-prev-amt="${prevBalAbsAmt ?? ''}" style="font-size:13px;width:100%;"/>`;
-        return `<tr data-acc-id="${a.id}" draggable="true" style="vertical-align:middle;"
+          ? `<div style="font-size:9px;color:var(--accent);text-align:right;margin-bottom:2px;">🔗 대출 자동계산</div><input type="text" value="${fmt(Math.abs(val))}" disabled style="width:100px;"/>`
+          : `${prevBalDisp ? `<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;"><span style="${balHintBg}">전달 ${prevBalDisp}</span></div>` : ''}<input type="text" inputmode="numeric" value="${val ? fmt(Math.abs(val)) : ''}" placeholder="0" class="amount-input" onblur="formatInput(this)" oninput="onBalanceInput('${a.id}',this);this.classList.add('cell-changed');this.closest('[data-acc-id]')?.classList.add('row-changed');syncHintColor(this)" data-id="${a.id}" data-prev-amt="${prevBalAbsAmt ?? ''}" style="width:100px;"/>`;
+        return `<div data-acc-id="${a.id}" draggable="true"
+            style="display:flex;align-items:center;gap:8px;padding:.75rem 0;border-bottom:1px solid var(--border);"
             ondragstart="dragAccStart(event,'${a.id}')"
             ondragover="dragAccOver(event,'${a.id}')"
             ondrop="dragAccDrop(event,'${a.id}')"
             ondragend="dragAccEnd()">
-          <td><div style="display:flex;align-items:center;gap:4px;">${badge}<span style="overflow:hidden;word-break:break-word;font-size:13px;">${a.nickname}</span></div></td>
-          <td class="M" style="text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.institution}</td>
-          <td>${inputCell}</td>
-          <td>
-            <div style="display:flex;align-items:center;justify-content:center;gap:2px;">
-              <button onclick="openRowEditModal('balance','${a.id}')" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
-              <button class="del-btn" onclick="deleteAccount('${a.id}')" title="계좌 삭제" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
+          <div onclick="openRowEditModal('balance','${a.id}')" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
+            ${badge}
+            <div style="min-width:0;">
+              <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.nickname}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:3px;">${a.institution}</div>
             </div>
-          </td>
-        </tr>`;
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
+              ${inputCell}
+            </div>
+            <button class="del-btn" onclick="deleteAccount('${a.id}')" title="계좌 삭제" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
+          </div>
+        </div>`;
       }).join('');
     } else {
       rows = accs.map(a => {
@@ -2578,7 +2631,7 @@ function renderBalance() {
         const hasVal = raw !== undefined && raw !== null;
         const val = hasVal ? raw : 0;
         const responsible = a.owner === '공동' ? (a.jointOwner || cfg.member1Name) : a.owner;
-        const badge = ownerBadge(responsible);
+        const badge = ownerBadgeLarge(responsible);
         const dispVal = hasVal
           ? (isDebt ? '-'+fmt(Math.abs(val)) : fmt(Math.abs(val)))
           : `<span style="color:var(--text3);font-weight:400;">—</span>`;
@@ -2592,38 +2645,40 @@ function renderBalance() {
             ? (prevDiff > 0 ? 'var(--red)' : 'var(--green)')
             : (prevDiff > 0 ? 'var(--green)' : 'var(--red)');
         const prevDiffHtml = prevDiff !== null && prevDiff !== 0
-          ? `<div style="font-size:11px;color:${diffColor};text-align:right;margin-top:1px;">${prevDiff>0?'▲ +':'▼ '}${fmtAbs(Math.abs(prevDiff))}</div>`
+          ? `<div style="font-size:11px;color:${diffColor};text-align:right;margin-top:2px;">${prevDiff>0?'▲ +':'▼ '}${fmtAbs(Math.abs(prevDiff))}</div>`
           : '';
-        const loanLinkBadge = linkedLoan ? `<span style="font-size:9px;color:var(--accent);white-space:nowrap;margin-left:3px;">🔗대출연동</span>` : '';
-        return `<tr>
-          <td class="L"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">${badge}<span style="overflow:hidden;word-break:break-word;">${a.nickname}</span>${loanLinkBadge}</div></td>
-          <td class="M" style="text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.institution}${a.owner==='공동'?'<br><span style="font-size:9px;color:var(--accent);white-space:nowrap;">공동·'+responsible+'</span>':''}</td>
-          <td class="${isDebt?'neg':'bold'}" style="white-space:nowrap;text-align:right;">${dispVal}${prevDiffHtml}</td>
-          <td></td>
-        </tr>`;
+        const loanLinkBadge = linkedLoan ? `<span style="font-size:9px;color:var(--accent);white-space:nowrap;margin-left:4px;">🔗대출연동</span>` : '';
+        const institutionLine = a.owner === '공동'
+          ? `${a.institution} · ${responsible} 공동`
+          : a.institution;
+        return `<div style="display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+          ${badge}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.nickname}${loanLinkBadge}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${institutionLine}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:15px;font-weight:700;color:${isDebt?'var(--red)':'var(--text1)'};">${dispVal}</div>
+            ${prevDiffHtml}
+          </div>
+        </div>`;
       }).join('');
     }
 
-    const colgroup = isEdit
-      ? `<colgroup><col style="width:32%;"><col style="width:24%;"><col style="width:26%;"><col style="width:18%;"></colgroup>`
-      : `<colgroup><col style="width:32%;"><col style="width:24%;"><col style="width:40%;"><col style="width:4%;"></colgroup>`;
-    const thead = `<tr><th>별명</th><th>구분</th><th>금액</th><th></th></tr>`;
     const catTotalHtml = accs.length > 0
       ? `<div class="cat-total" style="color:${isDebt ? 'var(--red)' : 'var(--accent)'};">${isDebt ? (dispTotal ? '-'+fmtW(Math.abs(dispTotal)) : '-') : fmtW(total)}</div>`
       : '';
     const sbarHtml = accs.length > 0
       ? `<div class="sbar"><span class="sbar-label">${cat} 합계</span><span class="sbar-value" style="color:${isDebt?'var(--red)':'var(--text1)'};">${isDebt ? (dispTotal ? '-'+fmtW(Math.abs(dispTotal)) : '-') : fmtW(total)}</span></div>`
       : '';
+    const tableContent = `<div class="acct-list">${rows}</div>`;
     tablesHtml += `
       <div class="card" id="cat-section-${cat}">
         <div class="cat-hdr">
           <div class="cat-name">${cat}${isDebt ? '<span style="font-size:9px;color:var(--text3);font-weight:400;margin-left:4px;">양수입력→자동음수</span>' : ''}</div>
           ${catTotalHtml}
         </div>
-        <table class="data-table">${colgroup}
-          ${thead}
-          ${rows}
-        </table>
+        ${tableContent}
         ${sbarHtml}
       </div>`;
   });
@@ -2735,7 +2790,6 @@ function renderBalance() {
 
   // 터치 드래그 정렬 설정
   if (isEdit) setupAccTouchDrag();
-
   // 첫 방문 시 코치마크
   setTimeout(() => showCoachMark('balance'), 400);
   updateFab();
@@ -2958,17 +3012,17 @@ function dragAccStart(e, id) {
   _saveBalanceTempFromDOM();
   _dragAccId = id;
   e.dataTransfer.effectAllowed = 'move';
-  setTimeout(() => document.querySelector(`tr[data-acc-id="${id}"]`)?.classList.add('acc-drag-active'), 0);
+  setTimeout(() => document.querySelector(`[data-acc-id="${id}"]`)?.classList.add('acc-drag-active'), 0);
 }
 function dragAccOver(e, id) {
   if (!_dragAccId || _dragAccId === id) return;
   e.preventDefault();
-  document.querySelectorAll('tr[data-acc-id]').forEach(r => r.classList.remove('acc-drag-target'));
-  document.querySelector(`tr[data-acc-id="${id}"]`)?.classList.add('acc-drag-target');
+  document.querySelectorAll('[data-acc-id]').forEach(r => r.classList.remove('acc-drag-target'));
+  document.querySelector(`[data-acc-id="${id}"]`)?.classList.add('acc-drag-target');
 }
 function dragAccDrop(e, targetId) {
   e.preventDefault();
-  document.querySelectorAll('tr[data-acc-id]').forEach(r => r.classList.remove('acc-drag-active','acc-drag-target'));
+  document.querySelectorAll('[data-acc-id]').forEach(r => r.classList.remove('acc-drag-active','acc-drag-target'));
   if (!_dragAccId || _dragAccId === targetId) { _dragAccId = null; return; }
   const acc = state.accounts.find(a => a.id === _dragAccId);
   const tgt = state.accounts.find(a => a.id === targetId);
@@ -2980,13 +3034,13 @@ function dragAccDrop(e, targetId) {
 }
 function dragAccEnd() {
   _dragAccId = null;
-  document.querySelectorAll('tr[data-acc-id]').forEach(r => r.classList.remove('acc-drag-active','acc-drag-target'));
+  document.querySelectorAll('[data-acc-id]').forEach(r => r.classList.remove('acc-drag-active','acc-drag-target'));
 }
 function setupAccTouchDrag() {
   if (!state.balanceEditing) return;
   let tDragId = null, tDragRow = null;
   document.querySelectorAll('.acc-drag-handle').forEach(handle => {
-    const row = handle.closest('tr[data-acc-id]');
+    const row = handle.closest('[data-acc-id]');
     if (!row) return;
     handle.addEventListener('touchstart', e => {
       e.preventDefault();
@@ -3000,16 +3054,16 @@ function setupAccTouchDrag() {
       if (!tDragId) return;
       const t = e.touches[0];
       const el = document.elementFromPoint(t.clientX, t.clientY);
-      const targetRow = el?.closest('tr[data-acc-id]');
-      document.querySelectorAll('tr[data-acc-id]').forEach(r => r.classList.remove('acc-drag-target'));
+      const targetRow = el?.closest('[data-acc-id]');
+      document.querySelectorAll('[data-acc-id]').forEach(r => r.classList.remove('acc-drag-target'));
       if (targetRow && targetRow !== tDragRow) targetRow.classList.add('acc-drag-target');
     }, { passive: false });
     handle.addEventListener('touchend', e => {
       if (!tDragId) return;
       const t = e.changedTouches[0];
       const el = document.elementFromPoint(t.clientX, t.clientY);
-      const targetId = el?.closest('tr[data-acc-id]')?.dataset.accId;
-      document.querySelectorAll('tr[data-acc-id]').forEach(r => r.classList.remove('acc-drag-active','acc-drag-target'));
+      const targetId = el?.closest('[data-acc-id]')?.dataset.accId;
+      document.querySelectorAll('[data-acc-id]').forEach(r => r.classList.remove('acc-drag-active','acc-drag-target'));
       if (targetId && targetId !== tDragId) {
         const acc = state.accounts.find(a => a.id === tDragId);
         const tgt = state.accounts.find(a => a.id === targetId);
@@ -3022,6 +3076,38 @@ function setupAccTouchDrag() {
       tDragId = null; tDragRow = null;
       renderBalance();
     });
+  });
+}
+
+// ── 계좌잔고 편집 모드 스와이프 (고정비 패턴 재사용) ──
+function openBalSwipe(row)   { row.classList.add('bal-swiped');    row.style.transform = 'translateX(-120px)'; }
+function closeBalSwipe(row)  { row.classList.remove('bal-swiped'); row.style.transform = ''; }
+function closeAllBalSwipes() { document.querySelectorAll('.bal-edit-row.bal-swiped').forEach(closeBalSwipe); }
+function setupBalSwipe() {
+  if (!state.balanceEditing) return;
+  document.addEventListener('touchstart', function(e) {
+    if (!e.target.closest('.at-swipe-wrap')) closeAllBalSwipes();
+  }, { passive: true });
+  document.querySelectorAll('.at-swipe-wrap').forEach(function(wrap) {
+    const row = wrap.querySelector('.bal-edit-row');
+    if (!row) return; // 고정비·자동이체 wrap은 .bal-edit-row 없으므로 건너뜀
+    let sx = 0, sy = 0;
+    wrap.addEventListener('touchstart', function(e) {
+      if (e.target.closest('.at-swipe-btns')) return;
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    }, { passive: true });
+    wrap.addEventListener('touchcancel', function() { sx = 0; }, { passive: true });
+    wrap.addEventListener('touchend', function(e) {
+      if (!sx) return;
+      const dx = e.changedTouches[0].clientX - sx;
+      const dy = e.changedTouches[0].clientY - sy;
+      sx = 0;
+      if (Math.abs(dy) > Math.abs(dx) * 0.8) return;
+      const isSwiped = row.classList.contains('bal-swiped');
+      if (dx < -40)                           { closeAllBalSwipes(); openBalSwipe(row); }
+      else if (dx > 20 && isSwiped)           { closeBalSwipe(row); }
+      else if (Math.abs(dx) < 10 && isSwiped) { closeBalSwipe(row); }
+    }, { passive: true });
   });
 }
 
@@ -3220,84 +3306,112 @@ function renderCashflow() {
     return item.owner === cfFilter || item.owner === '공동';
   }
 
-  // 구성원 뱃지 헬퍼
+  // 구성원 뱃지 헬퍼 (소형 18px — 기존 호환용)
   function cfOwnerBadge(owner) {
     const display = owner === '공동' ? '공' : (owner||'?').slice(0,1);
     const bg = owner === cfg.member1Name ? '#534AB7' : owner === cfg.member2Name ? '#0F6E56' : '#BA7517';
     return `<span title="${owner}" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${bg};color:#fff;font-size:9px;font-weight:700;flex-shrink:0;margin-right:4px;">${display}</span>`;
   }
+  // 구성원 뱃지 헬퍼 (대형 36px — Toss 스타일 행)
+  function cfOwnerBadgeLarge(owner) {
+    const display = owner === '공동' ? '공' : (owner||'?').slice(0,1);
+    const bg = owner === cfg.member1Name ? '#534AB7' : owner === cfg.member2Name ? '#0F6E56' : '#BA7517';
+    return `<div style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:${bg};color:#fff;font-size:15px;font-weight:700;flex-shrink:0;">${display}</div>`;
+  }
 
-  // 수입 테이블
+  // 수입 리스트 (Toss 스타일 flex row)
   const incomeFiltered = cf.income.map((r,i)=>({r,i})).filter(({r})=>cfItemMatchesFilter(r));
   const incomeRows = incomeFiltered.map(({r,i}) => {
     const amount = r.amount !== undefined ? (parseNum(r.amount)||0) : (parseNum(r.member1)||0)+(parseNum(r.member2)||0);
     const owner = r.owner || (r.member2 ? '공동' : cfg.member1Name);
-    const badge = cfOwnerBadge(owner);
+    const badge = cfOwnerBadgeLarge(owner);
     if (isEdit) {
       const prevIncomeRow = prevCf.income.find(p => p.label === r.label);
       const prevAmt = prevIncomeRow ? (prevIncomeRow.amount !== undefined ? (parseNum(prevIncomeRow.amount)||0) : (parseNum(prevIncomeRow.member1)||0)+(parseNum(prevIncomeRow.member2)||0)) : 0;
       const incMatch = prevAmt && amount === prevAmt;
       const incHintBg = incMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
-      return `<tr class="${r._copied?'row-copied':''}" style="vertical-align:middle;">
-        <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
-        <td class="M" style="text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;"><span style="${incHintBg}">전달 ${fmt(prevAmt)}</span></div>`:''}<input type="text" inputmode="numeric" value="${amount?fmt(amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" oninput="this.classList.add('cell-changed');this.closest('tr')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',');syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('income',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
-        <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
-          <button onclick="openRowEditModal('income',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
-          <button class="del-btn" onclick="deleteCFRow('income',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
-        </div></td>
-      </tr>`;
+      return `<div class="cf-list-row${r._copied?' row-copied':''}" style="display:flex;align-items:center;gap:8px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+        <div onclick="openRowEditModal('income',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
+          ${badge}
+          <div style="min-width:0;">
+            <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
+            ${prevAmt?`<div style="font-size:10px;color:var(--text3);"><span style="${incHintBg}">전달 ${fmt(prevAmt)}</span></div>`:''}
+            <input type="text" inputmode="numeric" value="${amount?fmt(amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" oninput="this.classList.add('cell-changed');this.closest('.cf-list-row')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('income',${i},'amount',parseNum(this.value))"/>
+          </div>
+          <button class="del-btn" onclick="deleteCFRow('income',${i})" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
+        </div>
+      </div>`;
     } else {
       const prevIncomeRow = prevCf.income.find(p => p.label === r.label);
       const prevAmt = prevIncomeRow ? (prevIncomeRow.amount !== undefined ? (parseNum(prevIncomeRow.amount)||0) : (parseNum(prevIncomeRow.member1)||0)+(parseNum(prevIncomeRow.member2)||0)) : null;
       const viewDiff = prevAmt !== null && amount !== prevAmt ? amount - prevAmt : null;
-      const viewDiffHtml = viewDiff !== null ? `<br><span style="font-size:11px;color:${viewDiff>0?'var(--green)':'var(--red)'};">${viewDiff>0?'▲':'▼'} ${fmtAbs(Math.abs(viewDiff))}</span>` : '';
-      return `<tr>
-        <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
-        <td class="M" style="text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td class="pos bold" style="white-space:nowrap;text-align:right;">${amount?fmt(amount):''}${viewDiffHtml}</td>
-      </tr>`;
+      const viewDiffHtml = viewDiff !== null ? `<div style="font-size:11px;color:${viewDiff>0?'var(--green)':'var(--red)'};">${viewDiff>0?'▲':'▼'} ${fmtAbs(Math.abs(viewDiff))}</div>` : '';
+      return `<div class="cf-list-row" style="display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+        ${badge}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:15px;font-weight:700;color:var(--green);">${amount?fmt(amount):''}</div>
+          ${viewDiffHtml}
+        </div>
+      </div>`;
     }
   }).join('');
 
   const incomeTotal = incomeFiltered.reduce((s,{r})=>s+(r.amount!==undefined?(parseNum(r.amount)||0):(parseNum(r.member1)||0)+(parseNum(r.member2)||0)),0);
-  const colsIncome = isEdit
-    ? `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:22%;"><col style="width:20%;"></colgroup>`
-    : `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>`;
-  const thIncome = isEdit
-    ? `<th>내용</th><th>금액</th><th></th>`
-    : `<th>내용</th><th>금액</th>`;
 
-  // 지출 테이블
+  // 지출 리스트 (Toss 스타일 flex row)
   const expenseFiltered = cf.expense.map((r,i)=>({r,i})).filter(({r})=>cfItemMatchesFilter(r));
   const expenseRows = expenseFiltered.map(({r,i}) => {
     const owner = r.owner || cfg.member1Name;
-    const badge = cfOwnerBadge(owner);
+    const badge = cfOwnerBadgeLarge(owner);
     if (isEdit) {
       const prevExpRow = prevCf.expense.find(p => p.label === r.label);
       const prevExpAmt = prevExpRow ? (parseNum(prevExpRow.amount)||0) : 0;
       const curExpAmt = parseNum(r.amount)||0;
       const expMatch = prevExpAmt && curExpAmt === prevExpAmt;
       const expHintBg = expMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
-      return `<tr class="${r._copied?'row-copied':''}" style="vertical-align:middle;">
-        <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
-        <td class="M" style="text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td>${prevExpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;"><span style="${expHintBg}">전달 ${fmt(prevExpAmt)}</span></div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevExpAmt||''}" oninput="this.classList.add('cell-changed');this.closest('tr')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',');syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('expense',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
-        <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
-          <button onclick="openRowEditModal('expense',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
-          <button class="del-btn" onclick="deleteCFRow('expense',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
-        </div></td>
-      </tr>`;
+      const subLine = [r.type, r.dueDate].filter(Boolean).join(' · ');
+      return `<div class="cf-list-row${r._copied?' row-copied':''}" style="display:flex;align-items:center;gap:8px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+        <div onclick="openRowEditModal('expense',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
+          ${badge}
+          <div style="min-width:0;">
+            <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${subLine}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
+            ${prevExpAmt?`<div style="font-size:10px;color:var(--text3);"><span style="${expHintBg}">전달 ${fmt(prevExpAmt)}</span></div>`:''}
+            <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevExpAmt||''}" oninput="this.classList.add('cell-changed');this.closest('.cf-list-row')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('expense',${i},'amount',parseNum(this.value))"/>
+          </div>
+          <button class="del-btn" onclick="deleteCFRow('expense',${i})" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
+        </div>
+      </div>`;
     } else {
       const prevExpRow = prevCf.expense.find(p => p.label === r.label && (p.type||'') === (r.type||''));
       const prevExpAmt = prevExpRow ? (parseNum(prevExpRow.amount)||0) : null;
       const expViewDiff = prevExpAmt !== null && (parseNum(r.amount)||0) !== prevExpAmt ? (parseNum(r.amount)||0) - prevExpAmt : null;
-      const expViewDiffHtml = expViewDiff !== null ? `<br><span style="font-size:11px;color:${expViewDiff>0?'var(--red)':'var(--green)'};">${expViewDiff>0?'▲':'▼'} ${fmtAbs(Math.abs(expViewDiff))}</span>` : '';
-      return `<tr>
-        <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
-        <td class="M" style="text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.type||''}</td>
-        <td class="neg bold" style="white-space:nowrap;text-align:right;">${r.amount?fmt(r.amount):''}${expViewDiffHtml}</td>
-      </tr>`;
+      const expViewDiffHtml = expViewDiff !== null ? `<div style="font-size:11px;color:${expViewDiff>0?'var(--red)':'var(--green)'};">${expViewDiff>0?'▲':'▼'} ${fmtAbs(Math.abs(expViewDiff))}</div>` : '';
+      const subLine = [r.type, r.dueDate].filter(Boolean).join(' · ');
+      return `<div class="cf-list-row" style="display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+        ${badge}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${subLine}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:15px;font-weight:700;color:var(--red);">${r.amount?fmt(r.amount):''}</div>
+          ${expViewDiffHtml}
+        </div>
+      </div>`;
     }
   }).join('');
   const expenseTotal = expenseFiltered.reduce((s,{r})=>s+(parseNum(r.amount)||0),0);
@@ -3347,90 +3461,111 @@ function renderCashflow() {
     </div>`;
   }
   if (specialEnabled) {
-    const spColgroupEdit = `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:26%;"><col style="width:16%;"></colgroup>`;
-    const spColgroupView = `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>`;
     if (isEdit) {
       const specialRows = specialFiltered.map(({r,i}) => {
         const spOwner = r.owner || cfg.member1Name;
-        const spBadge = cfOwnerBadge(spOwner);
+        const spBadge = cfOwnerBadgeLarge(spOwner);
         const prevSpRow = prevCf.special.find(p => p.label === r.label);
         const prevSpAmt = prevSpRow ? (parseNum(prevSpRow.amount)||0) : 0;
-        return `<tr style="vertical-align:middle;">
-          <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${spBadge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
-          <td class="M" style="text-align:left;color:var(--text3);">${r.memo||''}</td>
-          <td>${prevSpAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;">전달 ${fmt(prevSpAmt)}</div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('special',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
-          <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
-            <button onclick="openRowEditModal('special',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
-            <button class="del-btn" onclick="deleteCFRow('special',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
-          </div></td>
-        </tr>`;
+        return `<div class="cf-list-row" style="display:flex;align-items:center;gap:8px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+          <div onclick="openRowEditModal('special',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
+            ${spBadge}
+            <div style="min-width:0;">
+              <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.memo||''}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
+              ${prevSpAmt?`<div style="font-size:10px;color:var(--text3);">전달 ${fmt(prevSpAmt)}</div>`:''}
+              <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('special',${i},'amount',parseNum(this.value))"/>
+            </div>
+            <button class="del-btn" onclick="deleteCFRow('special',${i})" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
+          </div>
+        </div>`;
       }).join('');
       specialHtml = `<div class="card">
         <div class="cat-hdr">
           <div class="cat-name">${specialName} <span class="badge">별도계좌</span></div>
           <div class="cat-total" style="color:var(--amber);">${fmtW(cfSpecialTotal)}</div>
         </div>
-        <table class="data-table">${spColgroupEdit}
-          <tr><th class="L">구분</th><th>메모</th><th>금액</th><th></th></tr>
-          ${specialRows || '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">+ 항목 추가 버튼으로 등록해보세요</td></tr>'}
-        </table>
+        <div class="cf-list">
+          ${specialRows || '<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">+ 항목 추가 버튼으로 등록해보세요</div>'}
+        </div>
         <button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('special')">+ ${specialName} 추가</button>
         <div class="sbar"><span class="sbar-label">합계</span><span class="sbar-value" style="color:var(--amber);">${fmtW(cfSpecialTotal)}</span></div>
       </div>`;
     } else {
       const specialRows = specialFiltered.map(({r}) => {
         const spOwner = r.owner || cfg.member1Name;
-        const spBadge = cfOwnerBadge(spOwner);
-        return `<tr>
-          <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${spBadge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></div></td>
-          <td class="M" style="text-align:left;">${r.memo||''}</td>
-          <td class="bold" style="color:var(--amber);white-space:nowrap;text-align:right;">${r.amount?fmt(r.amount):''}</td>
-        </tr>`;
+        const spBadge = cfOwnerBadgeLarge(spOwner);
+        return `<div class="cf-list-row" style="display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+          ${spBadge}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.memo||''}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:15px;font-weight:700;color:var(--amber);">${r.amount?fmt(r.amount):''}</div>
+          </div>
+        </div>`;
       }).join('');
       specialHtml = `<div class="card">
         <div class="cat-hdr">
           <div class="cat-name">${specialName} <span class="badge">별도계좌</span></div>
           <div class="cat-total" style="color:var(--amber);">${fmtW(cfSpecialTotal)}</div>
         </div>
-        <table class="data-table">${spColgroupView}
-          <tr><th class="L">구분</th><th>메모</th><th>금액</th></tr>
-          ${specialRows || '<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">이달 특별지출 내역이 없어요 · 편집 모드에서 추가할 수 있어요</td></tr>'}
-        </table>
+        <div class="cf-list">
+          ${specialRows || '<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">이달 특별지출 내역이 없어요 · 편집 모드에서 추가할 수 있어요</div>'}
+        </div>
         ${specialRows ? '<div style="font-size:11px;color:var(--text3);text-align:right;margin-top:.35rem;">편집 모드에서 항목을 수정·추가할 수 있어요</div>' : ''}
         <div class="sbar"><span class="sbar-label">합계</span><span class="sbar-value" style="color:var(--amber);">${fmtW(cfSpecialTotal)}</span></div>
       </div>`;
     }
   }
 
-  // 저축 섹션
+  // 저축 섹션 (Toss 스타일 flex row)
   const savingsListRows = (cf.savings||[]).map((r,i) => {
     const owner = r.owner || cfg.member1Name;
-    const badge = cfOwnerBadge(owner);
+    const badge = cfOwnerBadgeLarge(owner);
     if (isEdit) {
       const prevRow = (prevCf.savings||[]).find(p => p.label === r.label);
       const prevAmt = prevRow ? (parseNum(prevRow.amount)||0) : 0;
       const curSavAmt = parseNum(r.amount)||0;
       const savMatch = prevAmt && curSavAmt === prevAmt;
       const savHintBg = savMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
-      return `<tr class="${r._copied?'row-copied':''}" style="vertical-align:middle;">
-        <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</span></div></td>
-        <td style="text-align:left;font-size:11px;overflow:hidden;color:var(--text3);"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</span></td>
-        <td>${prevAmt?`<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;"><span style="${savHintBg}">전달 ${fmt(prevAmt)}</span></div>`:''}<input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" oninput="this.closest('tr')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('savings',${i},'amount',parseNum(this.value))" style="width:100%;font-size:13px;"/></td>
-        <td><div style="display:flex;align-items:center;justify-content:center;gap:2px;">
-          <button onclick="openRowEditModal('savings',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:14px;background:transparent;border:none;cursor:pointer;">✎</button>
-          <button class="del-btn" onclick="deleteCFRow('savings',${i})" style="min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:14px;">✕</button>
-        </div></td>
-      </tr>`;
+      return `<div class="cf-list-row${r._copied?' row-copied':''}" style="display:flex;align-items:center;gap:8px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+        <div onclick="openRowEditModal('savings',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
+          ${badge}
+          <div style="min-width:0;">
+            <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
+            ${prevAmt?`<div style="font-size:10px;color:var(--text3);"><span style="${savHintBg}">전달 ${fmt(prevAmt)}</span></div>`:''}
+            <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" oninput="this.closest('.cf-list-row')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('savings',${i},'amount',parseNum(this.value))"/>
+          </div>
+          <button class="del-btn" onclick="deleteCFRow('savings',${i})" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
+        </div>
+      </div>`;
     } else {
       const prevRow = (prevCf.savings||[]).find(p => p.label === r.label);
       const prevAmt = prevRow ? (parseNum(prevRow.amount)||0) : null;
       const diff = prevAmt !== null && (parseNum(r.amount)||0) !== prevAmt ? (parseNum(r.amount)||0) - prevAmt : null;
-      const diffHtml = diff !== null ? `<br><span style="font-size:11px;color:${diff>0?'var(--green)':'var(--red)'};">${diff>0?'▲':'▼'} ${fmtAbs(Math.abs(diff))}</span>` : '';
-      return `<tr>
-        <td style="text-align:left;"><div style="display:inline-flex;align-items:center;max-width:100%;">${badge}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</span></div></td>
-        <td class="M" style="text-align:left;">${r.label||''}</td>
-        <td class="bold" style="color:var(--blue);white-space:nowrap;text-align:right;">${r.amount?fmt(r.amount):''}${diffHtml}</td>
-      </tr>`;
+      const diffHtml = diff !== null ? `<div style="font-size:11px;color:${diff>0?'var(--green)':'var(--red)'};">${diff>0?'▲':'▼'} ${fmtAbs(Math.abs(diff))}</div>` : '';
+      return `<div class="cf-list-row" style="display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+        ${badge}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:15px;font-weight:700;color:var(--blue);">${r.amount?fmt(r.amount):''}</div>
+          ${diffHtml}
+        </div>
+      </div>`;
     }
   }).join('');
   const savingsListHtml = `<div class="card">
@@ -3438,14 +3573,9 @@ function renderCashflow() {
       <div class="cat-name">저축</div>
       <div class="cat-total" style="color:var(--blue);">${fmtW(cfSavingsListTotal)}</div>
     </div>
-    <table class="data-table" data-cf-live="savings">
-      ${isEdit
-        ? `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:26%;"><col style="width:16%;"></colgroup>
-      <tr><th>구분</th><th>내용</th><th>금액</th><th></th></tr>`
-        : `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>
-      <tr><th>구분</th><th>내용</th><th>금액</th></tr>`}
-      ${savingsListRows || `<tr><td colspan="${isEdit?4:3}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 저축 항목 추가 버튼으로 등록해보세요' : '이달 저축 내역이 없어요 · 편집 모드에서 추가할 수 있어요'}</td></tr>`}
-    </table>
+    <div class="cf-list" data-cf-live="savings">
+      ${savingsListRows || `<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 저축 항목 추가 버튼으로 등록해보세요' : '이달 저축 내역이 없어요 · 편집 모드에서 추가할 수 있어요'}</div>`}
+    </div>
     ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('savings')">+ 저축 항목 추가</button>` : ''}
     <div class="sbar"><span class="sbar-label">총저축</span><span class="sbar-value" style="color:var(--blue);">${fmtW(cfSavingsListTotal)}</span></div>
   </div>`;
@@ -3511,10 +3641,9 @@ function renderCashflow() {
                 <div class="cat-name">수입</div>
                 <div class="cat-total" style="color:var(--green);">${fmtW(incomeTotal)}</div>
               </div>
-              <table class="data-table" data-cf-live="income">${colsIncome}
-                <tr><th>구분</th>${thIncome}</tr>
-                ${incomeRows || `<tr><td colspan="${isEdit?4:3}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 수입 항목 추가 버튼으로 등록해보세요' : '이달 수입 내역이 없어요'}</td></tr>`}
-              </table>
+              <div class="cf-list" data-cf-live="income">
+                ${incomeRows || `<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 수입 항목 추가 버튼으로 등록해보세요' : '이달 수입 내역이 없어요'}</div>`}
+              </div>
               ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('income')">+ 수입 항목 추가</button>` : ''}
               <div class="sbar"><span class="sbar-label">총수입</span><span class="sbar-value" style="color:var(--green);">${fmtW(incomeTotal)}</span></div>
             </div>
@@ -3527,13 +3656,9 @@ function renderCashflow() {
                 <div class="cat-name">지출</div>
                 <div class="cat-total" style="color:var(--red);">${fmtW(expenseTotal)}</div>
               </div>
-              <table class="data-table" data-cf-live="expense">
-                ${isEdit
-                  ? `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:22%;"><col style="width:20%;"></colgroup>`
-                  : `<colgroup><col style="width:30%;"><col style="width:28%;"><col style="width:42%;"></colgroup>`}
-                <tr><th>구분</th><th>내용</th><th>금액</th>${isEdit?'<th></th>':''}</tr>
-                ${expenseRows || `<tr><td colspan="${isEdit?4:3}" style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 지출 항목 추가 버튼으로 등록해보세요' : '이달 지출 내역이 없어요'}</td></tr>`}
-              </table>
+              <div class="cf-list" data-cf-live="expense">
+                ${expenseRows || `<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 지출 항목 추가 버튼으로 등록해보세요' : '이달 지출 내역이 없어요'}</div>`}
+              </div>
               ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('expense')">+ 지출 항목 추가</button>` : ''}
               <div class="sbar"><span class="sbar-label">총지출</span><span class="sbar-value" style="color:var(--red);">${fmtW(expenseTotal)}</span></div>
             </div>
@@ -3690,13 +3815,18 @@ function renderRowEditContent() {
 
   let html = '';
   if (type === 'balance') {
+    const ownerBtns = [...members, ...(cfg.memberCount===2?['공동']:[])].map(m => {
+      const active = data.owner === m;
+      const bg = m === cfg.member1Name ? '#534AB7' : m === cfg.member2Name ? '#0F6E56' : '#BA7517';
+      return `<button onclick="_rowEditCtx.data.owner='${m}';renderRowEditContent()" style="padding:.35rem .75rem;border-radius:20px;border:2px solid ${active?bg:'var(--border)'};background:${active?bg:'transparent'};color:${active?'#fff':'var(--text2)'};font-size:13px;font-weight:600;cursor:pointer;">${m}</button>`;
+    }).join('');
     html = `
       <div class="row-edit-label">별명</div>
       <input class="row-edit-field" id="re-nickname" value="${(data.nickname||'').replace(/"/g,'&quot;')}" placeholder="계좌 별명"/>
       <div class="row-edit-label">기관</div>
       <input class="row-edit-field" id="re-institution" value="${(data.institution||'').replace(/"/g,'&quot;')}" placeholder="은행/증권사"/>
-      <div class="row-edit-label">메모</div>
-      <input class="row-edit-field" id="re-memo" value="${(data.memo||'').replace(/"/g,'&quot;')}" placeholder="메모"/>
+      <div class="row-edit-label">소유자</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.25rem;">${ownerBtns}</div>
     `;
   } else {
     const ownerBtns = [...members, ...(cfg.memberCount===2?['공동']:[])].map(m => {
@@ -3732,9 +3862,8 @@ function saveRowEditModal() {
       const inst = document.getElementById('re-institution').value.trim();
       if (nick) a.nickname = nick;
       if (inst) a.institution = inst;
+      if (_rowEditCtx.data.owner) a.owner = _rowEditCtx.data.owner;
     }
-    if (!balanceMemoTempData) balanceMemoTempData = {};
-    balanceMemoTempData[idxOrAccId] = document.getElementById('re-memo').value;
   } else {
     const label = document.getElementById('re-label').value;
     const typeFieldEl = document.getElementById('re-type');
