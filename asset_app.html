@@ -1730,7 +1730,6 @@ function calcGoalProgress(goal) {
     return { current: rate, target: goal.targetPercent, pct: Math.min(100, rawPct), rawPct, label: `현재 ${rate}% / 목표 ${goal.targetPercent}%`, subLabel };
   }
   const recentYM = getMostRecentDataYM();
-  const cats = calcAssetByCategory(recentYM);
   let current;
   if (goal.linkedAccounts && goal.linkedAccounts.length > 0) {
     const sum = calcLinkedAccountsTotal(goal.linkedAccounts, recentYM);
@@ -1739,7 +1738,18 @@ function calcGoalProgress(goal) {
       : sum;
   } else {
     const linked = goal.linkedCategory;
-    current = linked ? (cats[linked]||0) : calcNetAssetForMonth(recentYM);
+    if (linked) {
+      // 카테고리 연동: 계좌별 최근 잔고 폴백으로 합산
+      current = state.accounts
+        .filter(a => a.category === linked)
+        .reduce((s, a) => s + getAccountLatestBalance(a, recentYM), 0);
+    } else {
+      // 순자산 전체: 계좌별 최근 잔고 폴백으로 합산, 부채 음수 적용
+      current = state.accounts.reduce((s, a) => {
+        const amt = getAccountLatestBalance(a, recentYM);
+        return s + (a.category === '부채' ? -amt : amt);
+      }, 0);
+    }
   }
   const rawPct = goal.targetAmount > 0 ? Math.round(current/goal.targetAmount*100) : 0;
   const pct = Math.min(100, rawPct);
@@ -1780,14 +1790,15 @@ function calcGoalProgress(goal) {
 }
 // 계좌의 가장 최근 잔고 반환 — preferYM에 데이터 없으면 가장 최근 입력 월로 폴백
 function getAccountLatestBalance(account, preferYM) {
+  // 0은 "미입력"으로 처리 — saveBalance()가 미입력 계좌도 0으로 저장하기 때문
   if (preferYM) {
     const val = getAccountBalance(account, preferYM);
-    if (val !== undefined && val !== null) return Math.abs(val);
+    if (val !== undefined && val !== null && val !== 0) return Math.abs(val);
   }
   const months = Object.keys(state.balances).sort().reverse();
   for (const m of months) {
     const val = getAccountBalance(account, m);
-    if (val !== undefined && val !== null) return Math.abs(val);
+    if (val !== undefined && val !== null && val !== 0) return Math.abs(val);
   }
   return 0;
 }
