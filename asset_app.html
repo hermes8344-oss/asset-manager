@@ -1265,6 +1265,30 @@ body {
   </div>
 </div>
 
+<!-- 고정비 수정 모달 -->
+<div class="modal-overlay" id="fc-edit-modal" onclick="if(event.target===this)closeFcEditModal()">
+  <div class="modal-sheet" style="max-width:430px;">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">고정비 수정</div>
+      <button class="close-btn" onclick="closeFcEditModal()">✕</button>
+    </div>
+    <div id="fc-edit-modal-body"></div>
+  </div>
+</div>
+
+<!-- 자동이체 수정 모달 -->
+<div class="modal-overlay" id="at-edit-modal" onclick="if(event.target===this)closeAtEditModal()">
+  <div class="modal-sheet" style="max-width:430px;">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">자동이체 수정</div>
+      <button class="close-btn" onclick="closeAtEditModal()">✕</button>
+    </div>
+    <div id="at-edit-modal-body"></div>
+  </div>
+</div>
+
 <!-- 자동이체 추가 모달 -->
 <div class="modal-overlay" id="auto-transfer-modal" onclick="if(event.target===this)closeAutoTransferModal()">
   <div class="modal-sheet">
@@ -4573,43 +4597,10 @@ function renderFixedTab() {
     const atBadge = linkedAt
       ? `<span style="font-size:8px;padding:1px 5px;border-radius:10px;background:${badgeClr.bg};color:${badgeClr.color};font-weight:600;display:inline-block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;" title="${linkedAt.label}">↪ ${linkedAt.label}</span>`
       : '';
-    if (state.fixedEditIdx === i) {
-      const cycleFieldHtml = f.cycle === '매월'
-        ? daySelectHtml('fx-edit-day', f.day, 'width:30%;display:block;margin:0 auto;font-size:13px;padding:.15rem .2rem;min-width:0;text-align:center;')
-        : renderInlineMonthChips(f.months||[], 'fx-edit-months');
-      const ownerSelHtml = cfg.memberCount === 2
-        ? `<select class="input-field" id="fx-edit-owner" style="width:67.5%;display:block;margin:0 auto;font-size:12px;padding:.15rem .1rem;text-align:center;min-width:0;">
-            ${ownerOptions().map(o=>`<option value="${o}" ${(f.owner||'공동')===o?'selected':''}>${o}</option>`).join('')}
-           </select>`
-        : `<span style="font-size:11px;color:var(--text3);">${cfg.member1Name}</span>`;
-      return `<div class="fixed-row" style="align-items:center;background:var(--accent-light);border-radius:var(--r-xs);">
-        <span></span>
-        <input class="input-field" id="fx-edit-label" value="${f.label}" placeholder="항목명" style="width:67.5%;display:block;margin:0 auto;font-size:13px;padding:.15rem .3rem;text-align:left;min-width:0;"/>
-        <input class="input-field" id="fx-edit-amount" inputmode="numeric" value="${fmt(f.amount)}" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" onblur="formatInput(this)" style="width:60%;display:block;margin:0 auto;font-size:13px;padding:.15rem .3rem;text-align:center;min-width:0;"/>
-        <select class="input-field" id="fx-edit-cycle" onchange="renderFixedEditCycleFields(${i})" style="width:67.5%;display:block;margin:0 auto;font-size:13px;padding:.15rem .1rem;text-align:center;min-width:0;">
-          <option value="매월" ${f.cycle==='매월'?'selected':''}>매월</option>
-          <option value="격월" ${f.cycle==='격월'?'selected':''}>격월</option>
-          <option value="연2회" ${f.cycle==='연2회'?'selected':''}>연2회</option>
-          <option value="연1회" ${f.cycle==='연1회'?'selected':''}>연1회</option>
-        </select>
-        <div id="fx-edit-cycle-field-${i}" style="min-width:0;overflow:hidden;">${cycleFieldHtml}</div>
-        ${ownerSelHtml}
-        ${(state.autoTransfers||[]).length > 0 ? `<div style="grid-column:1/-1;display:flex;align-items:center;gap:6px;padding:.25rem 0 0;">
-          <label style="font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0;">자동이체 연동</label>
-          <select class="input-field" id="fx-edit-autoTransfer" style="width:16.875%;font-size:11px;padding:.15rem .3rem;min-width:0;flex-shrink:0;">
-            <option value="">없음</option>
-            ${(state.autoTransfers).map(at => `<option value="${at.id}" ${(f.autoTransferId||'')=== at.id?'selected':''}>${at.label}</option>`).join('')}
-          </select>
-        </div>` : ''}
-        <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:6px;padding:.35rem 0 .1rem;border-top:1px solid var(--border);margin-top:.2rem;">
-          <button class="btn btn-secondary" style="padding:.3rem .8rem;font-size:12px;" onclick="cancelFixedEdit()">취소</button>
-          <button class="btn btn-primary" style="padding:.3rem .8rem;font-size:12px;" onclick="saveFixedEdit(${i})">저장</button>
-        </div>
-      </div>`;
-    }
     return `<div class="at-swipe-wrap">
       <div class="fixed-row fc-draggable" draggable="true" data-fc-id="${f.id}"
-        ondragstart="dragFcStart(event)" ondragover="dragFcOver(event)" ondrop="dragFcDrop(event)" ondragend="dragFcEnd(event)">
+        ondragstart="dragFcStart(event)" ondragover="dragFcOver(event)" ondrop="dragFcDrop(event)" ondragend="dragFcEnd(event)"
+        onclick="openFcEditModal(event,${i})">
         <span class="fc-drag-handle row-indent">⠿</span>
         <span class="row-indent" style="overflow:hidden;text-overflow:ellipsis;">
           <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.label}</div>
@@ -4621,7 +4612,6 @@ function renderFixedTab() {
         <span>${ownerBadge(f.owner)}</span>
       </div>
       <div class="at-swipe-btns">
-        <button class="at-swipe-edit-btn" onclick="startFixedEdit(${i})">수정</button>
         <button class="at-swipe-delete-btn" onclick="deleteFixed(${i})">삭제</button>
       </div>
     </div>`;
@@ -4657,7 +4647,7 @@ function renderFixedTab() {
     <div id="add-fixed-form"></div>`}
   `;
 }
-function openFcSwipe(row) { row.classList.add('fc-swiped'); row.style.transform = 'translateX(-120px)'; }
+function openFcSwipe(row) { row.classList.add('fc-swiped'); row.style.transform = 'translateX(-60px)'; }
 function closeFcSwipe(row) { row.classList.remove('fc-swiped'); row.style.transform = ''; }
 function closeAllFcSwipes() { document.querySelectorAll('.fixed-row.fc-swiped').forEach(closeFcSwipe); }
 function setupFcSwipe() {
@@ -4682,7 +4672,7 @@ function setupFcSwipe() {
       const isSwiped = row.classList.contains('fc-swiped');
       if (dx < -40) { closeAllFcSwipes(); openFcSwipe(row); }
       else if (dx > 20 && isSwiped) { closeFcSwipe(row); }
-      else if (Math.abs(dx) < 10 && isSwiped) { closeFcSwipe(row); }
+      else if (Math.abs(dx) < 10 && isSwiped) { closeFcSwipe(row); _fcSwipeSuppressClick = true; setTimeout(()=>{ _fcSwipeSuppressClick = false; }, 250); }
     }, { passive: true });
   });
 }
@@ -4847,6 +4837,161 @@ function saveFixedEdit(i) {
   state.fixedEditIdx = null;
   saveState();
   showToast('저장됐어요');
+  renderSettings();
+}
+
+// ── 고정비 수정 모달 ──
+let _fcSwipeSuppressClick = false;
+function openFcEditModal(e, i) {
+  if (e && e.target.closest('.fc-drag-handle, .at-swipe-btns')) return;
+  if (_fcSwipeSuppressClick) return;
+  const f = state.fixedCosts[i];
+  if (!f) return;
+  state.fixedEditIdx = i;
+  const cfg = state.config || {};
+  const cycleFieldHtml = f.cycle === '매월'
+    ? daySelectHtml('fc-modal-day', f.day, 'width:100%;font-size:14px;color:var(--text1);')
+    : renderInlineMonthChips(f.months||[], 'fc-modal-months');
+  const ownerSelHtml = cfg.memberCount === 2
+    ? `<div class="input-group"><label class="input-label">담당</label>
+        <select class="input-field" id="fc-modal-owner" style="width:100%;font-size:14px;color:var(--text1);">
+          ${ownerOptions().map(o=>`<option value="${o}" ${(f.owner||'공동')===o?'selected':''}>${o}</option>`).join('')}
+        </select></div>`
+    : '';
+  const atSelHtml = (state.autoTransfers||[]).length > 0
+    ? `<div class="input-group"><label class="input-label">자동이체 연동</label>
+        <select class="input-field" id="fc-modal-autoTransfer" style="width:100%;font-size:14px;color:var(--text1);">
+          <option value="">없음</option>
+          ${(state.autoTransfers).map(at=>`<option value="${at.id}" ${(f.autoTransferId||'')=== at.id?'selected':''}>${at.label}</option>`).join('')}
+        </select></div>`
+    : '';
+  document.getElementById('fc-edit-modal-body').innerHTML = `
+    <div class="input-group"><label class="input-label">항목명</label>
+      <input class="input-field" id="fc-modal-label" value="${f.label}" placeholder="항목명" style="width:100%;font-size:14px;"/>
+    </div>
+    <div class="input-group"><label class="input-label">금액</label>
+      <input class="input-field" id="fc-modal-amount" inputmode="numeric" value="${fmt(f.amount)}"
+        oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')"
+        onblur="formatInput(this)" style="width:100%;font-size:14px;text-align:right;"/>
+    </div>
+    <div class="input-group"><label class="input-label">주기</label>
+      <select class="input-field" id="fc-modal-cycle" onchange="renderFcModalCycleFields()" style="width:100%;font-size:14px;color:var(--text1);">
+        <option value="매월" ${f.cycle==='매월'?'selected':''}>매월</option>
+        <option value="격월" ${f.cycle==='격월'?'selected':''}>격월</option>
+        <option value="연2회" ${f.cycle==='연2회'?'selected':''}>연2회</option>
+        <option value="연1회" ${f.cycle==='연1회'?'selected':''}>연1회</option>
+      </select>
+    </div>
+    <div class="input-group" id="fc-modal-cycle-wrap"><label class="input-label">${f.cycle==='매월'?'납부일':'해당 월'}</label>
+      <div id="fc-modal-cycle-field">${cycleFieldHtml}</div>
+    </div>
+    ${ownerSelHtml}
+    ${atSelHtml}
+    <div class="btn-row" style="padding-top:.5rem;border-top:1px solid var(--border);margin-top:.5rem;">
+      <button class="btn btn-secondary" onclick="closeFcEditModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveFcModal(${i})">저장</button>
+    </div>`;
+  document.getElementById('fc-edit-modal').classList.add('open');
+}
+function closeFcEditModal() {
+  document.getElementById('fc-edit-modal').classList.remove('open');
+  state.fixedEditIdx = null;
+}
+function renderFcModalCycleFields() {
+  const cycle = document.getElementById('fc-modal-cycle')?.value;
+  const i = state.fixedEditIdx;
+  const f = i != null ? state.fixedCosts[i] : null;
+  const el = document.getElementById('fc-modal-cycle-field');
+  const wrap = document.getElementById('fc-modal-cycle-wrap');
+  if (!el) return;
+  if (cycle === '매월') {
+    if (wrap) wrap.querySelector('label').textContent = '납부일';
+    el.innerHTML = daySelectHtml('fc-modal-day', f ? f.day : null, 'width:100%;font-size:14px;color:var(--text1);');
+  } else {
+    if (wrap) wrap.querySelector('label').textContent = '해당 월';
+    const defaultMonths = cycle === '격월' ? [1,3,5,7,9,11] : cycle === '연1회' ? [1] : [1,6];
+    const currentMonths = (f && f.cycle === cycle) ? (f.months||[]) : defaultMonths;
+    el.innerHTML = renderInlineMonthChips(currentMonths, 'fc-modal-months');
+  }
+}
+function saveFcModal(i) {
+  const label = document.getElementById('fc-modal-label')?.value.trim();
+  const amount = parseNum(document.getElementById('fc-modal-amount')?.value);
+  const cycle = document.getElementById('fc-modal-cycle')?.value;
+  if (!label || !amount) { showToast('항목명과 금액을 입력해주세요', 'error'); return; }
+  let months = [], day = null;
+  if (cycle === '매월') {
+    months = [1,2,3,4,5,6,7,8,9,10,11,12];
+    day = parseInt(document.getElementById('fc-modal-day')?.value) || null;
+  } else {
+    const raw = document.getElementById('fc-modal-months')?.value || '';
+    months = raw.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+  }
+  const owner = document.getElementById('fc-modal-owner')?.value || state.fixedCosts[i].owner || '공동';
+  const autoTransferId = document.getElementById('fc-modal-autoTransfer')?.value || null;
+  state.fixedCosts[i] = { ...state.fixedCosts[i], label, amount, cycle, months, day, owner, autoTransferId };
+  state.fixedEditIdx = null;
+  saveState();
+  showToast('저장됐어요');
+  closeFcEditModal();
+  renderSettings();
+}
+
+// ── 자동이체 수정 모달 ──
+let _atSwipeSuppressClick = false;
+function openAtEditModal(e, i) {
+  if (e && e.target.closest('.fc-drag-handle, .at-swipe-btns')) return;
+  if (_atSwipeSuppressClick) return;
+  const at = state.autoTransfers[i];
+  if (!at) return;
+  state.atEditIdx = i;
+  const acc = at.type === 'account' ? state.accounts.find(a => a.id === at.accountId) : null;
+  const sourceLabel = at.type === 'account' ? (acc ? `${acc.institution} ${acc.nickname}` : '(삭제된 계좌)') : (at.cardCompany || '');
+  const cfg = state.config || {};
+  const owner = acc ? (acc.owner || '공동') : '';
+  const sourceLabelFull = (at.type === 'account' && acc && cfg.memberCount >= 2) ? `${sourceLabel} (${owner})` : sourceLabel;
+  const body = document.getElementById('at-edit-modal-body');
+  body.innerHTML = `
+    <div class="input-group"><label class="input-label">납부 내용</label>
+      <input class="input-field" id="at-modal-label" value="${at.label}" placeholder="납부 내용" style="width:100%;font-size:14px;"/>
+    </div>
+    <div class="input-group"><label class="input-label">출금 계좌/카드</label>
+      <button onclick="openAutoTransferSourceEdit(${i})"
+        style="width:100%;text-align:left;background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r-xs);color:var(--accent);font-weight:600;font-size:13px;padding:.5rem .75rem;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+        ${sourceLabelFull} ✎</button>
+    </div>
+    <div class="input-group"><label class="input-label">금액</label>
+      <input class="input-field" id="at-modal-amount" inputmode="numeric" value="${at.amount ? fmt(at.amount) : ''}" placeholder="0"
+        oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')"
+        onblur="formatInput(this)" style="width:100%;font-size:14px;text-align:right;"/>
+    </div>
+    <div class="input-group"><label class="input-label">받는 곳</label>
+      <input class="input-field" id="at-modal-payee" value="${at.payee||''}" placeholder="받는 곳" style="width:100%;font-size:14px;"/>
+    </div>
+    <div class="input-group"><label class="input-label">납부일</label>
+      ${daySelectHtml('at-modal-day', at.day, 'width:100%;font-size:14px;color:var(--text1);')}
+    </div>
+    <div class="btn-row" style="padding-top:.5rem;border-top:1px solid var(--border);margin-top:.5rem;">
+      <button class="btn btn-secondary" onclick="closeAtEditModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveAtModal(${i})">저장</button>
+    </div>`;
+  document.getElementById('at-edit-modal').classList.add('open');
+}
+function closeAtEditModal() {
+  document.getElementById('at-edit-modal').classList.remove('open');
+  state.atEditIdx = null;
+}
+function saveAtModal(i) {
+  const label = document.getElementById('at-modal-label')?.value.trim();
+  const amount = parseNum(document.getElementById('at-modal-amount')?.value) || 0;
+  const payee = document.getElementById('at-modal-payee')?.value.trim() || '';
+  const day = parseInt(document.getElementById('at-modal-day')?.value) || null;
+  if (!label) { showToast('납부 내용을 입력해주세요', 'error'); return; }
+  state.autoTransfers[i] = { ...state.autoTransfers[i], label, amount, payee, day };
+  state.atEditIdx = null;
+  saveState();
+  showToast('저장됐어요');
+  closeAtEditModal();
   renderSettings();
 }
 // ── 자동이체 카드사 목록 ──
@@ -5111,24 +5256,10 @@ function renderAutoTransferTab() {
          </span>`
       : '';
 
-    if (state.atEditIdx === i) {
-      return `<div class="at-row" style="align-items:center;background:var(--accent-light);border-radius:var(--r-xs);">
-        <span></span>
-        <input class="input-field" id="at-edit-label" value="${at.label}" placeholder="납부 내용" style="width:60%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:left;min-width:0;"/>
-        <button onclick="openAutoTransferSourceEdit(${i})" style="background:var(--surface);border:1.5px solid var(--accent);border-radius:var(--r-xs);color:var(--accent);font-weight:600;font-size:9px;width:100%;padding:.2rem .1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;min-width:0;text-align:center;">${sourceLabelFull} ✎</button>
-        <input class="input-field" id="at-edit-amount" inputmode="numeric" value="${at.amount ? fmt(at.amount) : ''}" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:center;min-width:0;"/>
-        <input class="input-field" id="at-edit-payee" value="${at.payee||''}" placeholder="받는 곳" style="width:90%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;text-align:center;min-width:0;"/>
-        ${daySelectHtml('at-edit-day', at.day, 'width:45%;display:block;margin:0 auto;font-size:11px;padding:.15rem .2rem;min-width:0;text-align:center;')}
-        <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:6px;padding:.35rem 0 .1rem;border-top:1px solid var(--border);margin-top:.2rem;">
-          <button class="btn btn-secondary" style="padding:.3rem .8rem;font-size:12px;" onclick="cancelAutoTransferEdit()">취소</button>
-          <button class="btn btn-primary" style="padding:.3rem .8rem;font-size:12px;" onclick="saveAutoTransferEdit(${i})">저장</button>
-        </div>
-      </div>`;
-    }
-
     return `<div class="at-swipe-wrap">
       <div class="at-row at-draggable" draggable="true" data-at-id="${at.id||i}"
-        ondragstart="dragAtStart(event)" ondragover="dragAtOver(event)" ondrop="dragAtDrop(event)" ondragend="dragAtEnd(event)">
+        ondragstart="dragAtStart(event)" ondragover="dragAtOver(event)" ondrop="dragAtDrop(event)" ondragend="dragAtEnd(event)"
+        onclick="openAtEditModal(event,${i})">
         <span class="fc-drag-handle row-indent">⠿</span>
         <span class="row-indent" style="text-align:left;overflow:hidden;text-overflow:ellipsis;">
           <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.label}</div>
@@ -5145,7 +5276,6 @@ function renderAutoTransferTab() {
         <span style="font-size:10px;color:var(--text3);text-align:center;">${at.day ? at.day+'일' : '-'}</span>
       </div>
       <div class="at-swipe-btns">
-        <button class="at-swipe-edit-btn" onclick="startAutoTransferEdit(${i})">수정</button>
         <button class="at-swipe-delete-btn" onclick="deleteAutoTransfer(${i})">삭제</button>
       </div>
     </div>`;
@@ -5161,7 +5291,7 @@ function renderAutoTransferTab() {
   `;
 }
 
-function openAtSwipe(row) { row.classList.add('at-swiped'); row.style.transform = 'translateX(-120px)'; }
+function openAtSwipe(row) { row.classList.add('at-swiped'); row.style.transform = 'translateX(-60px)'; }
 function closeAtSwipe(row) { row.classList.remove('at-swiped'); row.style.transform = ''; }
 function closeAllSwipes() { document.querySelectorAll('.at-row.at-swiped').forEach(closeAtSwipe); }
 function setupAtSwipe() {
@@ -5187,7 +5317,7 @@ function setupAtSwipe() {
       const isSwiped = row.classList.contains('at-swiped');
       if (dx < -40) { closeAllSwipes(); openAtSwipe(row); }
       else if (dx > 20 && isSwiped) { closeAtSwipe(row); }
-      else if (Math.abs(dx) < 10 && isSwiped) { closeAtSwipe(row); }
+      else if (Math.abs(dx) < 10 && isSwiped) { closeAtSwipe(row); _atSwipeSuppressClick = true; setTimeout(()=>{ _atSwipeSuppressClick = false; }, 250); }
     }, { passive: true });
   });
 }
@@ -5245,8 +5375,13 @@ function confirmAutoTransferSource() {
   state.autoTransfers[i] = { ...state.autoTransfers[i], type, accountId: accountId||null, cardCompany: cardCompany||null };
   saveState();
   closeAutoTransferModal();
-  renderSettings();
   showToast('출금 수단이 변경됐어요');
+  // 수정 모달이 열려있으면 소스 버튼 텍스트만 갱신
+  if (state.atEditIdx === i && document.getElementById('at-edit-modal')?.classList.contains('open')) {
+    openAtEditModal(null, i);
+  } else {
+    renderSettings();
+  }
 }
 function renderAutoTransferModalSteps(step) {
   document.getElementById('at-modal-steps').innerHTML = `
