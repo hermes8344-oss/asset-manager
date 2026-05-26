@@ -5231,7 +5231,7 @@ function renderAutoTransferTab() {
       ? `<span style="font-size:8px;padding:1px 5px;border-radius:10px;background:${ownerBg};color:${ownerColor};font-weight:600;display:inline-block;margin-top:2px;">${owner || '공동'}</span>`
       : '';
     /* 모바일용 약어 변수 */
-    const ownerChar = (owner || '공').slice(0, 1);
+    const ownerChar = (owner || '공동').slice(0, 2);
     const srcChars = at.type === 'account'
       ? (acc ? acc.institution.slice(0, 2) : '?')
       : (at.cardCompany || '').slice(0, 2) || '?';
@@ -5273,7 +5273,7 @@ function renderAutoTransferTab() {
           <!-- PC: 기존 오너뱃지 + 전체 계좌명 -->
           <span class="at-src-full" style="flex-direction:column;align-items:center;justify-content:center;gap:2px;">${ownerBadgeHtml}<span class="pill ${pillClass}" style="font-size:9px;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:100%;">${sourceLabel}</span></span>
           <!-- 모바일: 원형 뱃지 2개 (오너 1글자 + 기관 2글자) -->
-          <span class="at-src-abbr" style="flex-direction:row;align-items:center;justify-content:center;gap:3px;">${cfg.memberCount >= 2 && at.type === 'account' && acc ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:${ownerBg};color:${ownerColor};font-size:10px;font-weight:700;flex-shrink:0;">${ownerChar}</span>` : ''}<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:${srcBg};color:${srcColor};font-size:9px;font-weight:700;flex-shrink:0;">${srcChars}</span></span>
+          <span class="at-src-abbr" style="flex-direction:row;align-items:center;justify-content:center;gap:3px;">${cfg.memberCount >= 2 && at.type === 'account' && acc ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:20px;border-radius:10px;padding:0 3px;background:${ownerBg};color:${ownerColor};font-size:9px;font-weight:700;flex-shrink:0;">${ownerChar}</span>` : ''}<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:${srcBg};color:${srcColor};font-size:9px;font-weight:700;flex-shrink:0;">${srcChars}</span></span>
         </span>
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--text3);text-align:center;">${at.payee||'-'}</span>
         <span style="font-size:10px;color:var(--text3);text-align:center;">${at.day ? at.day+'일' : '-'}</span>
