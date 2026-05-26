@@ -392,7 +392,7 @@ body {
   /* 고정비: 담당 24px 고정(아이콘 20px+여백), 해당일 14% */
   .fixed-hdr, .fixed-row { grid-template-columns: 20px 1fr 19% 12% 14% 24px; }
   /* 자동이체: 받는곳 컬럼 숨기고 5컬럼으로 재배치 [핸들][납부내용][금액][계좌/카드][납부일] */
-  .at-hdr,    .at-row    { grid-template-columns: 20px 1fr 16% 20% 40px; }
+  .at-hdr,    .at-row    { grid-template-columns: 20px 1fr 19% 15% 40px; }
   .at-hdr > :nth-child(5), .at-row > :nth-child(5) { display: none !important; }
   /* 헤더 텍스트 1행 + 글씨 약간 축소 */
   .fixed-hdr span, .at-hdr span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
@@ -435,10 +435,12 @@ body {
 .pill.card { background: rgba(186,117,23,.15); color: #BA7517; }
 
 /* ── 자동이체 목록 그리드 ── */
-.at-hdr { display: grid; grid-template-columns: 20px 25% 15% 22% 20% 1fr; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
-.at-row { display: grid; grid-template-columns: 20px 25% 15% 22% 20% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; background: var(--surface); transition: transform .2s ease; position: relative; z-index: 1; }
+.at-hdr { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
+.at-row { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; background: var(--surface); transition: transform .2s ease; position: relative; z-index: 1; }
 .at-row > * { min-width: 0; }
 .at-row > :nth-child(2) { text-align: left; }
+.at-hdr > :nth-child(3),
+.at-row > :nth-child(3) { text-align: center; }
 .at-swipe-wrap:last-child .at-row { border: none; }
 .at-row.at-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; background: rgba(83,74,183,.07); border-radius: 6px; }
 /* ── 스와이프 액션 ── */
@@ -5266,7 +5268,7 @@ function renderAutoTransferTab() {
           <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.label}</div>
           ${linkedFCHtml}
         </span>
-        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;">${at.amount ? fmtW(at.amount) : '0원'}</span>
+        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.amount ? fmtW(at.amount) : '0원'}</span>
         <span style="overflow:hidden;">
           <!-- PC: 기존 오너뱃지 + 전체 계좌명 -->
           <span class="at-src-full" style="flex-direction:column;align-items:center;justify-content:center;gap:2px;">${ownerBadgeHtml}<span class="pill ${pillClass}" style="font-size:9px;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:100%;">${sourceLabel}</span></span>
