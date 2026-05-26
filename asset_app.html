@@ -389,8 +389,9 @@ body {
 /* 모바일: 드래그핸들 좌측 고정 + 담당/납부일 헤더·값 1행 처리 */
 @media (max-width: 899px) {
   .row-indent { padding-left: 4px; }
-  /* 고정비: 담당 24px 고정(아이콘 20px+여백), 해당일 14% */
-  .fixed-hdr, .fixed-row { grid-template-columns: 20px 1fr 19% 12% 14% 24px; }
+  /* 고정비: 해당일 숨기고 5컬럼 재배치 [핸들][항목][금액][주기][담당] */
+  .fixed-hdr, .fixed-row { grid-template-columns: 20px 1fr 19% 12% 50px; }
+  .fixed-hdr > :nth-child(5), .fixed-row > :nth-child(5) { display: none !important; }
   /* 자동이체: 받는곳 컬럼 숨기고 5컬럼으로 재배치 [핸들][납부내용][금액][계좌/카드][납부일] */
   .at-hdr,    .at-row    { grid-template-columns: 20px 1fr 19% 15% 40px; }
   .at-hdr > :nth-child(5), .at-row > :nth-child(5) { display: none !important; }
@@ -4577,8 +4578,7 @@ function renderFixedTab() {
     const o = owner || '공동';
     const bg = o === '공동' ? 'var(--surface2)' : o === cfg.member1Name ? 'var(--accent-light)' : 'var(--green-light)';
     const color = o === '공동' ? 'var(--text3)' : o === cfg.member1Name ? 'var(--accent)' : 'var(--green)';
-    const abbr = o === '공동' ? '공' : o.slice(0,1);
-    return `<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:${bg};color:${color};font-size:10px;font-weight:700;flex-shrink:0;">${abbr}</span>`;
+    return `<span style="font-size:10px;padding:2px 5px;border-radius:10px;background:${bg};color:${color};font-weight:700;white-space:nowrap;display:inline-block;">${o}</span>`;
   };
 
   const rows = state.fixedCosts.map((f,i) => {
