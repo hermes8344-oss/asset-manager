@@ -1778,10 +1778,23 @@ function calcGoalProgress(goal) {
         : `앞으로 ${fmtAbs(remaining)} 필요`;
   return { current, target: goal.targetAmount, pct, rawPct, label: `${fmtAbs(current)} / 목표 ${fmtAbs(goal.targetAmount)}`, subLabel };
 }
+// 계좌의 가장 최근 잔고 반환 — preferYM에 데이터 없으면 가장 최근 입력 월로 폴백
+function getAccountLatestBalance(account, preferYM) {
+  if (preferYM) {
+    const val = getAccountBalance(account, preferYM);
+    if (val !== undefined && val !== null) return Math.abs(val);
+  }
+  const months = Object.keys(state.balances).sort().reverse();
+  for (const m of months) {
+    const val = getAccountBalance(account, m);
+    if (val !== undefined && val !== null) return Math.abs(val);
+  }
+  return 0;
+}
 function calcLinkedAccountsTotal(accountIds, ym) {
   return (accountIds || []).reduce((sum, id) => {
     const a = state.accounts.find(x => x.id === id);
-    return sum + (a ? Math.abs(getAccountBalance(a, ym) || 0) : 0);
+    return sum + (a ? getAccountLatestBalance(a, ym) : 0);
   }, 0);
 }
 
@@ -5575,7 +5588,7 @@ function renderAccountCheckboxGroups(linkedAccounts) {
       <div style="font-size:11px;font-weight:600;color:${cc.hex};margin-bottom:.3rem;padding:.15rem .35rem;border-left:3px solid ${cc.hex};">${cc.name}</div>`;
     accs.forEach(a => {
       const checked = (linkedAccounts||[]).includes(a.id);
-      const bal = Math.abs(getAccountBalance(a, recentYM) || 0);
+      const bal = getAccountLatestBalance(a, recentYM);
       html += `<label style="display:flex;align-items:center;gap:.5rem;padding:.3rem .25rem;cursor:pointer;border-radius:6px;">
         <input type="checkbox" value="${a.id}" ${checked ? 'checked' : ''}
           onchange="toggleLinkedAccount('${a.id}')"
