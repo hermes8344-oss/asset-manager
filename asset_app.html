@@ -1738,18 +1738,22 @@ function calcGoalProgress(goal) {
       : sum;
   } else {
     const linked = goal.linkedCategory;
+    let rawSum;
     if (linked) {
       // 카테고리 연동: 계좌별 최근 잔고 폴백으로 합산
-      current = state.accounts
+      rawSum = state.accounts
         .filter(a => a.category === linked)
         .reduce((s, a) => s + getAccountLatestBalance(a, recentYM), 0);
     } else {
       // 순자산 전체: 계좌별 최근 잔고 폴백으로 합산, 부채 음수 적용
-      current = state.accounts.reduce((s, a) => {
+      rawSum = state.accounts.reduce((s, a) => {
         const amt = getAccountLatestBalance(a, recentYM);
         return s + (a.category === '부채' ? -amt : amt);
       }, 0);
     }
+    current = (goal.baselineMode === 'incremental')
+      ? Math.max(0, rawSum - (goal.baselineAmount || 0))
+      : rawSum;
   }
   const rawPct = goal.targetAmount > 0 ? Math.round(current/goal.targetAmount*100) : 0;
   const pct = Math.min(100, rawPct);
@@ -1806,6 +1810,20 @@ function calcLinkedAccountsTotal(accountIds, ym) {
   return (accountIds || []).reduce((sum, id) => {
     const a = state.accounts.find(x => x.id === id);
     return sum + (a ? getAccountLatestBalance(a, ym) : 0);
+  }, 0);
+}
+// 카테고리 연동 목표의 현재 합산 (baseline 계산 및 모달 표시용)
+function calcCategoryGoalCurrent(cat) {
+  const recentYM = getMostRecentDataYM();
+  const linked = (cat && cat !== '순자산 전체') ? cat : null;
+  if (linked) {
+    return state.accounts
+      .filter(a => a.category === linked)
+      .reduce((s, a) => s + getAccountLatestBalance(a, recentYM), 0);
+  }
+  return state.accounts.reduce((s, a) => {
+    const amt = getAccountLatestBalance(a, recentYM);
+    return s + (a.category === '부채' ? -amt : amt);
   }, 0);
 }
 
@@ -5364,7 +5382,7 @@ function renderGoalsTab() {
     const catChip = g.type === 'amount'
       ? (g.linkedAccounts && g.linkedAccounts.length > 0
           ? `<span style="font-size:10px;color:var(--accent);background:var(--accent-light);border-radius:4px;padding:1px 6px;margin-left:4px;">계좌 ${g.linkedAccounts.length}개 연동${g.baselineMode==='incremental'?' · 추가분':''}</span>`
-          : `<span style="font-size:10px;color:var(--text3);background:var(--surface2);border-radius:4px;padding:1px 6px;margin-left:4px;">${g.linkedCategory||'순자산 전체'}</span>`)
+          : `<span style="font-size:10px;color:var(--text3);background:var(--surface2);border-radius:4px;padding:1px 6px;margin-left:4px;">${g.linkedCategory||'순자산 전체'}${g.baselineMode==='incremental'?' · 추가분':''}</span>`)
       : g.type === 'savingsRate'
       ? `<span style="font-size:10px;color:var(--text3);background:var(--surface2);border-radius:4px;padding:1px 6px;margin-left:4px;">저축률</span>`
       : '';
@@ -5483,6 +5501,20 @@ function renderGoalModalContent() {
              <div style="display:flex;flex-wrap:wrap;gap:5px;">
                ${GOAL_CATS.map(c=>`<span class="chip ${d.cat===c?'sel':''}" onclick="setGoalCat('${c}')">${c}</span>`).join('')}
              </div>
+            </div>
+            <div class="input-group">
+             <label class="input-label">시작 기준</label>
+             <div style="display:flex;gap:6px;">
+               <button id="gm-baseline-total" class="btn ${(d.baselineMode||'total')!=='incremental'?'btn-primary':'btn-secondary'}" style="flex:1;padding:.5rem;font-size:12px;" onclick="setGoalBaselineMode('total')">잔고 전체 적용</button>
+               <button id="gm-baseline-incremental" class="btn ${(d.baselineMode||'total')==='incremental'?'btn-primary':'btn-secondary'}" style="flex:1;padding:.5rem;font-size:12px;" onclick="setGoalBaselineMode('incremental')">이달부터 추가분</button>
+             </div>
+             <div style="font-size:12px;color:var(--accent);font-weight:600;margin-top:.4rem;text-align:right;">현재 합산: ${fmtW(calcCategoryGoalCurrent(d.cat))}</div>
+             ${(d.baselineMode||'total') === 'incremental' && d.editIndex !== undefined && (d._originalBaselineMode||'total') === 'incremental'
+               ? `<div style="font-size:11px;color:var(--text3);margin-top:.35rem;display:flex;align-items:center;justify-content:space-between;">
+                   <span>기준 잔고: ${fmtW(d._originalBaselineAmount||0)}</span>
+                   <button onclick="resetBaselineAmount()" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;font-weight:600;">기준선 초기화</button>
+                 </div>`
+               : ''}
             </div>`}
        <div class="input-group">
         <label class="input-label">달성 기한 <span style="font-size:10px;color:var(--text3);font-weight:400;">(선택)</span></label>
@@ -5647,7 +5679,9 @@ function setGoalBaselineMode(mode) {
   if (btnInc) btnInc.className = 'btn ' + (mode === 'incremental' ? 'btn-primary' : 'btn-secondary');
 }
 function resetBaselineAmount() {
-  const newBaseline = calcLinkedAccountsTotal(goalModalData.linkedAccounts||[], getMostRecentDataYM());
+  const newBaseline = (goalModalData.linkMode||'category') === 'accounts'
+    ? calcLinkedAccountsTotal(goalModalData.linkedAccounts||[], getMostRecentDataYM())
+    : calcCategoryGoalCurrent(goalModalData.cat);
   goalModalData._originalBaselineAmount = newBaseline;
   const label = document.getElementById('gm-label')?.value || '';
   const target = document.getElementById('gm-target')?.value || '';
@@ -5678,7 +5712,13 @@ function saveGoalFromModal() {
       goalData = { label, type:'amount', targetAmount:target, linkedCategory:'', linkedAccounts:[...goalModalData.linkedAccounts], baselineMode:goalModalData.baselineMode||'total', baselineAmount, color, deadline };
     } else {
       const cat = goalModalData.cat === '순자산 전체' ? '' : goalModalData.cat;
-      goalData = { label, type:'amount', targetAmount:target, linkedCategory:cat, linkedAccounts:[], baselineMode:'total', baselineAmount:0, color, deadline };
+      const catIsNew = goalModalData.editIndex === undefined;
+      const catModeChanged = (goalModalData.baselineMode||'total') === 'incremental' && (goalModalData._originalBaselineMode||'total') !== 'incremental';
+      let catBaseline = goalModalData._originalBaselineAmount || 0;
+      if ((catIsNew || catModeChanged) && (goalModalData.baselineMode||'total') === 'incremental') {
+        catBaseline = calcCategoryGoalCurrent(goalModalData.cat);
+      }
+      goalData = { label, type:'amount', targetAmount:target, linkedCategory:cat, linkedAccounts:[], baselineMode:goalModalData.baselineMode||'total', baselineAmount:catBaseline, color, deadline };
     }
   } else if (goalModalData.type === 'annualBudget') {
     const totalBudget = parseNum(document.getElementById('gm-budget')?.value);
@@ -5720,7 +5760,11 @@ function addGoalFromModal() {
       state.goals.push({ id:uuid(), label, type:'amount', targetAmount:target, linkedCategory:'', linkedAccounts:[...goalModalData.linkedAccounts], baselineMode:goalModalData.baselineMode||'total', baselineAmount, color, deadline });
     } else {
       const cat = goalModalData.cat === '순자산 전체' ? '' : goalModalData.cat;
-      state.goals.push({ id:uuid(), label, type:'amount', targetAmount:target, linkedCategory:cat, linkedAccounts:[], baselineMode:'total', baselineAmount:0, color, deadline });
+      let catBaselineAmt = 0;
+      if ((goalModalData.baselineMode||'total') === 'incremental') {
+        catBaselineAmt = calcCategoryGoalCurrent(goalModalData.cat);
+      }
+      state.goals.push({ id:uuid(), label, type:'amount', targetAmount:target, linkedCategory:cat, linkedAccounts:[], baselineMode:goalModalData.baselineMode||'total', baselineAmount:catBaselineAmt, color, deadline });
     }
   } else if (goalModalData.type === 'annualBudget') {
     const totalBudget = parseNum(document.getElementById('gm-budget')?.value);
