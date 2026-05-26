@@ -382,12 +382,17 @@ body {
 /* ── 행 indent (모바일만) ── */
 .row-indent { padding-left: 3.25rem; }
 @media (min-width: 900px) { .row-indent { padding-left: 0; } }
-/* 모바일: 드래그핸들 좌측 고정 + 담당/납부일 헤더 1행 처리 */
+/* 모바일: 드래그핸들 좌측 고정 + 담당/납부일 헤더·값 1행 처리 */
 @media (max-width: 899px) {
   .row-indent { padding-left: 4px; }
-  .fixed-hdr, .fixed-row { grid-template-columns: 20px 1fr 20% 14% 18% 36px; }
-  .at-hdr,    .at-row    { grid-template-columns: 20px 1fr 20% 13% 16% 40px; }
-  .fixed-hdr span, .at-hdr span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* 고정비: 담당 24px 고정(아이콘 20px+여백), 해당일 14% */
+  .fixed-hdr, .fixed-row { grid-template-columns: 20px 1fr 19% 12% 14% 24px; }
+  /* 자동이체: 납부일 38px 고정 */
+  .at-hdr,    .at-row    { grid-template-columns: 20px 1fr 20% 12% 15% 38px; }
+  /* 헤더 텍스트 1행 + 글씨 약간 축소 */
+  .fixed-hdr span, .at-hdr span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
+  /* 데이터 마지막 열도 1행 (ownerBadge 원형 아이콘) */
+  .fixed-row > :last-child, .at-row > :last-child { white-space: nowrap; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 }
 
 /* ── 고정비 ── */
@@ -4535,7 +4540,8 @@ function renderFixedTab() {
     const o = owner || '공동';
     const bg = o === '공동' ? 'var(--surface2)' : o === cfg.member1Name ? 'var(--accent-light)' : 'var(--green-light)';
     const color = o === '공동' ? 'var(--text3)' : o === cfg.member1Name ? 'var(--accent)' : 'var(--green)';
-    return `<span style="font-size:11px;padding:2px 5px;border-radius:10px;background:${bg};color:${color};font-weight:600;">${o}</span>`;
+    const abbr = o === '공동' ? '공' : o.slice(0,1);
+    return `<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:${bg};color:${color};font-size:10px;font-weight:700;flex-shrink:0;">${abbr}</span>`;
   };
 
   const rows = state.fixedCosts.map((f,i) => {
@@ -4629,7 +4635,7 @@ function renderFixedTab() {
     </div>
     ${fixedViewMode === 'calendar' ? renderFixedCalendar() : `
     <div class="card">
-      <div class="fixed-hdr"><span></span><span>항목</span><span>금액</span><span>주기</span><span>해당월/일</span><span>담당</span></div>
+      <div class="fixed-hdr"><span></span><span>항목</span><span>금액</span><span>주기</span><span>해당일</span><span>담당</span></div>
       ${rows}
     </div>
     <button class="add-btn" onclick="showAddFixed()">+ 고정비 항목 추가</button>
