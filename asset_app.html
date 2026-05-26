@@ -384,6 +384,8 @@ body {
 @media (min-width: 900px) { .row-indent { padding-left: 0; } }
 /* PC: 자동이체 고정비 연동 항목명 표시, x건 숨김 */
 @media (min-width: 900px) { .at-fc-count { display: none !important; } }
+/* PC: 자동이체 계좌/카드 전체 표시, 약어 숨김 */
+@media (min-width: 900px) { .at-src-abbr { display: none !important; } .at-src-full { display: flex !important; } }
 /* 모바일: 드래그핸들 좌측 고정 + 담당/납부일 헤더·값 1행 처리 */
 @media (max-width: 899px) {
   .row-indent { padding-left: 4px; }
@@ -398,6 +400,9 @@ body {
   /* 자동이체 고정비 연동: 모바일은 x건만 표시 */
   .at-fc-labels { display: none !important; }
   .at-fc-count  { display: inline-block; }
+  /* 자동이체 계좌/카드 컬럼: 모바일은 원형 뱃지 2개(약어), PC는 전체 표시 */
+  .at-src-full  { display: none !important; }
+  .at-src-abbr  { display: flex !important; }
 }
 
 /* ── 고정비 ── */
@@ -5077,6 +5082,13 @@ function renderAutoTransferTab() {
     const ownerBadgeHtml = (at.type === 'account' && acc && cfg.memberCount >= 2)
       ? `<span style="font-size:8px;padding:1px 5px;border-radius:10px;background:${ownerBg};color:${ownerColor};font-weight:600;display:inline-block;margin-top:2px;">${owner || '공동'}</span>`
       : '';
+    /* 모바일용 약어 변수 */
+    const ownerChar = (owner || '공').slice(0, 1);
+    const srcChars = at.type === 'account'
+      ? (acc ? acc.institution.slice(0, 2) : '?')
+      : (at.cardCompany || '').slice(0, 2) || '?';
+    const srcBg    = at.type === 'account' ? 'var(--blue-light, #e0eefa)' : 'var(--surface2)';
+    const srcColor = at.type === 'account' ? 'var(--blue, #378ADD)'       : 'var(--text2)';
     const sourceLabelFull = (at.type === 'account' && acc && cfg.memberCount >= 2)
       ? `${sourceLabel} (${owner || '공동'})`
       : sourceLabel;
@@ -5122,7 +5134,12 @@ function renderAutoTransferTab() {
           <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.label}</div>
           ${linkedFCHtml}
         </span>
-        <span style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;">${ownerBadgeHtml}<span class="pill ${pillClass}" style="font-size:9px;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:100%;">${sourceLabel}</span></span>
+        <span style="overflow:hidden;">
+          <!-- PC: 기존 오너뱃지 + 전체 계좌명 -->
+          <span class="at-src-full" style="flex-direction:column;align-items:center;justify-content:center;gap:2px;">${ownerBadgeHtml}<span class="pill ${pillClass}" style="font-size:9px;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:100%;">${sourceLabel}</span></span>
+          <!-- 모바일: 원형 뱃지 2개 (오너 1글자 + 기관 2글자) -->
+          <span class="at-src-abbr" style="flex-direction:row;align-items:center;justify-content:center;gap:3px;">${cfg.memberCount >= 2 && at.type === 'account' && acc ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:${ownerBg};color:${ownerColor};font-size:10px;font-weight:700;flex-shrink:0;">${ownerChar}</span>` : ''}<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:${srcBg};color:${srcColor};font-size:9px;font-weight:700;flex-shrink:0;">${srcChars}</span></span>
+        </span>
         <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;">${at.amount ? fmtW(at.amount) : '0원'}</span>
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--text3);text-align:center;">${at.payee||'-'}</span>
         <span style="font-size:10px;color:var(--text3);text-align:center;">${at.day ? at.day+'일' : '-'}</span>
