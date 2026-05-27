@@ -2355,8 +2355,18 @@ function drawAnnualStackedBar(svgId, year, force=false) {
   const netColor   = '#2ECC8A';
   const nonDebtCats = CATEGORY_CONFIG.filter(c => !c.isDebt).map(c => c.name);
 
+  const now = new Date();
+  const nowY = now.getFullYear();
+  const nowM = now.getMonth() + 1;
+  const isCurrentYear = parseInt(year) === nowY;
+
   const data = [];
   for (let m = 1; m <= 12; m++) {
+    // 현재 연도에서 현재월 이후는 빈 데이터 (대출 자동계산값 노출 방지)
+    if (isCurrentYear && m > nowM) {
+      data.push({ asset: 0, debt: 0, net: 0, isCur: false, cats: {}, isFuture: true });
+      continue;
+    }
     const mym = `${year}-${String(m).padStart(2,'0')}`;
     const cats = calcCatsByMonth(mym);
     const asset = nonDebtCats.reduce((s, c) => s + (cats[c]||0), 0);
@@ -2388,7 +2398,9 @@ function drawAnnualStackedBar(svgId, year, force=false) {
 
     if (d.isCur) svgStr += `<rect x="${PAD_L + i * barSlotW}" y="${PAD_T}" width="${barSlotW}" height="${cH}" fill="rgba(83,74,183,.08)" rx="2"/>`;
 
-    if (!hasData) {
+    if (d.isFuture) {
+      // 미래 월: 막대 없음, 레이블만 흐리게
+    } else if (!hasData) {
       svgStr += `<rect x="${x}" y="${zeroY-1}" width="${barW}" height="2" rx="1" fill="${gridColor}"/>`;
     } else {
       if (d.asset > 0) {
@@ -2404,7 +2416,8 @@ function drawAnnualStackedBar(svgId, year, force=false) {
     const showAllMonths = W >= 380;
     const showLabel = showAllMonths || i % 3 === 0;
     if (showLabel) {
-      svgStr += `<text x="${mx}" y="${PAD_T+cH+16}" text-anchor="middle" font-size="10" fill="${textColor}">${i+1}월</text>`;
+      const labelOpacity = d.isFuture ? ' opacity="0.35"' : '';
+      svgStr += `<text x="${mx}" y="${PAD_T+cH+16}" text-anchor="middle" font-size="10" fill="${textColor}"${labelOpacity}>${i+1}월</text>`;
     }
 
     const catLines = nonDebtCats
@@ -2448,6 +2461,7 @@ function initGraphs() {
   const now = new Date();
   const nowM = now.getMonth() + 1;
 
+  const isCurrentYear = parseInt(year) === now.getFullYear();
   for (let m = 1; m <= 12; m++) {
     const ym = `${year}-${String(m).padStart(2,'0')}`;
     const cf = state.cashflow[ym] || {};
@@ -2455,6 +2469,11 @@ function initGraphs() {
     const exp = (cf.expense||[]).reduce((s,r)=>s+(parseNum(r.amount)||0),0);
     incomeData.push(inc);
     expenseData.push(exp);
+    // 현재 연도에서 현재월 이후는 순자산 미표시 (대출 자동계산값 노출 방지)
+    if (isCurrentYear && m > nowM) {
+      netData.push(null); netDashData.push(null);
+      continue;
+    }
     const hasBalData = (state.balances[ym] && state.accounts.some(a => (state.balances[ym]||{})[a.id] !== undefined))
       || (state.loans||[]).some(l => l.linkedAccountId && l.startYM && l.startYM <= ym);
     let netVal = null;
