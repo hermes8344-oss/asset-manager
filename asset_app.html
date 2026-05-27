@@ -3603,7 +3603,7 @@ function renderCashflow() {
           <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:15px;font-weight:700;color:var(--green);">${amount?fmt(amount):''}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text1);">${amount?fmt(amount):''}</div>
           ${viewDiffHtml}
         </div>
       </div>`;
@@ -3653,7 +3653,7 @@ function renderCashflow() {
           <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${subLine}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:15px;font-weight:700;color:var(--red);">${r.amount?fmt(r.amount):''}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text1);">${r.amount?fmt(r.amount):''}</div>
           ${expViewDiffHtml}
         </div>
       </div>`;
@@ -3750,7 +3750,7 @@ function renderCashflow() {
             <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.memo||''}</div>
           </div>
           <div style="text-align:right;flex-shrink:0;">
-            <div style="font-size:15px;font-weight:700;color:var(--amber);">${r.amount?fmt(r.amount):''}</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text1);">${r.amount?fmt(r.amount):''}</div>
           </div>
         </div>`;
       }).join('');
@@ -3805,7 +3805,7 @@ function renderCashflow() {
           <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:15px;font-weight:700;color:var(--blue);">${r.amount?fmt(r.amount):''}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text1);">${r.amount?fmt(r.amount):''}</div>
           ${diffHtml}
         </div>
       </div>`;
