@@ -7022,6 +7022,30 @@ function saveNameEdit() {
   renderDashboard();
   showToast('이름이 변경됐어요');
 }
+
+// ── Enter 키 → 다음 입력칸 이동 ──
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter') return;
+  const el = e.target;
+  if (el.tagName !== 'INPUT') return;
+  if (['submit','button','reset','checkbox','radio','file'].includes(el.type)) return;
+
+  // 가장 가까운 컨테이너: 모달 시트 > 페이지 콘텐츠 > body
+  const container = el.closest('.modal-sheet') || el.closest('.page-content') || document.body;
+
+  // 컨테이너 안의 모든 visible · enabled · 비읽기전용 input
+  const inputs = Array.from(
+    container.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([disabled])')
+  ).filter(inp => inp.offsetParent !== null && !inp.readOnly);
+
+  const idx = inputs.indexOf(el);
+  if (idx >= 0 && idx < inputs.length - 1) {
+    e.preventDefault();
+    const next = inputs[idx + 1];
+    next.focus();
+    next.select(); // 기존 값 전체 선택 → 바로 덮어쓰기 편리
+  }
+});
 </script>
 <div id="toast"></div>
 <div id="chart-tip" style="position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;pointer-events:none;display:none;z-index:9999;color:var(--text1);box-shadow:0 2px 10px rgba(0,0,0,.18);max-width:200px;white-space:normal;word-break:keep-all;line-height:1.7;"></div>
