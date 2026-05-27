@@ -2408,27 +2408,13 @@ function initGraphs() {
     incomeData.push(inc);
     expenseData.push(exp);
 
-    // 수입/지출 툴팁 breakdown
-    const incItems = (cf.income||[]).map(r => ({
-      label: r.label||'기타',
-      amt: r.amount!==undefined ? (parseNum(r.amount)||0) : (parseNum(r.member1)||0)+(parseNum(r.member2)||0)
-    })).filter(r => r.amt > 0);
-    const expItems = (cf.expense||[]).map(r => ({
-      label: r.label||'기타',
-      amt: parseNum(r.amount)||0
-    })).filter(r => r.amt > 0);
-    const specialTotal = (cf.special||[]).reduce((s,r)=>s+(parseNum(r.amount)||0),0);
+    // 수입/지출 툴팁 (합계만)
     let tipHtml = `<b>${m}월</b>`;
     if (inc === 0 && exp === 0) {
       tipHtml += `<br><span style="color:var(--text3)">데이터 없음</span>`;
     } else {
-      tipHtml += `<br><span style="color:var(--green)">▲ 수입 ${fmtAbs(inc)}</span>`;
-      incItems.slice(0,4).forEach(r => { tipHtml += `<br><span style="color:var(--text2);padding-left:8px"> · ${r.label} ${fmtAbs(r.amt)}</span>`; });
-      if (incItems.length > 4) tipHtml += `<br><span style="color:var(--text3);padding-left:8px"> · 외 ${incItems.length-4}건</span>`;
-      tipHtml += `<br><span style="color:var(--red)">▼ 지출 ${fmtAbs(exp)}</span>`;
-      expItems.slice(0,4).forEach(r => { tipHtml += `<br><span style="color:var(--text2);padding-left:8px"> · ${r.label} ${fmtAbs(r.amt)}</span>`; });
-      if (expItems.length > 4) tipHtml += `<br><span style="color:var(--text3);padding-left:8px"> · 외 ${expItems.length-4}건</span>`;
-      if (specialTotal > 0) tipHtml += `<br><span style="color:var(--amber);padding-left:8px"> · 특별지출 ${fmtAbs(specialTotal)}</span>`;
+      if (inc > 0) tipHtml += `<br><span style="color:var(--green)">▲ 수입 ${fmtAbs(inc)}</span>`;
+      if (exp > 0) tipHtml += `<br><span style="color:var(--red)">▼ 지출 ${fmtAbs(exp)}</span>`;
     }
     barTipData.push(tipHtml);
 
