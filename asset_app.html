@@ -2788,12 +2788,12 @@ function renderBalance() {
 
   // 구성원 뱃지 헬퍼 (카테고리 루프 밖으로)
   function ownerBadge(owner) {
-    const bg = owner === cfg.member1Name ? '#534AB7' : owner === cfg.member2Name ? '#0F6E56' : '#BA7517';
-    return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${bg};flex-shrink:0;margin-right:4px;vertical-align:middle;"></span>`;
+    const bg = owner === cfg.member1Name ? 'rgba(83,74,183,0.18)' : owner === cfg.member2Name ? 'rgba(15,110,86,0.18)' : 'rgba(186,117,23,0.18)';
+    return `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${bg};flex-shrink:0;margin-right:4px;vertical-align:middle;"></span>`;
   }
   function ownerBadgeLarge(owner) {
-    const bg = owner === cfg.member1Name ? '#534AB7' : owner === cfg.member2Name ? '#0F6E56' : '#BA7517';
-    return `<div style="width:10px;height:10px;border-radius:50%;background:${bg};flex-shrink:0;"></div>`;
+    const bg = owner === cfg.member1Name ? 'rgba(83,74,183,0.18)' : owner === cfg.member2Name ? 'rgba(15,110,86,0.18)' : 'rgba(186,117,23,0.18)';
+    return `<div style="width:20px;height:20px;border-radius:50%;background:${bg};flex-shrink:0;"></div>`;
   }
 
   // 카테고리별 테이블 (계좌 없어도 항상 표시)
@@ -3560,8 +3560,8 @@ function renderCashflow() {
   }
   // 구성원 뱃지 헬퍼 (대형 36px — Toss 스타일 행)
   function cfOwnerBadgeLarge(owner) {
-    const bg = owner === cfg.member1Name ? '#534AB7' : owner === cfg.member2Name ? '#0F6E56' : '#BA7517';
-    return `<div style="width:10px;height:10px;border-radius:50%;background:${bg};flex-shrink:0;"></div>`;
+    const bg = owner === cfg.member1Name ? 'rgba(83,74,183,0.18)' : owner === cfg.member2Name ? 'rgba(15,110,86,0.18)' : 'rgba(186,117,23,0.18)';
+    return `<div style="width:20px;height:20px;border-radius:50%;background:${bg};flex-shrink:0;"></div>`;
   }
 
   // 수입 리스트 (Toss 스타일 flex row)
