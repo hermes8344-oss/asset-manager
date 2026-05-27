@@ -1487,6 +1487,22 @@ function parseNum(str) {
   const n = Number(String(str).replace(/,/g, '')) || 0;
   return Math.min(n < 0 ? 0 : n, MAX_AMOUNT);
 }
+// 콤마 포맷 + 커서 위치 보존 (Del키 커서 점프 버그 방지)
+function applyCommaFormat(el) {
+  const oldVal = el.value;
+  const cursor = el.selectionStart;
+  const digitsBeforeCursor = (oldVal.slice(0, cursor).match(/\d/g) || []).length;
+  const newVal = oldVal.replace(/[^0-9]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  if (el.value === newVal) return; // 변화 없으면 커서 건드리지 않음
+  el.value = newVal;
+  let digitCount = 0, newPos = newVal.length;
+  for (let i = 0; i <= newVal.length; i++) {
+    if (digitCount === digitsBeforeCursor) { newPos = i; break; }
+    if (i < newVal.length && /\d/.test(newVal[i])) digitCount++;
+  }
+  el.setSelectionRange(newPos, newPos);
+}
+
 function formatInput(el) {
   const raw = Number(String(el.value).replace(/,/g, '')) || 0;
   if (raw > MAX_AMOUNT) {
@@ -2931,7 +2947,7 @@ function renderBalance() {
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
               ${inputCell}
             </div>
-            <button class="del-btn" onclick="deleteAccount('${a.id}')" title="계좌 삭제" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
+            <button class="del-btn" onclick="clearBalanceInput('${a.id}')" title="0으로 초기화" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
           </div>
         </div>`;
       }).join('');
@@ -3220,13 +3236,8 @@ function syncHintColor(input) {
 }
 function onBalanceInput(accId, el) {
   if (!balanceTempData) balanceTempData = {};
-  const raw = parseNum(el.value);
-  balanceTempData[accId] = raw;
-  const formatted = raw ? fmt(raw) : '';
-  const cursor = el.selectionStart;
-  const diff = formatted.length - el.value.length;
-  el.value = formatted;
-  el.setSelectionRange(cursor + diff, cursor + diff);
+  applyCommaFormat(el);
+  balanceTempData[accId] = parseNum(el.value);
   if (_balRafId) cancelAnimationFrame(_balRafId);
   _balRafId = requestAnimationFrame(() => { _balRafId = null; updateAllBalanceSums(); updateBalanceSummaryLive(); });
 }
@@ -3437,6 +3448,22 @@ function deleteAccount(id) {
     saveState();
     renderBalance();
   }, null, '삭제');
+}
+function clearBalanceInput(accId) {
+  const el = document.querySelector(`[data-id="${accId}"]`);
+  if (el) {
+    el.value = '';
+    el.classList.add('cell-changed');
+    el.closest('[data-acc-id]')?.classList.add('row-changed');
+  }
+  if (!balanceTempData) balanceTempData = {};
+  balanceTempData[accId] = 0;
+  updateAllBalanceSums();
+  updateBalanceSummaryLive();
+}
+function clearCFInput(type, idx) {
+  updateCFRow(type, idx, 'amount', 0);
+  renderCashflow();
 }
 function scrollToCategory(cat) {
   const el = document.getElementById(`cat-section-${cat}`);
@@ -3654,9 +3681,9 @@ function renderCashflow() {
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
             ${prevAmt?`<div style="font-size:10px;color:var(--text3);"><span style="${incHintBg}">전달 ${fmt(prevAmt)}</span></div>`:''}
-            <input type="text" inputmode="numeric" value="${amount?fmt(amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" oninput="this.classList.add('cell-changed');this.closest('.cf-list-row')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('income',${i},'amount',parseNum(this.value))"/>
+            <input type="text" inputmode="numeric" value="${amount?fmt(amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" oninput="this.classList.add('cell-changed');this.closest('.cf-list-row')?.classList.remove('row-copied');applyCommaFormat(this);syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('income',${i},'amount',parseNum(this.value))"/>
           </div>
-          <button class="del-btn" onclick="deleteCFRow('income',${i})" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
+          <button class="del-btn" onclick="clearCFInput('income',${i})" title="0으로 초기화" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
         </div>
       </div>`;
     } else {
@@ -3703,9 +3730,9 @@ function renderCashflow() {
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
             ${prevExpAmt?`<div style="font-size:10px;color:var(--text3);"><span style="${expHintBg}">전달 ${fmt(prevExpAmt)}</span></div>`:''}
-            <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevExpAmt||''}" oninput="this.classList.add('cell-changed');this.closest('.cf-list-row')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('expense',${i},'amount',parseNum(this.value))"/>
+            <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevExpAmt||''}" oninput="this.classList.add('cell-changed');this.closest('.cf-list-row')?.classList.remove('row-copied');applyCommaFormat(this);syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('expense',${i},'amount',parseNum(this.value))"/>
           </div>
-          <button class="del-btn" onclick="deleteCFRow('expense',${i})" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
+          <button class="del-btn" onclick="clearCFInput('expense',${i})" title="0으로 초기화" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
         </div>
       </div>`;
     } else {
@@ -3791,9 +3818,9 @@ function renderCashflow() {
           <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
               ${prevSpAmt?`<div style="font-size:10px;color:var(--text3);">전달 ${fmt(prevSpAmt)}</div>`:''}
-              <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" onchange="updateCFRow('special',${i},'amount',parseNum(this.value))"/>
+              <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');applyCommaFormat(this)" onblur="formatInput(this)" onchange="updateCFRow('special',${i},'amount',parseNum(this.value))"/>
             </div>
-            <button class="del-btn" onclick="deleteCFRow('special',${i})" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
+            <button class="del-btn" onclick="clearCFInput('special',${i})" title="0으로 초기화" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
           </div>
         </div>`;
       }).join('');
@@ -3858,9 +3885,9 @@ function renderCashflow() {
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
             ${prevAmt?`<div style="font-size:10px;color:var(--text3);"><span style="${savHintBg}">전달 ${fmt(prevAmt)}</span></div>`:''}
-            <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" oninput="this.closest('.cf-list-row')?.classList.remove('row-copied');this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('savings',${i},'amount',parseNum(this.value))"/>
+            <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" oninput="this.closest('.cf-list-row')?.classList.remove('row-copied');applyCommaFormat(this);syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('savings',${i},'amount',parseNum(this.value))"/>
           </div>
-          <button class="del-btn" onclick="deleteCFRow('savings',${i})" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
+          <button class="del-btn" onclick="clearCFInput('savings',${i})" title="0으로 초기화" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
         </div>
       </div>`;
     } else {
@@ -4150,10 +4177,14 @@ function renderRowEditContent() {
       ${members.length > 1 ? `<div class="row-edit-label">소유자</div><div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.25rem;">${ownerBtns}</div>` : ''}
     `;
   }
+  const { type: _rType, idxOrAccId: _rIdx } = _rowEditCtx;
+  const _canDelete = _rType === 'balance' || (_rIdx !== -1);
+  const _deleteLabel = _rType === 'balance' ? '계좌 삭제' : '항목 삭제';
   html += `<div style="display:flex;gap:.625rem;margin-top:1.5rem;margin-bottom:.25rem;">
     <button class="bar-cancel" onclick="closeRowEditModal()" style="flex:1;">취소</button>
     <button class="bar-save" onclick="saveRowEditModal()" style="flex:1;">저장</button>
-  </div>`;
+  </div>
+  ${_canDelete ? `<button onclick="deleteFromRowEditModal()" style="width:100%;padding:.55rem;margin-top:.25rem;border:1px solid var(--red);background:transparent;color:var(--red);border-radius:8px;font-size:13px;cursor:pointer;">${_deleteLabel}</button>` : ''}`;
   const contentEl = document.getElementById('row-edit-content');
   contentEl.style.padding = '0 .25rem .75rem';
   contentEl.innerHTML = html;
@@ -4192,6 +4223,15 @@ function saveRowEditModal() {
 
 function closeRowEditModal() {
   document.getElementById('row-edit-modal').classList.remove('open');
+}
+function deleteFromRowEditModal() {
+  const { type, idxOrAccId } = _rowEditCtx;
+  closeRowEditModal();
+  if (type === 'balance') {
+    deleteAccount(idxOrAccId); // confirm 다이얼로그 포함
+  } else {
+    deleteCFRow(type, idxOrAccId); // renderCashflow 내부 포함
+  }
 }
 
 function updateCFSummaryLive() {
