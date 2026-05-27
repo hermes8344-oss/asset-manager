@@ -8,9 +8,9 @@
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#534AB7"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="자산관리"/>
-<link rel="apple-touch-icon" href="icon.svg"/>
+<link rel="apple-touch-icon" href="icon-180.png"/>
 <style>
 :root {
   --bg: #f7f7f5;
@@ -511,6 +511,9 @@ body {
 .modal-overlay.open { display: flex; }
 .modal-sheet { background: var(--surface); border-radius: 24px 24px 0 0; padding: 1.25rem 1.25rem .5rem; width: 100%; max-width: 430px; max-height: 90vh; overflow-y: auto; animation: slideUp .25s ease; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes bounce-down { 0%,100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+@keyframes slideUpBanner { from { transform: translateY(120%); opacity:0; } to { transform: translateY(0); opacity:1; } }
+#ios-install-banner > div { animation: slideUpBanner .35s cubic-bezier(.34,1.56,.64,1); }
 .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto .875rem; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
 .modal-title { font-size: 17px; font-weight: 700; color: var(--text1); }
@@ -989,6 +992,23 @@ body {
   <div class="safe-top"></div>
   <div id="shared-banner" style="display:none;background:var(--accent);color:#fff;font-size:12px;font-weight:600;text-align:center;padding:6px 16px;position:sticky;top:0;z-index:100;">
     <span id="shared-banner-label">공유 가계부 관리 중</span> &nbsp;<span onclick="leaveSharedAccess()" style="text-decoration:underline;cursor:pointer;">해제</span>
+  </div>
+
+  <!-- iOS 홈 화면 추가 안내 배너 -->
+  <div id="ios-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;padding:0 12px 12px;">
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:14px 16px 14px 14px;box-shadow:0 8px 32px rgba(0,0,0,.18);display:flex;align-items:flex-start;gap:12px;">
+      <img src="icon-180.png" style="width:44px;height:44px;border-radius:10px;flex-shrink:0;" alt=""/>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:var(--text1);margin-bottom:3px;">홈 화면에 추가하기</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.5;">
+          아래 <span style="display:inline-block;background:#007AFF;color:#fff;border-radius:5px;padding:1px 5px;font-size:11px;vertical-align:middle;">공유</span> 버튼을 탭한 뒤<br>
+          <b>'홈 화면에 추가'</b>를 선택하면 앱처럼 쓸 수 있어요 📱
+        </div>
+        <!-- 화살표 -->
+        <div style="margin-top:6px;text-align:center;font-size:18px;animation:bounce-down .9s infinite;">⬇︎</div>
+      </div>
+      <button onclick="dismissIOSBanner()" style="background:none;border:none;color:var(--text3);font-size:20px;line-height:1;cursor:pointer;padding:0;flex-shrink:0;margin-top:-2px;">×</button>
+    </div>
   </div>
 
   <!-- ══════════════════════════════════
@@ -1781,6 +1801,7 @@ function enterApp() {
   }
   switchTab('dashboard');
   setupSwipeNav();
+  initIOSInstallBanner();
 }
 function switchTab(tab) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -6616,6 +6637,27 @@ function showConfirm(title, msg, onConfirm, onAlt, confirmLabel='나가기', alt
 }
 function closeDialog() {
   document.getElementById('confirm-dialog').classList.remove('open');
+}
+
+// ══════════════════════════════════════════
+// iOS 홈 화면 추가 안내 배너
+// ══════════════════════════════════════════
+function initIOSInstallBanner() {
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.navigator.standalone === true ||
+                       window.matchMedia('(display-mode: standalone)').matches;
+  const dismissed = localStorage.getItem('ios_install_banner_dismissed');
+  if (!isIOS || isStandalone || dismissed) return;
+  // 앱 진입 후 1.5초 뒤에 자연스럽게 표시
+  setTimeout(() => {
+    const banner = document.getElementById('ios-install-banner');
+    if (banner) banner.style.display = 'block';
+  }, 1500);
+}
+function dismissIOSBanner() {
+  const banner = document.getElementById('ios-install-banner');
+  if (banner) banner.style.display = 'none';
+  localStorage.setItem('ios_install_banner_dismissed', '1');
 }
 
 let _toastTimer = null;
