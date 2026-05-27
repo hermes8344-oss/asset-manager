@@ -961,6 +961,11 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 }
 .fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(83,74,183,.25); }
 @media (min-width: 900px) { .fab { display: none !important; } }
+/* 대시보드·설정 탭 활성 시 FAB 강제 숨김 (CSS 형제 선택자로 JS 타이밍 무관하게 보장) */
+#screen-dashboard.active ~ #global-fab,
+#screen-settings.active ~ #global-fab,
+#screen-onboard.active ~ #global-fab,
+#screen-login.active ~ #global-fab { display: none !important; }
 
 /* FAB가 콘텐츠를 가리지 않도록 해당 탭 하단 여백 확보 (모바일 전용) */
 @media (max-width: 899px) {
