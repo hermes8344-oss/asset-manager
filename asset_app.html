@@ -988,7 +988,7 @@ body {
 <div id="app">
   <div class="safe-top"></div>
   <div id="shared-banner" style="display:none;background:var(--accent);color:#fff;font-size:12px;font-weight:600;text-align:center;padding:6px 16px;position:sticky;top:0;z-index:100;">
-    공유 가계부 관리 중 &nbsp;<span onclick="leaveSharedAccess()" style="text-decoration:underline;cursor:pointer;">해제</span>
+    <span id="shared-banner-label">공유 가계부 관리 중</span> &nbsp;<span onclick="leaveSharedAccess()" style="text-decoration:underline;cursor:pointer;">해제</span>
   </div>
 
   <!-- ══════════════════════════════════
@@ -1341,6 +1341,8 @@ const SUPABASE_KEY = 'sb_publishable_3ZypE2IlEkSTTnYvE6f_yw_xmHqEl2P';
 const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
 let ownerUserId = localStorage.getItem('ownerUserId') || null;
+let sharedPermission = localStorage.getItem('sharedPermission') || 'edit';
+let currentShareCode = null;
 let _lastUpdatedBy = null;
 let _lastUpdatedAt = null;
 let state = {
@@ -1403,6 +1405,7 @@ async function _doSave() {
   };
   const targetId = ownerUserId || currentUser?.id;
   if (!targetId) return;
+  if (ownerUserId && sharedPermission === 'view') return; // 보기 전용은 저장 안함
   if (!ownerUserId) localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   if (currentUser) {
     await _sb.from('user_data').upsert(
@@ -1598,21 +1601,27 @@ async function handleAuthCallback() {
       await handleInviteAccept(token);
       return;
     }
+    await initUserProfile();  // 내 공유 코드 초기화
     await checkAndMigrate();
     // 공유 접근 자동 복원: PWA/홈 화면 바로가기에서 재로그인 시
     // localStorage가 비어 ownerUserId가 없어도 shared_access 테이블에서 찾아 복원
     if (!ownerUserId) {
       const { data: sharedRow } = await _sb.from('shared_access')
-        .select('owner_id')
+        .select('owner_id, permission')
         .eq('member_id', currentUser.id)
         .maybeSingle();
       if (sharedRow?.owner_id) {
         ownerUserId = sharedRow.owner_id;
+        sharedPermission = sharedRow.permission || 'edit';
         localStorage.setItem('ownerUserId', ownerUserId);
+        localStorage.setItem('sharedPermission', sharedPermission);
       }
     }
     const hasData = await loadState();
-    if (hasData) { enterApp(); } else { showOnboarding(); }
+    if (hasData) {
+      enterApp();
+      if (!ownerUserId) await checkPendingShareRequests(); // 개인 계정일 때만 요청 확인
+    } else { showOnboarding(); }
   } else {
     if (inviteToken) localStorage.setItem('pendingInvite', inviteToken);
     showLoginScreen();
@@ -1658,12 +1667,103 @@ async function leaveSharedAccess() {
   showConfirm('공유 해제', '이 가계부 공유를 해제할까요?', async () => {
     await _sb.from('shared_access').delete().eq('owner_id', ownerUserId).eq('member_id', currentUser.id);
     ownerUserId = null;
+    sharedPermission = 'edit';
     localStorage.removeItem('ownerUserId');
+    localStorage.removeItem('sharedPermission');
     document.getElementById('shared-banner').style.display = 'none';
     const hasData = await loadState();
     if (hasData) { enterApp(); } else { showOnboarding(); }
     showToast('공유가 해제됐어요');
   }, null, '해제', null);
+}
+
+// ══════════════════════════════════════════
+// 공유 코드 시스템
+// ══════════════════════════════════════════
+async function initUserProfile() {
+  if (!currentUser) return;
+  const { data } = await _sb.from('user_profiles')
+    .select('share_code').eq('user_id', currentUser.id).maybeSingle();
+  if (data) {
+    currentShareCode = data.share_code;
+  } else {
+    // 랜덤 6자 코드 생성 (혼동 문자 제외, XXX-XXX 형식)
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const raw = Array.from({length:6}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+    const code = raw.slice(0,3) + '-' + raw.slice(3);
+    const { error } = await _sb.from('user_profiles')
+      .insert({ user_id: currentUser.id, share_code: code });
+    if (!error) currentShareCode = code;
+  }
+}
+async function sendShareRequest(rawCode) {
+  if (!rawCode || !rawCode.trim()) { showToast('코드를 입력해주세요', 'error'); return; }
+  const code = rawCode.trim().toUpperCase().replace(/-/g, '');
+  const { data: profile } = await _sb.from('user_profiles')
+    .select('user_id').eq('share_code', code.slice(0,3) + '-' + code.slice(3)).maybeSingle();
+  if (!profile) { showToast('코드를 찾을 수 없어요', 'error'); return; }
+  if (profile.user_id === currentUser.id) { showToast('본인에게는 요청할 수 없어요', 'error'); return; }
+  const { error } = await _sb.from('share_requests')
+    .insert({ from_id: currentUser.id, to_id: profile.user_id });
+  if (error) { showToast('요청 전송 실패', 'error'); return; }
+  showToast('공유 요청을 보냈어요');
+  const inp = document.getElementById('share-code-input');
+  if (inp) inp.value = '';
+}
+async function checkPendingShareRequests() {
+  if (!currentUser) return;
+  const { data: req } = await _sb.from('share_requests')
+    .select('id, from_id')
+    .eq('to_id', currentUser.id).eq('status', 'pending')
+    .order('created_at', { ascending: true }).limit(1).maybeSingle();
+  if (!req) return;
+  // 단계 1: 수락 / 거절
+  showConfirm(
+    '가계부 공유 요청',
+    '누군가 가계부를 함께 관리하자고 요청했어요.',
+    () => {
+      // 단계 2: 권한 선택
+      showConfirm(
+        '권한 선택',
+        '어떤 권한으로 참여할까요?',
+        async () => {
+          // 편집 허용
+          await _sb.from('shared_access').upsert(
+            { owner_id: req.from_id, member_id: currentUser.id, permission: 'edit' },
+            { onConflict: 'owner_id,member_id' }
+          );
+          await _sb.from('share_requests').update({ status: 'accepted' }).eq('id', req.id);
+          ownerUserId = req.from_id;
+          sharedPermission = 'edit';
+          localStorage.setItem('ownerUserId', ownerUserId);
+          localStorage.setItem('sharedPermission', 'edit');
+          const hasData = await loadState();
+          if (hasData) { enterApp(); showToast('가계부 공유가 시작됐어요'); }
+        },
+        async () => {
+          // 보기만
+          await _sb.from('shared_access').upsert(
+            { owner_id: req.from_id, member_id: currentUser.id, permission: 'view' },
+            { onConflict: 'owner_id,member_id' }
+          );
+          await _sb.from('share_requests').update({ status: 'accepted' }).eq('id', req.id);
+          ownerUserId = req.from_id;
+          sharedPermission = 'view';
+          localStorage.setItem('ownerUserId', ownerUserId);
+          localStorage.setItem('sharedPermission', 'view');
+          const hasData = await loadState();
+          if (hasData) { enterApp(); showToast('보기 전용으로 공유가 시작됐어요'); }
+        },
+        '편집 허용', '보기만'
+      );
+    },
+    async () => {
+      // 거절
+      await _sb.from('share_requests').update({ status: 'rejected' }).eq('id', req.id);
+      showToast('공유 요청을 거절했어요');
+    },
+    '수락', '거절'
+  );
 }
 
 // ══════════════════════════════════════════
@@ -1675,6 +1775,10 @@ function enterApp() {
   document.getElementById('bottom-nav').style.display = 'flex';
   document.getElementById('safe-bottom').style.display = '';
   document.getElementById('shared-banner').style.display = ownerUserId ? 'block' : 'none';
+  if (ownerUserId) {
+    document.getElementById('shared-banner-label').textContent =
+      sharedPermission === 'view' ? '공유 가계부 보기 중 (보기 전용)' : '공유 가계부 관리 중';
+  }
   switchTab('dashboard');
   setupSwipeNav();
 }
@@ -6081,12 +6185,30 @@ function renderEtcTab() {
           </div>
           <button class="btn-sm" onclick="signOut()">로그아웃</button>
         </div>` : ''}
-        ${currentUser && !ownerUserId ? `<div class="setting-row" style="border:none;margin-bottom:.75rem;">
-          <div>
-            <div class="setting-label">가계부 공유</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px;">초대 링크로 다른 사람이 함께 관리할 수 있어요</div>
+        ${currentUser && !ownerUserId ? `<div style="margin-bottom:.75rem;">
+          <div class="setting-row" style="border:none;margin-bottom:.5rem;">
+            <div>
+              <div class="setting-label">가계부 공유</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px;">초대 링크 또는 공유 코드로 다른 사람을 초대해요</div>
+            </div>
+            <button class="btn-sm" onclick="generateInviteLink()">링크 생성</button>
           </div>
-          <button class="btn-sm" onclick="generateInviteLink()">링크 생성</button>
+          <div class="setting-row" style="border:none;margin-bottom:.5rem;">
+            <div>
+              <div class="setting-label">내 공유 코드</div>
+              <div id="my-share-code" style="font-size:14px;color:var(--accent);font-weight:700;letter-spacing:3px;margin-top:3px;font-family:monospace;">${currentShareCode || '—'}</div>
+            </div>
+            <button class="btn-sm" onclick="if(currentShareCode){navigator.clipboard.writeText(currentShareCode).catch(()=>{});showToast('코드를 복사했어요');}">복사</button>
+          </div>
+          <div class="setting-row" style="border:none;flex-direction:column;align-items:stretch;gap:8px;">
+            <div class="setting-label">코드로 공유 요청 보내기</div>
+            <div style="display:flex;gap:8px;">
+              <input id="share-code-input" placeholder="상대방 코드 입력 (예: ABC-123)" maxlength="7"
+                     style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;background:var(--surface);color:var(--text1);font-family:monospace;letter-spacing:1px;"
+                     oninput="this.value=this.value.toUpperCase()">
+              <button class="btn-sm" onclick="sendShareRequest(document.getElementById('share-code-input').value)">요청 전송</button>
+            </div>
+          </div>
         </div>` : ''}
         ${currentUser && ownerUserId ? `<div class="setting-row" style="border:none;margin-bottom:.75rem;">
           <div>
