@@ -438,11 +438,6 @@ body {
 .fixed-hdr > :nth-child(3),
 .fixed-row > :nth-child(3) { text-align: center; }
 .at-swipe-wrap:last-child .fixed-row { border: none; }
-.fixed-view-toggle { display: flex; gap: 4px; margin-bottom: .75rem; }
-.fixed-view-btn { padding: .3rem .8rem; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text2); font-size: 12px; font-weight: 600; cursor: pointer; }
-.fixed-view-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.fixed-cal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-@media (max-width: 600px) { .fixed-cal-grid { grid-template-columns: repeat(2, 1fr); } }
 .fixed-cal-month { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; background: var(--surface); min-height: 70px; }
 .fixed-cal-month.current { background: var(--accent-light); border-color: var(--accent); }
 .fixed-cal-month-name { font-size: 11px; font-weight: 700; color: var(--text2); margin-bottom: 4px; }
@@ -4702,31 +4697,6 @@ function toggleMonthChip(el, month, hiddenId) {
   hidden.value = months.sort((a,b)=>a-b).join(',');
 }
 
-let fixedViewMode = 'list';
-function toggleFixedView(mode) { fixedViewMode = mode; renderSettings(); }
-
-function renderFixedCalendar() {
-  const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-  const curMonth = parseInt(state.currentMonth.split('-')[1]);
-  const cells = MONTH_NAMES.map((name, idx) => {
-    const m = idx + 1;
-    const costs = state.fixedCosts.filter(f => (f.months||[]).includes(m));
-    const total = costs.reduce((s,f) => s+(f.amount||0), 0);
-    const isCur = m === curMonth;
-    const items = costs.slice(0, 4).map(f => {
-      const pillCls = f.cycle === '매월' ? 'mo' : f.cycle === '격월' ? 'bi' : f.cycle === '연1회' ? 'yn' : 'an';
-      return `<div class="fixed-cal-item"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${f.label}</span><span style="flex-shrink:0;color:var(--text2);">${fmtW(f.amount)}</span></div>`;
-    }).join('');
-    const more = costs.length > 4 ? `<div style="font-size:10px;color:var(--text3);">+${costs.length-4}개 더</div>` : '';
-    const totalHtml = total > 0 ? `<div class="fixed-cal-total">${fmtW(total)}</div>` : '';
-    return `<div class="fixed-cal-month${isCur?' current':''}">
-      <div class="fixed-cal-month-name">${name}</div>
-      ${items}${more}${totalHtml}
-      ${costs.length===0?'<div style="font-size:10px;color:var(--text3);margin-top:4px;">없음</div>':''}
-    </div>`;
-  }).join('');
-  return `<div class="card"><div class="fixed-cal-grid">${cells}</div></div>`;
-}
 
 // 담당자 목록 (고정비·자동이체 모달 공용)
 function ownerOptions() {
@@ -4799,11 +4769,6 @@ function renderFixedTab() {
   }
 
   return `
-    <div class="fixed-view-toggle">
-      <button class="fixed-view-btn ${fixedViewMode==='list'?'active':''}" onclick="toggleFixedView('list')">리스트</button>
-      <button class="fixed-view-btn ${fixedViewMode==='calendar'?'active':''}" onclick="toggleFixedView('calendar')">연간 달력</button>
-    </div>
-    ${fixedViewMode === 'calendar' ? renderFixedCalendar() : `
     <div class="card">
       <div class="fixed-hdr"><span></span><span>항목</span><span>금액</span><span>주기</span><span>해당일</span><span>담당</span></div>
       ${rows}
@@ -4814,7 +4779,7 @@ function renderFixedTab() {
       <span class="sbar-value">${fmtW(thisMonthTotal)}</span>
     </div>
     ${subTotalHtml}
-    <div id="add-fixed-form"></div>`}
+    <div id="add-fixed-form"></div>
   `;
 }
 function openFcSwipe(row) { row.classList.add('fc-swiped'); row.style.transform = 'translateX(-60px)'; }
