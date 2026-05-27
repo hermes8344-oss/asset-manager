@@ -2097,12 +2097,6 @@ function renderDashboard() {
   const savingsRate = s.income > 0 ? Math.round((s.income - s.expense - s.fixedThisMonth) / s.income * 100) : 0;
   let insightHtml = '';
   (() => {
-    if (netDiff !== null && netDiff > 0) {
-      insightHtml = `<div class="insight-box"><span>📈</span><span style="color:var(--green);">순자산이 지난달보다 <b>${fmtAbs(netDiff)}</b> 늘었어요</span></div>`; return;
-    }
-    if (netDiff !== null && netDiff < 0) {
-      insightHtml = `<div class="insight-box"><span>📉</span><span style="color:var(--red);">순자산이 지난달보다 <b>${fmtAbs(Math.abs(netDiff))}</b> 줄었어요</span></div>`; return;
-    }
     if (prevExpense > 0 && s.expense > prevExpense * 1.1) {
       insightHtml = `<div class="insight-box"><span>💸</span><span style="color:var(--amber);">이번달 지출이 지난달보다 <b>${fmtAbs(s.expense - prevExpense)}</b> 많아요</span></div>`; return;
     }
@@ -2207,8 +2201,8 @@ function renderDashboard() {
           <div>
             <div class="hero-label">순자산</div>
             <div class="hero-value ${net<0?'neg':''}" data-raw="${net}">${net<0?'-':''}${fmtAbs(Math.abs(net))}</div>
-            <div class="hero-delta" style="color:${netDiff===null?'var(--text3)':netDiff>=0?'var(--green)':'var(--red)'};">
-              ${netDiff===null ? '전월 데이터 없음' : (netDiff>=0?'▲ +':'▼ ')+fmtAbs(Math.abs(netDiff))+' 전월比'}
+            <div class="hero-delta" style="color:${netDiff===null?'var(--text3)':netDiff>0?'var(--green)':netDiff<0?'var(--red)':'var(--text3)'};">
+              ${netDiff===null ? '전월 데이터 없음' : netDiff===0 ? '지난달과 동일해요' : netDiff>0 ? '📈 지난달보다 +'+fmtAbs(netDiff)+' 늘었어요' : '📉 지난달보다 '+fmtAbs(Math.abs(netDiff))+' 줄었어요'}
             </div>
           </div>
           <div class="hero-right" style="text-align:right;">
