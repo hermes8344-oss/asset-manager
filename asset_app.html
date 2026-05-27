@@ -908,7 +908,7 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
   .dash-row1 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; margin-bottom: 16px; }
   .dash-row1 > .card { margin-bottom: 0; display: flex; flex-direction: column; }
   .dash-row1 .chart-container { flex: 1; height: auto; min-height: 160px; }
-  .dash-row2 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: start; }
+  .dash-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
   .dash-row2 > .card { margin-bottom: 0; }
   .donut-tab-btns { display: none; }
   .donut-tab-card { display: block !important; }
@@ -2166,6 +2166,19 @@ function renderDashboard() {
     ? `<div style="display:flex;height:22px;border-radius:11px;overflow:hidden;margin:.2rem 0 .1rem;">${_assetBarSegs}</div><div>${_assetListItems}</div>`
     : `<div class="hint-box" style="margin-top:.5rem;"><div class="hint-text">계좌잔고를 입력하면 표시돼요</div></div>`;
 
+  // 수입/지출 가로막대 빌더 (자산구성과 동일한 스타일)
+  function _buildCfBarHtml(segs, emptyMsg) {
+    if (!segs.length) return `<div class="hint-box" style="margin-top:.25rem;"><div class="hint-text">${emptyMsg}</div></div>`;
+    const tot = segs.reduce((s, g) => s + g.value, 0) || 1;
+    const barSegs = segs.map(g => `<div style="flex:${g.value};background:${g.color};"></div>`).join('');
+    const listItems = [...segs].sort((a, b) => b.value - a.value).map(g => {
+      const pct = g.value / tot * 100;
+      const pctStr = pct < 0.1 ? '0.1% 미만' : pct < 1 ? pct.toFixed(1)+'%' : Math.round(pct)+'%';
+      return `<div style="display:flex;align-items:center;gap:.45rem;padding:.22rem 0;"><div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${g.color};"></div><span style="font-size:12px;color:var(--text1);">${g.label}</span><span style="font-size:11px;color:var(--text3);margin-left:auto;">${pctStr}</span><span style="font-size:11px;color:var(--text2);min-width:46px;text-align:right;">${fmtAbs(g.value)}</span></div>`;
+    }).join('');
+    return `<div style="display:flex;height:18px;border-radius:9px;overflow:hidden;margin:.25rem 0 .1rem;">${barSegs}</div><div>${listItems}</div>`;
+  }
+
   // 수입 도넛: label별
   const CF_COLORS = ['#0F6E56','#1D9E75','#378ADD','#534AB7','#BA7517','#A32D2D','#2EBC8C','#9B59B6'];
   const incomeMap = {};
@@ -2190,6 +2203,9 @@ function renderDashboard() {
   const expenseDonutSegs = Object.entries(expenseMap)
     .map(([label, value], i) => ({ label, value, color: CF_COLORS[(i+2) % CF_COLORS.length] }))
     .filter(seg => seg.value > 0);
+
+  const _incomeCfHtml  = _buildCfBarHtml(incomeDonutSegs,  '이달 수입 데이터 없음');
+  const _expenseCfHtml = _buildCfBarHtml(expenseDonutSegs, '이달 지출 데이터 없음');
 
   document.getElementById('dashboard-content').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.5rem;">
@@ -2266,31 +2282,17 @@ function renderDashboard() {
         </div>
 
         <div class="donut-tab-btns">
-          <button class="graph-pill ${dashDonutTab==='income'?'active':''}" onclick="setDonutTab('income')">수입 구성</button>
-          <button class="graph-pill ${dashDonutTab==='expense'?'active':''}" onclick="setDonutTab('expense')">지출 구성</button>
+          <button class="graph-pill ${dashDonutTab==='cashflow'?'active':''}" onclick="setDonutTab('cashflow')">수입 및 지출</button>
           <button class="graph-pill ${dashDonutTab==='asset'?'active':''}" onclick="setDonutTab('asset')">자산 구성</button>
         </div>
         <div class="dash-row2">
-          <div class="card donut-tab-card ${dashDonutTab==='income'?'active':''}" data-tab="income">
-            <div class="section-title">이달 수입 구성</div>
-            ${incomeDonutSegs.length > 0 ? `
-            <div class="donut-inner">
-              <svg id="income-donut-svg" width="100%" style="max-width:140px;aspect-ratio:1;display:block;overflow:visible;flex-shrink:0;"></svg>
-              <div class="donut-legend">
-                ${incomeDonutSegs.map(seg=>`<div class="donut-legend-item"><div class="donut-legend-dot" style="background:${seg.color};"></div>${seg.label} <span style="color:var(--text3);font-size:11px;">${fmtAbs(seg.value)}</span></div>`).join('')}
-              </div>
-            </div>` : `<div class="hint-box" style="margin-top:.5rem;"><div class="hint-text">이달 수입 데이터 없음</div></div>`}
-          </div>
-
-          <div class="card donut-tab-card ${dashDonutTab==='expense'?'active':''}" data-tab="expense">
-            <div class="section-title">이달 지출 구성</div>
-            ${expenseDonutSegs.length > 0 ? `
-            <div class="donut-inner">
-              <svg id="expense-donut-svg" width="100%" style="max-width:140px;aspect-ratio:1;display:block;overflow:visible;flex-shrink:0;"></svg>
-              <div class="donut-legend">
-                ${expenseDonutSegs.map(seg=>`<div class="donut-legend-item"><div class="donut-legend-dot" style="background:${seg.color};"></div>${seg.label} <span style="color:var(--text3);font-size:11px;">${fmtAbs(seg.value)}</span></div>`).join('')}
-              </div>
-            </div>` : `<div class="hint-box" style="margin-top:.5rem;"><div class="hint-text">이달 지출 데이터 없음</div></div>`}
+          <div class="card donut-tab-card ${dashDonutTab==='cashflow'?'active':''}" data-tab="cashflow">
+            <div class="section-title" style="margin-bottom:.4rem;">수입 구성</div>
+            ${_incomeCfHtml}
+            <div style="margin-top:.75rem;">
+              <div class="section-title" style="margin-bottom:.4rem;">지출 구성</div>
+              ${_expenseCfHtml}
+            </div>
           </div>
 
           <div class="card donut-tab-card ${dashDonutTab==='asset'?'active':''}" data-tab="asset">
@@ -2334,10 +2336,9 @@ function renderDashboard() {
   drawTopExpenses('top-exp-svg', ym);
   drawAnnualStackedBar('annual-stacked-svg', year);
   _assetDonutSegs = assetDonutSegs;
-  _incomeDonutSegs = incomeDonutSegs;
-  _expenseDonutSegs = expenseDonutSegs;
-  if (!_isMobile || dashDonutTab === 'income')  { if (incomeDonutSegs.length)  drawDonutChart('income-donut-svg',  incomeDonutSegs); }
-  if (!_isMobile || dashDonutTab === 'expense') { if (expenseDonutSegs.length) drawDonutChart('expense-donut-svg', expenseDonutSegs); }
+  _incomeDonutSegs = incomeDonutSegs;   // 하위 호환 유지
+  _expenseDonutSegs = expenseDonutSegs; // 하위 호환 유지
+  // 수입/지출은 바 HTML로 교체됨 — drawDonutChart 호출 불필요
   _updateThemeIcon();
   document.querySelectorAll('[data-raw]').forEach(function(el) {
     const val = parseFloat(el.dataset.raw);
@@ -2759,10 +2760,9 @@ function setDonutTab(tab) {
     el.classList.toggle('active', el.dataset.tab === tab);
   });
   document.querySelectorAll('.donut-tab-btns .graph-pill').forEach((btn, i) => {
-    btn.classList.toggle('active', ['income','expense','asset'][i] === tab);
+    btn.classList.toggle('active', ['cashflow','asset'][i] === tab);
   });
-  if (tab === 'income'  && _incomeDonutSegs.length)  drawDonutChart('income-donut-svg',  _incomeDonutSegs);
-  if (tab === 'expense' && _expenseDonutSegs.length) drawDonutChart('expense-donut-svg', _expenseDonutSegs);
+  // 바 HTML은 renderDashboard 시점에 이미 삽입됨 — 별도 드로잉 불필요
 }
 // ══════════════════════════════════════════
 // 코치마크 (자물쇠 힌트)
@@ -5255,7 +5255,7 @@ const FIXED_PRESETS = {
 };
 
 let fixedModalData = {};
-let dashDonutTab = 'asset';
+let dashDonutTab = 'cashflow';
 let _assetDonutSegs = [], _incomeDonutSegs = [], _expenseDonutSegs = [];
 
 function openFixedModal() {
