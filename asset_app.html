@@ -6173,13 +6173,9 @@ function renderEtcTab() {
     <div class="card">
       <div class="setting-row">
         <span class="setting-label">구성원 이름</span>
-        <div style="display:flex;align-items:center;gap:6px;" id="member-name-row">
-          <span id="member-name-display" style="font-size:12px;color:var(--text2);">${cfg.member1Name}${cfg.memberCount===2?' · '+cfg.member2Name:''}</span>
-          <div id="member-name-inputs" style="display:none;gap:4px;align-items:center;">
-            <input id="member1-input" class="input-field" style="font-size:12px;padding:.25rem .5rem;width:56px;" value="${cfg.member1Name||''}" maxlength="4" placeholder="이름"/>
-            ${cfg.memberCount===2?`<span style="font-size:11px;color:var(--text3);">·</span><input id="member2-input" class="input-field" style="font-size:12px;padding:.25rem .5rem;width:56px;" value="${cfg.member2Name||''}" maxlength="4" placeholder="이름"/>`:''}
-          </div>
-          <button class="btn-sm" id="member-name-btn" onclick="toggleMemberNameEdit()">수정</button>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:12px;color:var(--text2);">${cfg.member1Name}${cfg.memberCount===2?' · '+cfg.member2Name:''}</span>
+          <button class="btn-sm" onclick="openNameEditModal()">수정</button>
         </div>
       </div>
       ${cfg.memberCount === 1 ? `
@@ -6576,28 +6572,8 @@ function removeMember2() {
     showToast(`${name} 구성원이 삭제됐어요`);
   }, null, '삭제');
 }
-function toggleMemberNameEdit() {
-  const display = document.getElementById('member-name-display');
-  const inputs = document.getElementById('member-name-inputs');
-  const btn = document.getElementById('member-name-btn');
-  const isEditing = inputs.style.display !== 'none';
-  if (isEditing) {
-    const v1 = document.getElementById('member1-input').value.trim().slice(0, 4);
-    if (!v1) { document.getElementById('member1-input').focus(); return; }
-    state.config.member1Name = v1;
-    if (state.config.memberCount === 2) {
-      const v2 = document.getElementById('member2-input').value.trim().slice(0, 4);
-      if (!v2) { document.getElementById('member2-input').focus(); return; }
-      state.config.member2Name = v2;
-    }
-    saveState();
+function toggleMemberNameEdit() { // 레거시 — openNameEditModal() 사용
     renderSettings();
-  } else {
-    display.style.display = 'none';
-    inputs.style.display = 'flex';
-    btn.textContent = '완료';
-    document.getElementById('member1-input').focus();
-  }
 }
 function toggleSpecialNameEdit() {
   const display = document.getElementById('special-name-display');
@@ -7019,7 +6995,8 @@ function saveNameEdit() {
   }
   saveState();
   closeNameEditModal();
-  renderDashboard();
+  if (state.currentTab === 'dashboard') renderDashboard();
+  else if (state.currentTab === 'settings') renderSettings();
   showToast('이름이 변경됐어요');
 }
 
