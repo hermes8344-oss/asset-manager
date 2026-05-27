@@ -2913,6 +2913,9 @@ function renderBalance() {
       ? `<div class="sbar"><span class="sbar-label">${cat} 합계</span><span class="sbar-value" style="color:${isDebt?'var(--red)':'var(--text1)'};">${isDebt ? (dispTotal ? '-'+fmtW(Math.abs(dispTotal)) : '-') : fmtW(total)}</span></div>`
       : '';
     const tableContent = `<div class="acct-list">${rows}</div>`;
+    const addBtnHtml = isEdit
+      ? `<button class="add-btn" style="margin-top:.5rem;" onclick="openAccountModal('${cat}')">+ ${cat} 계좌 추가</button>`
+      : '';
     tablesHtml += `
       <div class="card" id="cat-section-${cat}">
         <div class="cat-hdr">
@@ -2921,6 +2924,7 @@ function renderBalance() {
         </div>
         ${tableContent}
         ${sbarHtml}
+        ${addBtnHtml}
       </div>`;
   });
 
@@ -3083,7 +3087,7 @@ function toggleBalanceEdit() {
     });
     state.balanceEditing = true;
     renderBalance();
-    showEditBar(cancelBalanceEdit, saveBalance, '+ 계좌 추가', openAccountModal);
+    showEditBar(cancelBalanceEdit, saveBalance);
   }
 }
 function copyFromPrevMonth() {
@@ -3408,9 +3412,9 @@ const SECURITIES = [
   {name:'토스증권',abbr:'토스증',bg:'#E1F5EE',color:'#085041'},
 ];
 
-function openAccountModal() {
+function openAccountModal(preCategory) {
   state.modalStep = 1;
-  state.modalData = { bankTab:'bank', selectedBank:null, nickname:'', owner: state.config.member1Name, category:'현금성' };
+  state.modalData = { bankTab:'bank', selectedBank:null, nickname:'', owner: state.config.member1Name, category: preCategory || '현금성' };
   renderModalStep1();
   document.getElementById('account-modal').classList.add('open');
 }
