@@ -533,6 +533,10 @@ body {
 .modal-overlay.open { display: flex; }
 .modal-sheet { background: var(--surface); border-radius: 24px 24px 0 0; padding: 1.25rem 1.25rem calc(.5rem + env(safe-area-inset-bottom, 0px)); width: 100%; max-width: 430px; max-height: 90vh; overflow-y: auto; animation: slideUp .25s ease; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+/* ── 중앙 팝업형 모달 (고정비·자동이체 수정 등) ── */
+.modal-overlay.modal-popup { align-items: center; }
+.modal-overlay.modal-popup .modal-sheet { border-radius: var(--r); width: calc(100% - 2rem); max-width: 380px; padding: 1.25rem; animation: fadeScaleIn .2s ease; }
+@keyframes fadeScaleIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:scale(1); } }
 @keyframes fadeSlideUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 @keyframes bounce-down { 0%,100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
 @keyframes slideUpBanner { from { transform: translateY(120%); opacity:0; } to { transform: translateY(0); opacity:1; } }
@@ -1272,10 +1276,9 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
   </div>
 </div>
 
-<!-- 고정비 수정 모달 -->
-<div class="modal-overlay" id="fc-edit-modal" onclick="if(event.target===this)closeFcEditModal()">
-  <div class="modal-sheet" style="max-width:430px;">
-    <div class="modal-handle"></div>
+<!-- 고정비 수정 팝업 -->
+<div class="modal-overlay modal-popup" id="fc-edit-modal" onclick="if(event.target===this)closeFcEditModal()">
+  <div class="modal-sheet">
     <div class="modal-header">
       <div class="modal-title">고정비 수정</div>
       <button class="close-btn" onclick="closeFcEditModal()">✕</button>
@@ -1284,10 +1287,9 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
   </div>
 </div>
 
-<!-- 자동이체 수정 모달 -->
-<div class="modal-overlay" id="at-edit-modal" onclick="if(event.target===this)closeAtEditModal()">
-  <div class="modal-sheet" style="max-width:430px;">
-    <div class="modal-handle"></div>
+<!-- 자동이체 수정 팝업 -->
+<div class="modal-overlay modal-popup" id="at-edit-modal" onclick="if(event.target===this)closeAtEditModal()">
+  <div class="modal-sheet">
     <div class="modal-header">
       <div class="modal-title">자동이체 수정</div>
       <button class="close-btn" onclick="closeAtEditModal()">✕</button>
@@ -7045,8 +7047,8 @@ document.addEventListener('keydown', function(e) {
 <div id="chart-tip" style="position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;pointer-events:none;display:none;z-index:9999;color:var(--text1);box-shadow:0 2px 10px rgba(0,0,0,.18);max-width:200px;white-space:normal;word-break:keep-all;line-height:1.7;"></div>
 
 <!-- 이름 변경 팝업 -->
-<div class="modal-overlay" id="name-edit-modal" onclick="if(event.target===this)closeNameEditModal()">
-  <div class="modal-sheet" style="max-width:360px;padding:1.5rem;">
+<div class="modal-overlay modal-popup" id="name-edit-modal" onclick="if(event.target===this)closeNameEditModal()">
+  <div class="modal-sheet">
     <div style="font-size:17px;font-weight:700;color:var(--text1);margin-bottom:1.25rem;">이름 변경</div>
     <div id="name-edit-fields"></div>
     <div style="display:flex;gap:.5rem;margin-top:1.25rem;">
