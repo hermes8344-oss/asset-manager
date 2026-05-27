@@ -2231,6 +2231,22 @@ function renderDashboard() {
           }).join('')}
         </div>
 
+        <div class="card" style="margin-bottom:.75rem;">
+          ${insightHtml}
+          <div class="section-title" style="display:flex;align-items:center;gap:.4rem;">
+            이달 요약
+            ${isCfFallback ? `<span style="font-size:11px;font-weight:400;color:var(--text3);background:var(--surface2);padding:1px 6px;border-radius:6px;">${ymLabel(cfYm)} 기준</span>` : ''}
+          </div>
+          <div class="remain-box" style="flex-direction:column;align-items:flex-start;gap:.15rem;">
+            <span class="remain-label">남은 돈</span>
+            <span class="remain-value" style="color:${s.remaining<0?'var(--red)':'var(--green)'};">${s.remaining<0?'⚠ ':''}${fmtW(s.remaining)}</span>
+          </div>
+          <div class="sum-row"><span class="sum-label">총수입</span><span class="sum-val" style="color:var(--green);">${fmtW(s.income)}</span></div>
+          <div class="sum-row"><span class="sum-label">총지출</span><span class="sum-val" style="color:var(--red);">${fmtW(s.expense)}</span></div>
+          <div class="sum-row"><span class="sum-label">고정비</span><span class="sum-val" style="color:var(--red);">${fmtW(s.fixedThisMonth)}</span></div>
+          ${s.special > 0 ? `<div class="sum-row"><span class="sum-label">특별지출</span><span class="sum-val" style="color:var(--amber);">${fmtW(s.special)}</span></div>` : ''}
+        </div>
+
         ${_isMobile ? `
         <div class="dash-row1-tabs graph-pill-group" style="margin-bottom:.5rem;">
           <button class="graph-pill ${state.dashRow1Tab==='cashflow'?'active':''}" onclick="setDashRow1Tab('cashflow')">수입/지출</button>
@@ -2269,21 +2285,6 @@ function renderDashboard() {
           <div class="section-title">목표 관리</div>
           <div>${goalHtml}</div>
           <button class="btn-sm" style="margin-top:.625rem;" onclick="switchTab('settings');setTimeout(()=>selectSettingTab('goals'),50)">설정에서 수정 →</button>
-        </div>
-        <div class="card" style="margin-top:.75rem;">
-          ${insightHtml}
-          <div class="section-title" style="display:flex;align-items:center;gap:.4rem;">
-            이달 요약
-            ${isCfFallback ? `<span style="font-size:11px;font-weight:400;color:var(--text3);background:var(--surface2);padding:1px 6px;border-radius:6px;">${ymLabel(cfYm)} 기준</span>` : ''}
-          </div>
-          <div class="remain-box" style="flex-direction:column;align-items:flex-start;gap:.15rem;">
-            <span class="remain-label">남은 돈</span>
-            <span class="remain-value" style="color:${s.remaining<0?'var(--red)':'var(--green)'};">${s.remaining<0?'⚠ ':''}${fmtW(s.remaining)}</span>
-          </div>
-          <div class="sum-row"><span class="sum-label">총수입</span><span class="sum-val" style="color:var(--green);">${fmtW(s.income)}</span></div>
-          <div class="sum-row"><span class="sum-label">총지출</span><span class="sum-val" style="color:var(--red);">${fmtW(s.expense)}</span></div>
-          <div class="sum-row"><span class="sum-label">고정비</span><span class="sum-val" style="color:var(--red);">${fmtW(s.fixedThisMonth)}</span></div>
-          ${s.special > 0 ? `<div class="sum-row"><span class="sum-label">특별지출</span><span class="sum-val" style="color:var(--amber);">${fmtW(s.special)}</span></div>` : ''}
         </div>
       </div>
     </div>
