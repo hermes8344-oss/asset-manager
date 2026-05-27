@@ -2036,7 +2036,27 @@ function renderDashboard() {
   const cats = calcAssetByCategory(ym);
   const totalAsset = cats['현금성'] + cats['투자'] + cats['저축'] + cats['노후자금'] + cats['장기자산'];
   const totalDebt = cats['부채'];
-  const s = calcMonthSummary(ym);
+
+  // 수입/지출 데이터 폴백 — 해당 월에 cashflow 없으면 가장 최근 입력 월 사용
+  function _hasCFData(checkYm) {
+    const cf = state.cashflow[checkYm] || {};
+    const hasInc = (cf.income||[]).some(r => {
+      const a = r.amount !== undefined ? (parseNum(r.amount)||0) : (parseNum(r.member1)||0)+(parseNum(r.member2)||0);
+      return a > 0;
+    });
+    const hasExp = (cf.expense||[]).some(r => (parseNum(r.amount)||0) > 0);
+    return hasInc || hasExp;
+  }
+  let cfYm = ym;
+  if (!_hasCFData(ym)) {
+    for (let _i = 1; _i <= 24; _i++) {
+      const _d = new Date(); _d.setMonth(_d.getMonth() - _i);
+      const _m = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}`;
+      if (_hasCFData(_m)) { cfYm = _m; break; }
+    }
+  }
+  const isCfFallback = cfYm !== ym;
+  const s = calcMonthSummary(cfYm);
 
   // 자산 바 비율
   const barTotal = totalAsset || 1;
@@ -2115,7 +2135,7 @@ function renderDashboard() {
   // 수입 도넛: label별
   const CF_COLORS = ['#0F6E56','#1D9E75','#378ADD','#534AB7','#BA7517','#A32D2D','#2EBC8C','#9B59B6'];
   const incomeMap = {};
-  const curCf = state.cashflow[ym] || {};
+  const curCf = state.cashflow[cfYm] || {};
   (curCf.income||[]).forEach(r => {
     const amt = r.amount !== undefined ? (parseNum(r.amount)||0) : ((parseNum(r.member1)||0)+(parseNum(r.member2)||0));
     const key = r.label || '기타';
@@ -2257,7 +2277,10 @@ function renderDashboard() {
         </div>
         <div class="card" style="margin-top:.75rem;">
           ${insightHtml}
-          <div class="section-title">이달 요약</div>
+          <div class="section-title" style="display:flex;align-items:center;gap:.4rem;">
+            이달 요약
+            ${isCfFallback ? `<span style="font-size:11px;font-weight:400;color:var(--text3);background:var(--surface2);padding:1px 6px;border-radius:6px;">${ymLabel(cfYm)} 기준</span>` : ''}
+          </div>
           <div class="remain-box" style="flex-direction:column;align-items:flex-start;gap:.15rem;">
             <span class="remain-label">남은 돈</span>
             <span class="remain-value" style="color:${s.remaining<0?'var(--red)':'var(--green)'};">${s.remaining<0?'⚠ ':''}${fmtW(s.remaining)}</span>
