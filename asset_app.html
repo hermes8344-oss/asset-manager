@@ -3741,7 +3741,6 @@ function renderCashflow() {
           ${specialRows || '<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">+ 항목 추가 버튼으로 등록해보세요</div>'}
         </div>
         <button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('special')">+ ${specialName} 추가</button>
-        <div class="sbar"><span class="sbar-label">합계</span><span class="sbar-value" style="color:var(--amber);">${fmtW(cfSpecialTotal)}</span></div>
       </div>`;
     } else {
       const specialRows = specialFiltered.map(({r}) => {
@@ -3767,7 +3766,6 @@ function renderCashflow() {
           ${specialRows || '<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">이달 특별지출 내역이 없어요 · 편집 모드에서 추가할 수 있어요</div>'}
         </div>
         ${specialRows ? '<div style="font-size:11px;color:var(--text3);text-align:right;margin-top:.35rem;">편집 모드에서 항목을 수정·추가할 수 있어요</div>' : ''}
-        <div class="sbar"><span class="sbar-label">합계</span><span class="sbar-value" style="color:var(--amber);">${fmtW(cfSpecialTotal)}</span></div>
       </div>`;
     }
   }
@@ -3825,7 +3823,6 @@ function renderCashflow() {
       ${savingsListRows || `<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 저축 항목 추가 버튼으로 등록해보세요' : '이달 저축 내역이 없어요 · 편집 모드에서 추가할 수 있어요'}</div>`}
     </div>
     ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('savings')">+ 저축 항목 추가</button>` : ''}
-    <div class="sbar"><span class="sbar-label">총저축</span><span class="sbar-value" style="color:var(--blue);">${fmtW(cfSavingsListTotal)}</span></div>
   </div>`;
 
   // 미입력(금액=0) 항목 수
