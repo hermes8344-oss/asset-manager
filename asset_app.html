@@ -963,6 +963,12 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 .fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(83,74,183,.25); }
 @media (min-width: 900px) { .fab { display: none !important; } }
 
+/* FAB가 콘텐츠를 가리지 않도록 해당 탭 하단 여백 확보 (모바일 전용) */
+@media (max-width: 899px) {
+  #screen-balance .page-content,
+  #screen-cashflow .page-content { padding-bottom: 5.5rem; }
+}
+
 /* ── 편집 셀 하이라이트 ── */
 [data-acc-id].row-changed { background: rgba(83,74,183,.07) !important; }
 [data-theme="dark"] [data-acc-id].row-changed { background: rgba(83,74,183,.15) !important; }
