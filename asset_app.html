@@ -147,11 +147,6 @@ body {
 .metric-value.pos { color: var(--green); }
 .metric-delta { font-size: 12px; margin-top: .25rem; }
 
-/* ── 자산 바 ── */
-.asset-bar { height: 14px; border-radius: 7px; display: flex; overflow: hidden; margin-bottom: .5rem; }
-.legend-wrap { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .25rem; }
-.legend-item { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text2); }
-.legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
 /* ── 차트 ── */
 .chart-container { position: relative; height: 145px; }
@@ -2080,16 +2075,6 @@ function renderDashboard() {
   const isCfFallback = cfYm !== ym;
   const s = calcMonthSummary(cfYm);
 
-  // 자산 바 비율
-  const barTotal = totalAsset || 1;
-  const catOrder = ['투자','저축','노후자금','장기자산','현금성'];
-
-  let barSegs = catOrder.map(c => `<div style="width:${Math.round(cats[c]/barTotal*100)}%;background:${CAT_HEX[c]};"></div>`).join('');
-  let legendItems = catOrder.map(c => {
-    const pct = Math.round(cats[c]/barTotal*100);
-    return `<div class="legend-item"><div class="legend-dot" style="background:${CAT_HEX[c]};"></div>${c} ${fmtAbs(cats[c])}<span style="color:var(--text3);margin-left:2px;">(${pct}%)</span></div>`;
-  }).join('');
-
   // 자동 인사이트
   const prevCf = state.cashflow[prevYm] || {};
   const prevExpense = (prevCf.expense||[]).reduce((a,r)=>a+(parseNum(r.amount)||0),0);
@@ -2128,25 +2113,6 @@ function renderDashboard() {
       </div>`;
     }).join('');
   }
-
-  // 자산 구성 도넛
-  const assetDonutSegs = CATEGORIES
-    .map(c => ({ label: c, value: cats[c] || 0, color: CAT_HEX[c] }))
-    .filter(seg => seg.value > 0);
-
-  // 자산 구성 가로채움 바
-  const _assetTotal = assetDonutSegs.reduce((s, seg) => s + seg.value, 0) || 1;
-  const _assetBarSegs = assetDonutSegs.map(seg =>
-    `<div style="flex:${seg.value};background:${seg.color};"></div>`
-  ).join('');
-  const _assetListItems = [...assetDonutSegs].sort((a, b) => b.value - a.value).map(seg => {
-    const pct = seg.value / _assetTotal * 100;
-    const pctStr = pct < 0.1 ? '0.1% 미만' : pct < 1 ? pct.toFixed(1)+'%' : Math.round(pct)+'%';
-    return `<div style="display:flex;align-items:center;gap:.45rem;padding:.28rem 0;"><div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${seg.color};"></div><span style="font-size:12px;color:var(--text1);">${seg.label}</span><span style="font-size:11px;color:var(--text3);margin-left:auto;">${pctStr}</span><span style="font-size:11px;color:var(--text2);min-width:46px;text-align:right;">${fmtAbs(seg.value)}</span></div>`;
-  }).join('');
-  const _assetCompHtml = assetDonutSegs.length > 0
-    ? `<div style="display:flex;height:18px;border-radius:9px;overflow:hidden;margin:.2rem 0 .1rem;">${_assetBarSegs}</div><div>${_assetListItems}</div>`
-    : `<div class="hint-box" style="margin-top:.5rem;"><div class="hint-text">계좌잔고를 입력하면 표시돼요</div></div>`;
 
   // 수입 도넛: label별
   const CF_COLORS = ['#0F6E56','#1D9E75','#378ADD','#534AB7','#BA7517','#A32D2D','#2EBC8C','#9B59B6'];
@@ -2268,10 +2234,6 @@ function renderDashboard() {
 
         <div id="cf-composition-panel" style="display:none;margin-bottom:.75rem;"></div>
 
-        <div class="card" style="margin-bottom:.75rem;">
-          <div class="section-title" style="margin-bottom:.4rem;">자산 구성</div>
-          ${_assetCompHtml}
-        </div>
       </div>
 
       <div class="dash-aside">
@@ -2288,7 +2250,6 @@ function renderDashboard() {
   initGraphs();
 
   drawAnnualStackedBar('annual-stacked-svg', year);
-  _assetDonutSegs = assetDonutSegs;
   _incomeDonutSegs = incomeDonutSegs;   // 하위 호환 유지
   _expenseDonutSegs = expenseDonutSegs; // 하위 호환 유지
   // 수입/지출은 바 HTML로 교체됨 — drawDonutChart 호출 불필요
@@ -5315,7 +5276,7 @@ const FIXED_PRESETS = {
 
 let fixedModalData = {};
 let dashDonutTab = 'cashflow';
-let _assetDonutSegs = [], _incomeDonutSegs = [], _expenseDonutSegs = [];
+let _incomeDonutSegs = [], _expenseDonutSegs = [];
 
 function openFixedModal() {
   fixedModalData = { cat:'주거·생활', label:'', cycle:'매월', day:null, months:[1,2,3,4,5,6,7,8,9,10,11,12], owner:'공동' };
