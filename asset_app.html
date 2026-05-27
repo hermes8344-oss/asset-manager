@@ -4835,7 +4835,9 @@ function setupFcSwipe() {
       const dx = e.changedTouches[0].clientX - sx;
       const dy = e.changedTouches[0].clientY - sy;
       sx = 0;
-      if (Math.abs(dy) > Math.abs(dx) * 0.8) return;
+      // 총 이동거리가 10px 이하면 탭 → 방향 필터 건너뜀 (손 떨림 오판 방지)
+      const totalDist = Math.sqrt(dx*dx + dy*dy);
+      if (totalDist > 10 && Math.abs(dy) > Math.abs(dx) * 0.8) return;
       const isSwiped = row.classList.contains('fc-swiped');
       if (dx < -40) { closeAllFcSwipes(); openFcSwipe(row); }
       else if (dx > 20 && isSwiped) { closeFcSwipe(row); }
@@ -4846,9 +4848,9 @@ function setupFcSwipe() {
         const fcId = row.dataset.fcId;
         const idx = state.fixedCosts.findIndex(f => f.id === fcId);
         if (idx >= 0) {
-          _fcSwipeSuppressClick = true; // 이후 click 이벤트 중복 방지
+          openFcEditModal(null, idx); // 먼저 호출 후 플래그 설정 (역순이면 함수 내 플래그 체크에 걸림)
+          _fcSwipeSuppressClick = true;
           setTimeout(() => { _fcSwipeSuppressClick = false; }, 500);
-          openFcEditModal(null, idx);
         }
       }
     }, { passive: true });
@@ -5491,11 +5493,22 @@ function setupAtSwipe() {
       const dx = e.changedTouches[0].clientX - sx;
       const dy = e.changedTouches[0].clientY - sy;
       sx = 0;
-      if (Math.abs(dy) > Math.abs(dx) * 0.8) return;
+      const totalDist = Math.sqrt(dx*dx + dy*dy);
+      if (totalDist > 10 && Math.abs(dy) > Math.abs(dx) * 0.8) return;
       const isSwiped = row.classList.contains('at-swiped');
       if (dx < -40) { closeAllSwipes(); openAtSwipe(row); }
       else if (dx > 20 && isSwiped) { closeAtSwipe(row); }
       else if (Math.abs(dx) < 10 && isSwiped) { closeAtSwipe(row); _atSwipeSuppressClick = true; setTimeout(()=>{ _atSwipeSuppressClick = false; }, 250); }
+      else if (Math.abs(dx) < 10 && !isSwiped) {
+        if (e.target.closest('.fc-drag-handle, .at-swipe-btns')) return;
+        const atId = row.dataset.atId;
+        const idx = (state.autoTransfers||[]).findIndex(at => at.id === atId);
+        if (idx >= 0) {
+          openAtEditModal(null, idx);
+          _atSwipeSuppressClick = true;
+          setTimeout(() => { _atSwipeSuppressClick = false; }, 500);
+        }
+      }
     }, { passive: true });
   });
 }
