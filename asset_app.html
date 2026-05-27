@@ -2788,14 +2788,12 @@ function renderBalance() {
 
   // 구성원 뱃지 헬퍼 (카테고리 루프 밖으로)
   function ownerBadge(owner) {
-    const display = owner === '공동' ? '공' : (owner||'?').slice(0,1);
     const bg = owner === cfg.member1Name ? '#534AB7' : owner === cfg.member2Name ? '#0F6E56' : '#BA7517';
-    return `<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${bg};color:#fff;font-size:9px;font-weight:700;flex-shrink:0;margin-right:4px;vertical-align:middle;">${display}</span>`;
+    return `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${bg};flex-shrink:0;margin-right:4px;vertical-align:middle;"></span>`;
   }
   function ownerBadgeLarge(owner) {
-    const display = owner === '공동' ? '공' : (owner||'?').slice(0,1);
     const bg = owner === cfg.member1Name ? '#534AB7' : owner === cfg.member2Name ? '#0F6E56' : '#BA7517';
-    return `<div style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:${bg};color:#fff;font-size:15px;font-weight:700;flex-shrink:0;">${display}</div>`;
+    return `<div style="width:10px;height:10px;border-radius:50%;background:${bg};flex-shrink:0;"></div>`;
   }
 
   // 카테고리별 테이블 (계좌 없어도 항상 표시)
@@ -2840,7 +2838,7 @@ function renderBalance() {
           ? `<div style="font-size:9px;color:var(--accent);text-align:right;margin-bottom:2px;">🔗 대출 자동계산</div><input type="text" value="${fmt(Math.abs(val))}" disabled style="width:100px;"/>`
           : `${prevBalDisp ? `<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:1px;"><span style="${balHintBg}cursor:pointer;" onclick="fillFromHint(this)" title="클릭하면 입력돼요">전달 ${prevBalDisp}</span></div>` : ''}<input type="text" inputmode="numeric" value="${val ? fmt(Math.abs(val)) : ''}" placeholder="0" class="amount-input" onblur="formatInput(this)" oninput="onBalanceInput('${a.id}',this);this.classList.add('cell-changed');this.closest('[data-acc-id]')?.classList.add('row-changed');syncHintColor(this)" data-id="${a.id}" data-prev-amt="${prevBalAbsAmt ?? ''}" style="width:100px;"/>`;
         return `<div data-acc-id="${a.id}" draggable="true"
-            style="display:flex;align-items:center;gap:8px;padding:.75rem 0;border-bottom:1px solid var(--border);"
+            style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);"
             ondragstart="dragAccStart(event,'${a.id}')"
             ondragover="dragAccOver(event,'${a.id}')"
             ondrop="dragAccDrop(event,'${a.id}')"
@@ -2888,7 +2886,7 @@ function renderBalance() {
         const institutionLine = a.owner === '공동'
           ? `${a.institution} · ${responsible} 공동`
           : a.institution;
-        return `<div style="display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+        return `<div style="display:flex;align-items:center;gap:12px;padding:.5rem 0;border-bottom:1px solid var(--border);">
           ${badge}
           <div style="flex:1;min-width:0;">
             <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.nickname}${loanLinkBadge}</div>
@@ -3562,9 +3560,8 @@ function renderCashflow() {
   }
   // 구성원 뱃지 헬퍼 (대형 36px — Toss 스타일 행)
   function cfOwnerBadgeLarge(owner) {
-    const display = owner === '공동' ? '공' : (owner||'?').slice(0,1);
     const bg = owner === cfg.member1Name ? '#534AB7' : owner === cfg.member2Name ? '#0F6E56' : '#BA7517';
-    return `<div style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:${bg};color:#fff;font-size:15px;font-weight:700;flex-shrink:0;">${display}</div>`;
+    return `<div style="width:10px;height:10px;border-radius:50%;background:${bg};flex-shrink:0;"></div>`;
   }
 
   // 수입 리스트 (Toss 스타일 flex row)
@@ -3578,7 +3575,7 @@ function renderCashflow() {
       const prevAmt = prevIncomeRow ? (prevIncomeRow.amount !== undefined ? (parseNum(prevIncomeRow.amount)||0) : (parseNum(prevIncomeRow.member1)||0)+(parseNum(prevIncomeRow.member2)||0)) : 0;
       const incMatch = prevAmt && amount === prevAmt;
       const incHintBg = incMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
-      return `<div class="cf-list-row${r._copied?' row-copied':''}" style="display:flex;align-items:center;gap:8px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+      return `<div class="cf-list-row${r._copied?' row-copied':''}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);">
         <div onclick="openRowEditModal('income',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
           ${badge}
           <div style="min-width:0;">
@@ -3599,7 +3596,7 @@ function renderCashflow() {
       const prevAmt = prevIncomeRow ? (prevIncomeRow.amount !== undefined ? (parseNum(prevIncomeRow.amount)||0) : (parseNum(prevIncomeRow.member1)||0)+(parseNum(prevIncomeRow.member2)||0)) : null;
       const viewDiff = prevAmt !== null && amount !== prevAmt ? amount - prevAmt : null;
       const viewDiffHtml = viewDiff !== null ? `<div style="font-size:11px;color:${viewDiff>0?'var(--green)':'var(--red)'};">${viewDiff>0?'▲':'▼'} ${fmtAbs(Math.abs(viewDiff))}</div>` : '';
-      return `<div class="cf-list-row" style="display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+      return `<div class="cf-list-row" style="display:flex;align-items:center;gap:12px;padding:.5rem 0;border-bottom:1px solid var(--border);">
         ${badge}
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
@@ -3627,7 +3624,7 @@ function renderCashflow() {
       const expMatch = prevExpAmt && curExpAmt === prevExpAmt;
       const expHintBg = expMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
       const subLine = [r.type, r.dueDate].filter(Boolean).join(' · ');
-      return `<div class="cf-list-row${r._copied?' row-copied':''}" style="display:flex;align-items:center;gap:8px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+      return `<div class="cf-list-row${r._copied?' row-copied':''}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);">
         <div onclick="openRowEditModal('expense',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
           ${badge}
           <div style="min-width:0;">
@@ -3649,7 +3646,7 @@ function renderCashflow() {
       const expViewDiff = prevExpAmt !== null && (parseNum(r.amount)||0) !== prevExpAmt ? (parseNum(r.amount)||0) - prevExpAmt : null;
       const expViewDiffHtml = expViewDiff !== null ? `<div style="font-size:11px;color:${expViewDiff>0?'var(--red)':'var(--green)'};">${expViewDiff>0?'▲':'▼'} ${fmtAbs(Math.abs(expViewDiff))}</div>` : '';
       const subLine = [r.type, r.dueDate].filter(Boolean).join(' · ');
-      return `<div class="cf-list-row" style="display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+      return `<div class="cf-list-row" style="display:flex;align-items:center;gap:12px;padding:.5rem 0;border-bottom:1px solid var(--border);">
         ${badge}
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
@@ -3715,7 +3712,7 @@ function renderCashflow() {
         const spBadge = cfOwnerBadgeLarge(spOwner);
         const prevSpRow = prevCf.special.find(p => p.label === r.label);
         const prevSpAmt = prevSpRow ? (parseNum(prevSpRow.amount)||0) : 0;
-        return `<div class="cf-list-row" style="display:flex;align-items:center;gap:8px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+        return `<div class="cf-list-row" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);">
           <div onclick="openRowEditModal('special',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
             ${spBadge}
             <div style="min-width:0;">
@@ -3746,7 +3743,7 @@ function renderCashflow() {
       const specialRows = specialFiltered.map(({r}) => {
         const spOwner = r.owner || cfg.member1Name;
         const spBadge = cfOwnerBadgeLarge(spOwner);
-        return `<div class="cf-list-row" style="display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+        return `<div class="cf-list-row" style="display:flex;align-items:center;gap:12px;padding:.5rem 0;border-bottom:1px solid var(--border);">
           ${spBadge}
           <div style="flex:1;min-width:0;">
             <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
@@ -3780,7 +3777,7 @@ function renderCashflow() {
       const curSavAmt = parseNum(r.amount)||0;
       const savMatch = prevAmt && curSavAmt === prevAmt;
       const savHintBg = savMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
-      return `<div class="cf-list-row${r._copied?' row-copied':''}" style="display:flex;align-items:center;gap:8px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+      return `<div class="cf-list-row${r._copied?' row-copied':''}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);">
         <div onclick="openRowEditModal('savings',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
           ${badge}
           <div style="min-width:0;">
@@ -3801,7 +3798,7 @@ function renderCashflow() {
       const prevAmt = prevRow ? (parseNum(prevRow.amount)||0) : null;
       const diff = prevAmt !== null && (parseNum(r.amount)||0) !== prevAmt ? (parseNum(r.amount)||0) - prevAmt : null;
       const diffHtml = diff !== null ? `<div style="font-size:11px;color:${diff>0?'var(--green)':'var(--red)'};">${diff>0?'▲':'▼'} ${fmtAbs(Math.abs(diff))}</div>` : '';
-      return `<div class="cf-list-row" style="display:flex;align-items:center;gap:12px;padding:.75rem 0;border-bottom:1px solid var(--border);">
+      return `<div class="cf-list-row" style="display:flex;align-items:center;gap:12px;padding:.5rem 0;border-bottom:1px solid var(--border);">
         ${badge}
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.type||''}</div>
