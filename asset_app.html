@@ -2779,12 +2779,11 @@ function renderBalance() {
   if (cfg.memberCount === 2 && cfg.member2Name) bFilterMembers.push(cfg.member2Name);
   let chips = ['모두', ...bFilterMembers].map(f => {
     const active = bFilter === f;
-    let bg, color, dotColor;
-    if (f === '모두')            { bg = active ? 'var(--surface2)' : 'transparent'; color = active ? 'var(--text1)' : 'var(--text3)'; dotColor = null; }
-    else if (f === cfg.member1Name) { bg = active ? '#534AB7' : 'transparent'; color = active ? '#fff' : 'var(--text2)'; dotColor = '#534AB7'; }
-    else                         { bg = active ? '#0F6E56' : 'transparent'; color = active ? '#fff' : 'var(--text2)'; dotColor = '#0F6E56'; }
-    const dot = dotColor ? `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${active?'#fff':dotColor};margin-right:5px;vertical-align:middle;flex-shrink:0;"></span>` : '';
-    return `<span class="cat-chip" style="background:${bg};color:${color};border:1px solid ${active?'transparent':'var(--border)'};" onclick="setBalanceUserFilter('${f}')">${dot}${f}</span>`;
+    let bg, color;
+    if (f === '모두')               { bg = active ? 'var(--surface2)' : 'transparent'; color = active ? 'var(--text1)' : 'var(--text3)'; }
+    else if (f === cfg.member1Name) { bg = active ? '#534AB7' : 'rgba(83,74,183,0.15)'; color = active ? '#fff' : '#534AB7'; }
+    else                            { bg = active ? '#0F6E56' : 'rgba(15,110,86,0.15)'; color = active ? '#fff' : '#0F6E56'; }
+    return `<span class="cat-chip" style="background:${bg};color:${color};border:1px solid ${active?'transparent':'transparent'};" onclick="setBalanceUserFilter('${f}')">${f}</span>`;
   }).join('');
 
   // 구성원 뱃지 헬퍼 (카테고리 루프 밖으로)
@@ -3860,12 +3859,11 @@ function renderCashflow() {
       if (cfg.memberCount === 2 && cfg.member2Name) cfFM.push(cfg.member2Name);
       return ['모두', ...cfFM].map(f => {
         const active = cfFilter === f;
-        let bg, color, dotColor;
-        if (f === '모두')              { bg = active ? 'var(--surface2)' : 'transparent'; color = active ? 'var(--text1)' : 'var(--text3)'; dotColor = null; }
-        else if (f === cfg.member1Name) { bg = active ? '#534AB7' : 'transparent'; color = active ? '#fff' : 'var(--text2)'; dotColor = '#534AB7'; }
-        else                            { bg = active ? '#0F6E56' : 'transparent'; color = active ? '#fff' : 'var(--text2)'; dotColor = '#0F6E56'; }
-        const dot = dotColor ? `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${active?'#fff':dotColor};margin-right:5px;vertical-align:middle;flex-shrink:0;"></span>` : '';
-        return `<span class="cat-chip" style="background:${bg};color:${color};border:1px solid ${active?'transparent':'var(--border)'};" onclick="setCFUserFilter('${f}')">${dot}${f}</span>`;
+        let bg, color;
+        if (f === '모두')               { bg = active ? 'var(--surface2)' : 'transparent'; color = active ? 'var(--text1)' : 'var(--text3)'; }
+        else if (f === cfg.member1Name) { bg = active ? '#534AB7' : 'rgba(83,74,183,0.15)'; color = active ? '#fff' : '#534AB7'; }
+        else                            { bg = active ? '#0F6E56' : 'rgba(15,110,86,0.15)'; color = active ? '#fff' : '#0F6E56'; }
+        return `<span class="cat-chip" style="background:${bg};color:${color};border:1px solid transparent;" onclick="setCFUserFilter('${f}')">${f}</span>`;
       }).join('');
     })()}</div>
 
