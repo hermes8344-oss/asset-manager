@@ -4729,17 +4729,19 @@ function renderFixedCalendar() {
   return `<div class="card"><div class="fixed-cal-grid">${cells}</div></div>`;
 }
 
+// 담당자 목록 (고정비·자동이체 모달 공용)
+function ownerOptions() {
+  const cfg = state.config || {};
+  const owners = ['공동', cfg.member1Name];
+  if (cfg.memberCount === 2 && cfg.member2Name) owners.push(cfg.member2Name);
+  return owners;
+}
+
 function renderFixedTab() {
   const cfg = state.config;
   const month = parseInt(state.currentMonth.split('-')[1]);
   const thisMonthCosts = state.fixedCosts.filter(f=>(f.months||[]).includes(month));
   const thisMonthTotal = thisMonthCosts.reduce((s,f)=>s+(f.amount||0),0);
-
-  const ownerOptions = () => {
-    const owners = ['공동', cfg.member1Name];
-    if (cfg.memberCount === 2 && cfg.member2Name) owners.push(cfg.member2Name);
-    return owners;
-  };
   const ownerBadge = (owner) => {
     const o = owner || '공동';
     const bg = o === '공동' ? 'var(--surface2)' : o === cfg.member1Name ? 'var(--accent-light)' : 'var(--green-light)';
