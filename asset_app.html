@@ -1599,6 +1599,18 @@ async function handleAuthCallback() {
       return;
     }
     await checkAndMigrate();
+    // 공유 접근 자동 복원: PWA/홈 화면 바로가기에서 재로그인 시
+    // localStorage가 비어 ownerUserId가 없어도 shared_access 테이블에서 찾아 복원
+    if (!ownerUserId) {
+      const { data: sharedRow } = await _sb.from('shared_access')
+        .select('owner_id')
+        .eq('member_id', currentUser.id)
+        .maybeSingle();
+      if (sharedRow?.owner_id) {
+        ownerUserId = sharedRow.owner_id;
+        localStorage.setItem('ownerUserId', ownerUserId);
+      }
+    }
     const hasData = await loadState();
     if (hasData) { enterApp(); } else { showOnboarding(); }
   } else {
