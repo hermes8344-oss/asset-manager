@@ -538,6 +538,7 @@ body {
 .modal-overlay.open { display: flex; }
 .modal-sheet { background: var(--surface); border-radius: 24px 24px 0 0; padding: 1.25rem 1.25rem calc(.5rem + env(safe-area-inset-bottom, 0px)); width: 100%; max-width: 430px; max-height: 90vh; overflow-y: auto; animation: slideUp .25s ease; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes fadeSlideUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 @keyframes bounce-down { 0%,100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
 @keyframes slideUpBanner { from { transform: translateY(120%); opacity:0; } to { transform: translateY(0); opacity:1; } }
 #ios-install-banner > div { animation: slideUpBanner .35s cubic-bezier(.34,1.56,.64,1); }
@@ -2003,7 +2004,21 @@ function calcCategoryGoalCurrent(cat) {
   }, 0);
 }
 
+// 수입/지출 가로막대 빌더 (전역) — renderDashboard 및 showCfByMonth 양쪽에서 재사용
+function _buildCfBarHtml(segs, emptyMsg) {
+  if (!segs.length) return `<div class="hint-box" style="margin-top:.25rem;"><div class="hint-text">${emptyMsg}</div></div>`;
+  const tot = segs.reduce((s, g) => s + g.value, 0) || 1;
+  const barSegs = segs.map(g => `<div style="flex:${g.value};background:${g.color};"></div>`).join('');
+  const listItems = [...segs].sort((a, b) => b.value - a.value).map(g => {
+    const pct = g.value / tot * 100;
+    const pctStr = pct < 0.1 ? '0.1% 미만' : pct < 1 ? pct.toFixed(1)+'%' : Math.round(pct)+'%';
+    return `<div style="display:flex;align-items:center;gap:.45rem;padding:.22rem 0;"><div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${g.color};"></div><span style="font-size:12px;color:var(--text1);">${g.label}</span><span style="font-size:11px;color:var(--text3);margin-left:auto;">${pctStr}</span><span style="font-size:11px;color:var(--text2);min-width:46px;text-align:right;">${fmtAbs(g.value)}</span></div>`;
+  }).join('');
+  return `<div style="display:flex;height:18px;border-radius:9px;overflow:hidden;margin:.25rem 0 .1rem;">${barSegs}</div><div>${listItems}</div>`;
+}
+
 function renderDashboard() {
+  _cfSelectedMonth = null; // 탭 전환 시 구성 패널 초기화
   const cfg = state.config;
   const _isMobile = window.innerWidth < 900;
   const ym = getMostRecentDataYM();
@@ -2112,19 +2127,6 @@ function renderDashboard() {
     ? `<div style="display:flex;height:18px;border-radius:9px;overflow:hidden;margin:.2rem 0 .1rem;">${_assetBarSegs}</div><div>${_assetListItems}</div>`
     : `<div class="hint-box" style="margin-top:.5rem;"><div class="hint-text">계좌잔고를 입력하면 표시돼요</div></div>`;
 
-  // 수입/지출 가로막대 빌더 (자산구성과 동일한 스타일)
-  function _buildCfBarHtml(segs, emptyMsg) {
-    if (!segs.length) return `<div class="hint-box" style="margin-top:.25rem;"><div class="hint-text">${emptyMsg}</div></div>`;
-    const tot = segs.reduce((s, g) => s + g.value, 0) || 1;
-    const barSegs = segs.map(g => `<div style="flex:${g.value};background:${g.color};"></div>`).join('');
-    const listItems = [...segs].sort((a, b) => b.value - a.value).map(g => {
-      const pct = g.value / tot * 100;
-      const pctStr = pct < 0.1 ? '0.1% 미만' : pct < 1 ? pct.toFixed(1)+'%' : Math.round(pct)+'%';
-      return `<div style="display:flex;align-items:center;gap:.45rem;padding:.22rem 0;"><div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${g.color};"></div><span style="font-size:12px;color:var(--text1);">${g.label}</span><span style="font-size:11px;color:var(--text3);margin-left:auto;">${pctStr}</span><span style="font-size:11px;color:var(--text2);min-width:46px;text-align:right;">${fmtAbs(g.value)}</span></div>`;
-    }).join('');
-    return `<div style="display:flex;height:18px;border-radius:9px;overflow:hidden;margin:.25rem 0 .1rem;">${barSegs}</div><div>${listItems}</div>`;
-  }
-
   // 수입 도넛: label별
   const CF_COLORS = ['#0F6E56','#1D9E75','#378ADD','#534AB7','#BA7517','#A32D2D','#2EBC8C','#9B59B6'];
   const incomeMap = {};
@@ -2149,9 +2151,6 @@ function renderDashboard() {
   const expenseDonutSegs = Object.entries(expenseMap)
     .map(([label, value], i) => ({ label, value, color: CF_COLORS[(i+2) % CF_COLORS.length] }))
     .filter(seg => seg.value > 0);
-
-  const _incomeCfHtml  = _buildCfBarHtml(incomeDonutSegs,  '이달 수입 데이터 없음');
-  const _expenseCfHtml = _buildCfBarHtml(expenseDonutSegs, '이달 지출 데이터 없음');
 
   document.getElementById('dashboard-content').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.5rem;">
@@ -2230,24 +2229,11 @@ function renderDashboard() {
           </div>
         </div>
 
-        <div class="dash-row2">
-          <div class="card donut-tab-card" data-tab="cashflow">
-            <div class="section-title" style="margin-bottom:.4rem;display:flex;align-items:center;gap:.4rem;">수입 구성${isCfFallback ? `<span style="font-size:11px;font-weight:400;color:var(--text3);background:var(--surface2);padding:1px 6px;border-radius:6px;">${ymLabel(cfYm)} 기준</span>` : ''}</div>
-            ${_incomeCfHtml}
-            <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border);">
-              <div class="section-title" style="margin-bottom:.4rem;display:flex;align-items:center;gap:.4rem;">지출 구성${isCfFallback ? `<span style="font-size:11px;font-weight:400;color:var(--text3);background:var(--surface2);padding:1px 6px;border-radius:6px;">${ymLabel(cfYm)} 기준</span>` : ''}</div>
-              ${_expenseCfHtml}
-            </div>
-            <div class="cf-asset-section" style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border);">
-              <div class="section-title" style="margin-bottom:.4rem;">자산 구성</div>
-              ${_assetCompHtml}
-            </div>
-          </div>
+        <div id="cf-composition-panel" style="display:none;margin-bottom:.75rem;"></div>
 
-          <div class="card donut-tab-card asset-pc-only" data-tab="asset">
-            <div class="section-title" style="margin-bottom:.5rem;">자산 구성</div>
-            ${_assetCompHtml}
-          </div>
+        <div class="card" style="margin-bottom:.75rem;">
+          <div class="section-title" style="margin-bottom:.4rem;">자산 구성</div>
+          ${_assetCompHtml}
         </div>
       </div>
 
@@ -2427,6 +2413,7 @@ function drawAnnualStackedBar(svgId, year, force=false) {
 }
 
 let graphData = {};
+let _cfSelectedMonth = null; // 0~11, null이면 구성 패널 닫힘
 let annualTipData = [];
 
 function initGraphs() {
@@ -2494,6 +2481,68 @@ function showAnnualTip(evt, i) {
 function showBarTip(evt, i) {
   const d = graphData;
   showChartTip(evt, `<b>${d.months[i]}월</b><br><span style="color:#0F6E56">▲ 수입 ${fmtW(d.incomeData[i])}</span><br><span style="color:#A32D2D">▼ 지출 ${fmtW(d.expenseData[i])}</span>`);
+}
+
+function selectCfMonth(idx) {
+  hideChartTip();
+  if (_cfSelectedMonth === idx) {
+    _cfSelectedMonth = null;
+    const panel = document.getElementById('cf-composition-panel');
+    if (panel) panel.style.display = 'none';
+  } else {
+    _cfSelectedMonth = idx;
+    showCfByMonth(idx);
+  }
+  drawGraph(state.graphMode);
+}
+
+function showCfByMonth(idx) {
+  const year = state.currentMonth.split('-')[0];
+  const ym = `${year}-${String(idx + 1).padStart(2,'0')}`;
+  const CF_COLORS = ['#0F6E56','#1D9E75','#378ADD','#534AB7','#BA7517','#A32D2D','#2EBC8C','#9B59B6'];
+
+  const cf = state.cashflow[ym] || {};
+
+  // 수입 구성
+  const incomeMap = {};
+  (cf.income||[]).forEach(r => {
+    const amt = r.amount !== undefined ? (parseNum(r.amount)||0) : ((parseNum(r.member1)||0)+(parseNum(r.member2)||0));
+    const key = r.label || '기타';
+    incomeMap[key] = (incomeMap[key]||0) + amt;
+  });
+  const incSegs = Object.entries(incomeMap)
+    .map(([label, value], i) => ({ label, value, color: CF_COLORS[i % CF_COLORS.length] }))
+    .filter(s => s.value > 0);
+
+  // 지출 구성
+  const expenseMap = {};
+  (cf.expense||[]).forEach(r => {
+    const key = r.type || r.label || '기타';
+    expenseMap[key] = (expenseMap[key]||0) + (parseNum(r.amount)||0);
+  });
+  const specialTotal = (cf.special||[]).reduce((a, r) => a + (parseNum(r.amount)||0), 0);
+  if (specialTotal > 0) expenseMap['특별지출'] = (expenseMap['특별지출']||0) + specialTotal;
+  const expSegs = Object.entries(expenseMap)
+    .map(([label, value], i) => ({ label, value, color: CF_COLORS[(i+2) % CF_COLORS.length] }))
+    .filter(s => s.value > 0);
+
+  const monthLabel = `${parseInt(ym.split('-')[1])}월`;
+  const panel = document.getElementById('cf-composition-panel');
+  if (!panel) return;
+  panel.innerHTML = `
+    <div class="card" style="animation:fadeSlideUp .2s ease both;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;">
+        <div class="section-title" style="margin:0;">${monthLabel} 수입/지출 구성</div>
+        <button onclick="selectCfMonth(${idx})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1;padding:0 4px;" title="닫기">✕</button>
+      </div>
+      <div class="section-title" style="margin-bottom:.3rem;font-size:11px;color:var(--green);">수입</div>
+      ${_buildCfBarHtml(incSegs, '수입 데이터 없음')}
+      <div style="margin-top:.65rem;padding-top:.65rem;border-top:1px solid var(--border);">
+        <div class="section-title" style="margin-bottom:.3rem;font-size:11px;color:var(--red);">지출</div>
+        ${_buildCfBarHtml(expSegs, '지출 데이터 없음')}
+      </div>
+    </div>`;
+  panel.style.display = 'block';
 }
 
 function drawDonutChart(svgId, segments) {
@@ -2613,12 +2662,16 @@ function drawGraph(mode) {
       const incH = maxVal > 0 ? (d.incomeData[i] / maxVal) * cH : 0;
       const expH = maxVal > 0 ? (d.expenseData[i] / maxVal) * cH : 0;
       const isCurrent = (i + 1) === d.nowM;
+      const isSelected = (i === _cfSelectedMonth);
       const incColor = isCurrent ? '#0F6E56' : '#9FE1CB';
       const expColor = isCurrent ? '#A32D2D' : '#F5C4B3';
-      if (isCurrent) svgStr += `<rect x="${PAD_L + i * slotW}" y="${PAD_T}" width="${slotW}" height="${cH}" fill="rgba(83,74,183,.08)" rx="2"/>`;
+      if (isCurrent || isSelected) {
+        const bg = isSelected ? 'rgba(83,74,183,.18)' : 'rgba(83,74,183,.08)';
+        svgStr += `<rect x="${PAD_L + i * slotW}" y="${PAD_T}" width="${slotW}" height="${cH}" fill="${bg}" rx="2"/>`;
+      }
       if (incH > 0) svgStr += `<rect x="${cx - barW - 1}" y="${PAD_T + cH - incH}" width="${barW}" height="${incH}" fill="${incColor}" rx="1"/>`;
       if (expH > 0) svgStr += `<rect x="${cx + 1}" y="${PAD_T + cH - expH}" width="${barW}" height="${expH}" fill="${expColor}" rx="1"/>`;
-      svgStr += `<rect x="${cx - barW - 2}" y="${PAD_T}" width="${(barW + 2) * 2}" height="${cH}" fill="transparent" style="cursor:default" onmouseover="showBarTip(event,${i})" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()"/>`;
+      svgStr += `<rect x="${cx - barW - 2}" y="${PAD_T}" width="${(barW + 2) * 2}" height="${cH}" fill="transparent" style="cursor:pointer" onmouseover="showBarTip(event,${i})" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" onclick="selectCfMonth(${i})" ontouchstart="selectCfMonth(${i});event.preventDefault()"/>`;
     }
 
   } else {
