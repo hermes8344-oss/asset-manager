@@ -292,10 +292,8 @@ body {
   border-radius: var(--r-xs); padding: .25rem .6rem;
   font-size: 13px; font-weight: 600; color: var(--text1); cursor: pointer;
 }
-.lock-wrap { display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
-.lock-icon { font-size: 14px; }
-.lock-text { font-size: 12px; color: var(--text3); }
-.lock-text.editing { color: var(--accent); font-weight: 600; }
+/* .lock-wrap 제거 — PC 수정하기 버튼으로 대체 */
+.pc-edit-btn { display: none; }
 
 /* ── 카테고리 칩 (sticky) ── */
 .cat-chips {
@@ -616,16 +614,19 @@ body {
   transition: background-color .25s ease, color .25s ease, border-color .25s ease !important;
 }
 
-/* ── 수정하기 버튼 스타일 ── */
-.lock-edit-hint {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xs);
-  padding: .25rem .6rem;
-  transition: border-color .15s;
+/* ── PC 수정하기 버튼 ── */
+@media (min-width: 900px) {
+  .pc-edit-btn {
+    display: inline-flex; align-items: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xs);
+    padding: .25rem .7rem;
+    font-size: 12px; font-weight: 600; color: var(--text2);
+    cursor: pointer; transition: border-color .15s;
+  }
+  .pc-edit-btn:hover { border-color: var(--accent); color: var(--accent); }
 }
-.lock-edit-hint:hover { border-color: var(--accent); }
-.lock-edit-hint .lock-text { color: var(--text2); font-weight: 600; }
 
 /* ── 편집 모드 fixed 하단 바 ── */
 #edit-action-bar {
@@ -709,67 +710,7 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 }
 .missing-banner-text { font-size: 12px; color: var(--amber); font-weight: 500; }
 
-/* ── 코치마크 ── */
-.coach-overlay {
-  position: fixed; inset: 0; z-index: 9000;
-  background: rgba(0,0,0,0.55);
-  display: flex; align-items: flex-start; justify-content: flex-end;
-}
-.coach-box {
-  position: absolute;
-  top: 88px; right: 12px;
-  background: var(--surface);
-  border-radius: var(--r);
-  padding: 1rem;
-  width: 240px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.28);
-  border: 1.5px solid var(--accent);
-}
-.coach-arrow {
-  position: absolute;
-  top: -10px; right: 28px;
-  width: 0; height: 0;
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-bottom: 10px solid var(--accent);
-}
-.coach-arrow::after {
-  content: '';
-  position: absolute;
-  top: 2px; left: -9px;
-  width: 0; height: 0;
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  border-bottom: 9px solid var(--surface);
-}
-.coach-preview {
-  background: var(--surface2);
-  border-radius: var(--r-sm);
-  padding: .6rem .75rem;
-  margin-bottom: .75rem;
-  display: flex; align-items: center; gap: .5rem;
-  border: 1px solid var(--border);
-}
-.coach-lock-demo {
-  font-size: 20px; line-height: 1;
-}
-.coach-lock-label {
-  font-size: 12px; color: var(--text2); font-weight: 500;
-}
-.coach-title {
-  font-size: 13px; font-weight: 700; color: var(--text1);
-  margin-bottom: .35rem;
-}
-.coach-desc {
-  font-size: 11px; color: var(--text2); line-height: 1.55;
-  margin-bottom: .75rem;
-}
-.coach-btn {
-  width: 100%; padding: .5rem;
-  background: var(--accent); color: #fff;
-  border: none; border-radius: var(--r-xs);
-  font-size: 13px; font-weight: 600; cursor: pointer;
-}
+/* 코치마크 제거됨 */
 
 /* ── 힌트 박스 ── */
 .hint-box { background: var(--surface2); border-radius: var(--r-sm); padding: .75rem 1rem; text-align: center; }
@@ -3043,10 +2984,7 @@ function renderBalance() {
           <button class="hdr-add" onclick="openAccountModal()">+ 계좌</button>
           <button class="hdr-save" onclick="saveBalance()">저장</button>
         </div>` : ''}
-        <div class="lock-wrap ${isEdit ? '' : 'lock-edit-hint'}" onclick="toggleBalanceEdit()">
-          <span class="lock-icon">${isEdit ? '🔓' : '🔒'}</span>
-          <span class="lock-text ${isEdit?'editing':''}">${isEdit ? '편집 중' : '수정하기'}</span>
-        </div>
+        ${!isEdit ? `<button class="pc-edit-btn" onclick="toggleBalanceEdit()">수정하기</button>` : ''}
       </div>
     </div>
 
@@ -3103,8 +3041,6 @@ function renderBalance() {
 
   // 터치 드래그 정렬 설정
   if (isEdit) setupAccTouchDrag();
-  // 첫 방문 시 코치마크
-  setTimeout(() => showCoachMark('balance'), 400);
   updateFab();
 }
 
@@ -3920,10 +3856,7 @@ function renderCashflow() {
           <button class="hdr-cancel" onclick="cancelCashflowEdit()">취소</button>
           <button class="hdr-save" onclick="saveCashflow()">저장</button>
         </div>` : ''}
-        <div class="lock-wrap ${isEdit ? '' : 'lock-edit-hint'}" onclick="toggleCashflowEdit()">
-          <span class="lock-icon">${isEdit ? '🔓' : '🔒'}</span>
-          <span class="lock-text ${isEdit?'editing':''}">${isEdit ? '편집 중' : '수정하기'}</span>
-        </div>
+        ${!isEdit ? `<button class="pc-edit-btn" onclick="toggleCashflowEdit()">수정하기</button>` : ''}
       </div>
     </div>
 
@@ -4065,8 +3998,6 @@ function renderCashflow() {
     });
   }
 
-  // 첫 방문 시 코치마크
-  setTimeout(() => showCoachMark('cashflow'), 400);
   updateFab();
 }
 
