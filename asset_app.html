@@ -2900,8 +2900,9 @@ function renderBalance() {
       }).join('');
     }
 
+    const catTotalColor = isDebt ? 'var(--red)' : ({'현금성':'var(--blue)','투자':'var(--green)','저축':'var(--amber)','노후자금':'var(--accent)','장기자산':'var(--teal)'}[cat] || 'var(--accent)');
     const catTotalHtml = accs.length > 0
-      ? `<div class="cat-total" style="color:${isDebt ? 'var(--red)' : 'var(--accent)'};">${isDebt ? (dispTotal ? '-'+fmtW(Math.abs(dispTotal)) : '-') : fmtW(total)}</div>`
+      ? `<div class="cat-total" style="color:${catTotalColor};">${isDebt ? (dispTotal ? '-'+fmtW(Math.abs(dispTotal)) : '-') : fmtW(total)}</div>`
       : '';
     const tableContent = `<div class="acct-list">${rows}</div>`;
     const addBtnHtml = isEdit
