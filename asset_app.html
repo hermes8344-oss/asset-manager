@@ -1312,10 +1312,9 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
   </div>
 </div>
 
-<!-- 목표 추가 모달 -->
-<div class="modal-overlay" id="goal-modal" onclick="if(event.target===this)closeGoalModal()">
+<!-- 목표 추가/수정 팝업 -->
+<div class="modal-overlay modal-popup" id="goal-modal" onclick="if(event.target===this)closeGoalModal()">
   <div class="modal-sheet">
-    <div class="modal-handle"></div>
     <div class="modal-header">
       <div class="modal-title">목표 추가</div>
       <button class="close-btn" onclick="closeGoalModal()">✕</button>
@@ -6841,7 +6840,7 @@ setupSwipeToClose('account-modal', closeAccountModal);
 setupSwipeToClose('cf-modal', closeCFModal);
 setupSwipeToClose('fixed-modal', closeFixedModal);
 setupSwipeToClose('auto-transfer-modal', closeAutoTransferModal);
-setupSwipeToClose('goal-modal', closeGoalModal);
+// goal-modal은 중앙 팝업 방식 → 스와이프 닫기 불필요
 
 // data-table 내 Tab 키로 다음 input 이동
 document.addEventListener('keydown', function(e) {
