@@ -2905,9 +2905,6 @@ function renderBalance() {
     const catTotalHtml = accs.length > 0
       ? `<div class="cat-total" style="color:${isDebt ? 'var(--red)' : 'var(--accent)'};">${isDebt ? (dispTotal ? '-'+fmtW(Math.abs(dispTotal)) : '-') : fmtW(total)}</div>`
       : '';
-    const sbarHtml = accs.length > 0
-      ? `<div class="sbar"><span class="sbar-label">${cat} 합계</span><span class="sbar-value" style="color:${isDebt?'var(--red)':'var(--text1)'};">${isDebt ? (dispTotal ? '-'+fmtW(Math.abs(dispTotal)) : '-') : fmtW(total)}</span></div>`
-      : '';
     const tableContent = `<div class="acct-list">${rows}</div>`;
     const addBtnHtml = isEdit
       ? `<button class="add-btn" style="margin-top:.5rem;" onclick="openAccountModal('${cat}')">+ ${cat} 계좌 추가</button>`
@@ -2919,7 +2916,6 @@ function renderBalance() {
           ${catTotalHtml}
         </div>
         ${tableContent}
-        ${sbarHtml}
         ${addBtnHtml}
       </div>`;
   });
@@ -3890,7 +3886,6 @@ function renderCashflow() {
                 ${incomeRows || `<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 수입 항목 추가 버튼으로 등록해보세요' : '이달 수입 내역이 없어요'}</div>`}
               </div>
               ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('income')">+ 수입 항목 추가</button>` : ''}
-              <div class="sbar"><span class="sbar-label">총수입</span><span class="sbar-value" style="color:var(--green);">${fmtW(incomeTotal)}</span></div>
             </div>
             ${savingsListHtml}
           </div>
@@ -3905,7 +3900,6 @@ function renderCashflow() {
                 ${expenseRows || `<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 지출 항목 추가 버튼으로 등록해보세요' : '이달 지출 내역이 없어요'}</div>`}
               </div>
               ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('expense')">+ 지출 항목 추가</button>` : ''}
-              <div class="sbar"><span class="sbar-label">총지출</span><span class="sbar-value" style="color:var(--red);">${fmtW(expenseTotal)}</span></div>
             </div>
             ${specialHtml}
           </div>
