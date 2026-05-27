@@ -2166,7 +2166,7 @@ function renderDashboard() {
     return `<div style="display:flex;align-items:center;gap:.45rem;padding:.28rem 0;"><div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${seg.color};"></div><span style="font-size:12px;color:var(--text1);">${seg.label}</span><span style="font-size:11px;color:var(--text3);margin-left:auto;">${pctStr}</span><span style="font-size:11px;color:var(--text2);min-width:46px;text-align:right;">${fmtAbs(seg.value)}</span></div>`;
   }).join('');
   const _assetCompHtml = assetDonutSegs.length > 0
-    ? `<div style="display:flex;height:22px;border-radius:11px;overflow:hidden;margin:.2rem 0 .1rem;">${_assetBarSegs}</div><div>${_assetListItems}</div>`
+    ? `<div style="display:flex;height:18px;border-radius:9px;overflow:hidden;margin:.2rem 0 .1rem;">${_assetBarSegs}</div><div>${_assetListItems}</div>`
     : `<div class="hint-box" style="margin-top:.5rem;"><div class="hint-text">계좌잔고를 입력하면 표시돼요</div></div>`;
 
   // 수입/지출 가로막대 빌더 (자산구성과 동일한 스타일)
@@ -2288,7 +2288,7 @@ function renderDashboard() {
           <div class="card donut-tab-card" data-tab="cashflow">
             <div class="section-title" style="margin-bottom:.4rem;">수입 구성</div>
             ${_incomeCfHtml}
-            <div style="margin-top:.75rem;">
+            <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border);">
               <div class="section-title" style="margin-bottom:.4rem;">지출 구성</div>
               ${_expenseCfHtml}
             </div>
