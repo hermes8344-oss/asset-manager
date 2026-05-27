@@ -2026,21 +2026,7 @@ function calcCategoryGoalCurrent(cat) {
   }, 0);
 }
 
-// 수입/지출 가로막대 빌더 (전역) — renderDashboard 및 showCfByMonth 양쪽에서 재사용
-function _buildCfBarHtml(segs, emptyMsg) {
-  if (!segs.length) return `<div class="hint-box" style="margin-top:.25rem;"><div class="hint-text">${emptyMsg}</div></div>`;
-  const tot = segs.reduce((s, g) => s + g.value, 0) || 1;
-  const barSegs = segs.map(g => `<div style="flex:${g.value};background:${g.color};"></div>`).join('');
-  const listItems = [...segs].sort((a, b) => b.value - a.value).map(g => {
-    const pct = g.value / tot * 100;
-    const pctStr = pct < 0.1 ? '0.1% 미만' : pct < 1 ? pct.toFixed(1)+'%' : Math.round(pct)+'%';
-    return `<div style="display:flex;align-items:center;gap:.45rem;padding:.22rem 0;"><div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${g.color};"></div><span style="font-size:12px;color:var(--text1);">${g.label}</span><span style="font-size:11px;color:var(--text3);margin-left:auto;">${pctStr}</span><span style="font-size:11px;color:var(--text2);min-width:46px;text-align:right;">${fmtAbs(g.value)}</span></div>`;
-  }).join('');
-  return `<div style="display:flex;height:18px;border-radius:9px;overflow:hidden;margin:.25rem 0 .1rem;">${barSegs}</div><div>${listItems}</div>`;
-}
-
 function renderDashboard() {
-  _cfSelectedMonth = null; // 탭 전환 시 구성 패널 초기화
   const cfg = state.config;
   const _isMobile = window.innerWidth < 900;
   const ym = getMostRecentDataYM();
@@ -2232,8 +2218,6 @@ function renderDashboard() {
           </div>
         </div>
 
-        <div id="cf-composition-panel" style="display:none;margin-bottom:.75rem;"></div>
-
       </div>
 
       <div class="dash-aside">
@@ -2405,14 +2389,13 @@ function drawAnnualStackedBar(svgId, year, force=false) {
 }
 
 let graphData = {};
-let _cfSelectedMonth = null; // 0~11, null이면 구성 패널 닫힘
 let annualTipData = [];
 
 function initGraphs() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const months = ['1','2','3','4','5','6','7','8','9','10','11','12'];
   const year = state.currentMonth.split('-')[0];
-  const incomeData = [], expenseData = [], netData = [], netDashData = [];
+  const incomeData = [], expenseData = [], netData = [], netDashData = [], barTipData = [];
   const now = new Date();
   const nowM = now.getMonth() + 1;
 
@@ -2424,6 +2407,31 @@ function initGraphs() {
     const exp = (cf.expense||[]).reduce((s,r)=>s+(parseNum(r.amount)||0),0);
     incomeData.push(inc);
     expenseData.push(exp);
+
+    // 수입/지출 툴팁 breakdown
+    const incItems = (cf.income||[]).map(r => ({
+      label: r.label||'기타',
+      amt: r.amount!==undefined ? (parseNum(r.amount)||0) : (parseNum(r.member1)||0)+(parseNum(r.member2)||0)
+    })).filter(r => r.amt > 0);
+    const expItems = (cf.expense||[]).map(r => ({
+      label: r.label||'기타',
+      amt: parseNum(r.amount)||0
+    })).filter(r => r.amt > 0);
+    const specialTotal = (cf.special||[]).reduce((s,r)=>s+(parseNum(r.amount)||0),0);
+    let tipHtml = `<b>${m}월</b>`;
+    if (inc === 0 && exp === 0) {
+      tipHtml += `<br><span style="color:var(--text3)">데이터 없음</span>`;
+    } else {
+      tipHtml += `<br><span style="color:var(--green)">▲ 수입 ${fmtAbs(inc)}</span>`;
+      incItems.slice(0,4).forEach(r => { tipHtml += `<br><span style="color:var(--text2);padding-left:8px"> · ${r.label} ${fmtAbs(r.amt)}</span>`; });
+      if (incItems.length > 4) tipHtml += `<br><span style="color:var(--text3);padding-left:8px"> · 외 ${incItems.length-4}건</span>`;
+      tipHtml += `<br><span style="color:var(--red)">▼ 지출 ${fmtAbs(exp)}</span>`;
+      expItems.slice(0,4).forEach(r => { tipHtml += `<br><span style="color:var(--text2);padding-left:8px"> · ${r.label} ${fmtAbs(r.amt)}</span>`; });
+      if (expItems.length > 4) tipHtml += `<br><span style="color:var(--text3);padding-left:8px"> · 외 ${expItems.length-4}건</span>`;
+      if (specialTotal > 0) tipHtml += `<br><span style="color:var(--amber);padding-left:8px"> · 특별지출 ${fmtAbs(specialTotal)}</span>`;
+    }
+    barTipData.push(tipHtml);
+
     // 현재 연도에서 현재월 이후는 순자산 미표시 (대출 자동계산값 노출 방지)
     if (isCurrentYear && m > nowM) {
       netData.push(null); netDashData.push(null);
@@ -2451,7 +2459,7 @@ function initGraphs() {
   const cleanNetData = hasNetData ? netData : netData.map(() => null);
   const cleanNetDash = hasNetData ? netDashData : netDashData.map(() => null);
 
-  graphData = { months, incomeData, expenseData, cleanNetData, cleanNetDash, isDark, nowM };
+  graphData = { months, incomeData, expenseData, cleanNetData, cleanNetDash, isDark, nowM, barTipData };
   drawGraph('bar');
 }
 
@@ -2478,69 +2486,8 @@ function showAnnualTip(evt, i) {
 }
 function showBarTip(evt, i) {
   const d = graphData;
-  showChartTip(evt, `<b>${d.months[i]}월</b><br><span style="color:#0F6E56">▲ 수입 ${fmtW(d.incomeData[i])}</span><br><span style="color:#A32D2D">▼ 지출 ${fmtW(d.expenseData[i])}</span>`);
-}
-
-function selectCfMonth(idx) {
-  hideChartTip();
-  if (_cfSelectedMonth === idx) {
-    _cfSelectedMonth = null;
-    const panel = document.getElementById('cf-composition-panel');
-    if (panel) panel.style.display = 'none';
-  } else {
-    _cfSelectedMonth = idx;
-    showCfByMonth(idx);
-  }
-  drawGraph(state.graphMode);
-}
-
-function showCfByMonth(idx) {
-  const year = state.currentMonth.split('-')[0];
-  const ym = `${year}-${String(idx + 1).padStart(2,'0')}`;
-  const CF_COLORS = ['#0F6E56','#1D9E75','#378ADD','#534AB7','#BA7517','#A32D2D','#2EBC8C','#9B59B6'];
-
-  const cf = state.cashflow[ym] || {};
-
-  // 수입 구성
-  const incomeMap = {};
-  (cf.income||[]).forEach(r => {
-    const amt = r.amount !== undefined ? (parseNum(r.amount)||0) : ((parseNum(r.member1)||0)+(parseNum(r.member2)||0));
-    const key = r.label || '기타';
-    incomeMap[key] = (incomeMap[key]||0) + amt;
-  });
-  const incSegs = Object.entries(incomeMap)
-    .map(([label, value], i) => ({ label, value, color: CF_COLORS[i % CF_COLORS.length] }))
-    .filter(s => s.value > 0);
-
-  // 지출 구성
-  const expenseMap = {};
-  (cf.expense||[]).forEach(r => {
-    const key = r.type || r.label || '기타';
-    expenseMap[key] = (expenseMap[key]||0) + (parseNum(r.amount)||0);
-  });
-  const specialTotal = (cf.special||[]).reduce((a, r) => a + (parseNum(r.amount)||0), 0);
-  if (specialTotal > 0) expenseMap['특별지출'] = (expenseMap['특별지출']||0) + specialTotal;
-  const expSegs = Object.entries(expenseMap)
-    .map(([label, value], i) => ({ label, value, color: CF_COLORS[(i+2) % CF_COLORS.length] }))
-    .filter(s => s.value > 0);
-
-  const monthLabel = `${parseInt(ym.split('-')[1])}월`;
-  const panel = document.getElementById('cf-composition-panel');
-  if (!panel) return;
-  panel.innerHTML = `
-    <div class="card" style="animation:fadeSlideUp .2s ease both;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;">
-        <div class="section-title" style="margin:0;">${monthLabel} 수입/지출 구성</div>
-        <button onclick="selectCfMonth(${idx})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1;padding:0 4px;" title="닫기">✕</button>
-      </div>
-      <div class="section-title" style="margin-bottom:.3rem;font-size:11px;color:var(--green);">수입</div>
-      ${_buildCfBarHtml(incSegs, '수입 데이터 없음')}
-      <div style="margin-top:.65rem;padding-top:.65rem;border-top:1px solid var(--border);">
-        <div class="section-title" style="margin-bottom:.3rem;font-size:11px;color:var(--red);">지출</div>
-        ${_buildCfBarHtml(expSegs, '지출 데이터 없음')}
-      </div>
-    </div>`;
-  panel.style.display = 'block';
+  if (!d.barTipData || !d.barTipData[i]) return;
+  showChartTip(evt, d.barTipData[i]);
 }
 
 function drawDonutChart(svgId, segments) {
@@ -2660,16 +2607,14 @@ function drawGraph(mode) {
       const incH = maxVal > 0 ? (d.incomeData[i] / maxVal) * cH : 0;
       const expH = maxVal > 0 ? (d.expenseData[i] / maxVal) * cH : 0;
       const isCurrent = (i + 1) === d.nowM;
-      const isSelected = (i === _cfSelectedMonth);
       const incColor = isCurrent ? '#0F6E56' : '#9FE1CB';
       const expColor = isCurrent ? '#A32D2D' : '#F5C4B3';
-      if (isCurrent || isSelected) {
-        const bg = isSelected ? 'rgba(83,74,183,.18)' : 'rgba(83,74,183,.08)';
-        svgStr += `<rect x="${PAD_L + i * slotW}" y="${PAD_T}" width="${slotW}" height="${cH}" fill="${bg}" rx="2"/>`;
+      if (isCurrent) {
+        svgStr += `<rect x="${PAD_L + i * slotW}" y="${PAD_T}" width="${slotW}" height="${cH}" fill="rgba(83,74,183,.08)" rx="2"/>`;
       }
       if (incH > 0) svgStr += `<rect x="${cx - barW - 1}" y="${PAD_T + cH - incH}" width="${barW}" height="${incH}" fill="${incColor}" rx="1"/>`;
       if (expH > 0) svgStr += `<rect x="${cx + 1}" y="${PAD_T + cH - expH}" width="${barW}" height="${expH}" fill="${expColor}" rx="1"/>`;
-      svgStr += `<rect x="${cx - barW - 2}" y="${PAD_T}" width="${(barW + 2) * 2}" height="${cH}" fill="transparent" style="cursor:pointer" onmouseover="showBarTip(event,${i})" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" onclick="selectCfMonth(${i})" ontouchstart="selectCfMonth(${i});event.preventDefault()"/>`;
+      svgStr += `<rect x="${cx - barW - 2}" y="${PAD_T}" width="${(barW + 2) * 2}" height="${cH}" fill="transparent" onmouseover="showBarTip(event,${i})" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" ontouchstart="showBarTip(event,${i});event.preventDefault()" ontouchend="hideChartTip()"/>`;
     }
 
   } else {
@@ -7055,6 +7000,6 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <div id="toast"></div>
-<div id="chart-tip" style="position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;pointer-events:none;display:none;z-index:9999;color:var(--text1);box-shadow:0 2px 10px rgba(0,0,0,.18);white-space:nowrap;line-height:1.7;"></div>
+<div id="chart-tip" style="position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;pointer-events:none;display:none;z-index:9999;color:var(--text1);box-shadow:0 2px 10px rgba(0,0,0,.18);max-width:200px;white-space:normal;word-break:keep-all;line-height:1.7;"></div>
 </body>
 </html>
