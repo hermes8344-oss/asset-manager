@@ -621,6 +621,8 @@ body {
 /* 모달 열릴 때 — 배경 스크롤 차단 + 하단 편집바 숨김 (모든 modal-overlay 공통) */
 body:has(.modal-overlay.open) { overflow: hidden; }
 body:has(.modal-overlay.open) #edit-action-bar { display: none !important; }
+/* 모달 열릴 때 화면 컨테이너(.screen) 스크롤도 차단 (iOS Safari 대응) */
+body:has(.modal-overlay.open) .screen { overflow: hidden; }
 /* 모달 시트 내부 오버스크롤이 배경으로 전파되지 않도록 격리 */
 .modal-sheet { overscroll-behavior: contain; }
 /* 헤더 인라인 편집 버튼 (PC 전용) */
@@ -6778,10 +6780,15 @@ async function init() {
   document.documentElement.setAttribute('data-theme', savedTheme || (systemDark ? 'dark' : 'light'));
   seedDemoData();
 
-  // 모든 modal-overlay: 모달 바깥 영역 터치 시 배경 스크롤 차단 (iOS Safari 대응)
+  // 모든 modal-overlay: 배경 스크롤 차단 (iOS Safari 대응)
+  // - 모달 시트 바깥 터치 → 항상 차단
+  // - 모달 시트 내부 터치 → 시트 내용이 넘치지 않을 때(스크롤 불필요) 차단
   document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
     overlay.addEventListener('touchmove', function(e) {
-      if (!e.target.closest('.modal-sheet')) e.preventDefault();
+      var sheet = e.target.closest('.modal-sheet');
+      if (!sheet) { e.preventDefault(); return; }
+      // 시트가 스크롤 불필요하면 배경 전파 차단
+      if (sheet.scrollHeight <= sheet.clientHeight) e.preventDefault();
     }, { passive: false });
   });
 
