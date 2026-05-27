@@ -509,7 +509,7 @@ body {
 /* ── 모달 (계좌 추가) ── */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; justify-content: center; align-items: flex-end; }
 .modal-overlay.open { display: flex; }
-.modal-sheet { background: var(--surface); border-radius: 24px 24px 0 0; padding: 1.25rem 1.25rem .5rem; width: 100%; max-width: 430px; max-height: 90vh; overflow-y: auto; animation: slideUp .25s ease; }
+.modal-sheet { background: var(--surface); border-radius: 24px 24px 0 0; padding: 1.25rem 1.25rem calc(.5rem + env(safe-area-inset-bottom, 0px)); width: 100%; max-width: 430px; max-height: 90vh; overflow-y: auto; animation: slideUp .25s ease; }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes bounce-down { 0%,100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
 @keyframes slideUpBanner { from { transform: translateY(120%); opacity:0; } to { transform: translateY(0); opacity:1; } }
@@ -616,6 +616,8 @@ body {
 @media (min-width: 900px) {
   #edit-action-bar { display: none !important; }
 }
+/* 모바일: 행 편집 모달 열릴 때 하단 바 숨김 (z-index 충돌 + 버튼 중복 방지) */
+#row-edit-modal.open ~ #edit-action-bar { display: none !important; }
 /* 헤더 인라인 편집 버튼 (PC 전용) */
 .hdr-edit-btns { display: none; align-items: center; gap: .5rem; }
 @media (min-width: 900px) { .hdr-edit-btns { display: flex; } }
