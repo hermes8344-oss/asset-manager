@@ -6775,16 +6775,16 @@ async function init() {
   seedDemoData();
 
   // 모든 modal-overlay: 배경 스크롤 차단 (iOS Safari 대응)
-  // - 모달 시트 바깥 터치 → 항상 차단
-  // - 모달 시트 내부 터치 → 시트 내용이 넘치지 않을 때(스크롤 불필요) 차단
-  document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
-    overlay.addEventListener('touchmove', function(e) {
-      var sheet = e.target.closest('.modal-sheet');
-      if (!sheet) { e.preventDefault(); return; }
-      // 시트가 스크롤 불필요하면 배경 전파 차단
-      if (sheet.scrollHeight <= sheet.clientHeight) e.preventDefault();
-    }, { passive: false });
-  });
+  // document 전역 위임 → 스크립트 실행 이후 추가된 모달(name-edit-modal 등)도 커버
+  // - 열린 모달 바깥 터치 → 항상 차단
+  // - 시트 내부 터치 → 내용이 스크롤 불필요하면 차단
+  document.addEventListener('touchmove', function(e) {
+    var overlay = e.target.closest('.modal-overlay');
+    if (!overlay || !overlay.classList.contains('open')) return;
+    var sheet = e.target.closest('.modal-sheet');
+    if (!sheet) { e.preventDefault(); return; }
+    if (sheet.scrollHeight <= sheet.clientHeight) e.preventDefault();
+  }, { passive: false });
 
   await handleAuthCallback();
 }
