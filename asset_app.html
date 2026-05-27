@@ -175,9 +175,10 @@ body {
   background: var(--accent);
   color: #fff;
 }
-.donut-tab-btns { display: flex; gap: 6px; margin-bottom: .5rem; }
-.donut-tab-card { display: none; }
-.donut-tab-card.active { display: block; }
+.donut-tab-btns { display: none; }          /* 탭 버튼 모바일에서 완전 제거 */
+.donut-tab-card { display: block; }         /* 모든 카드 항상 표시 */
+.cf-asset-section { display: block; }       /* 모바일: cashflow 카드 내 자산구성 표시 */
+.asset-pc-only { display: none; }           /* 모바일: 별도 자산 카드 숨김 */
 
 /* ── 요약 행 ── */
 .sum-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: .38rem 0; border-bottom: 1px solid var(--border); }
@@ -912,6 +913,8 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
   .dash-row2 > .card { margin-bottom: 0; }
   .donut-tab-btns { display: none; }
   .donut-tab-card { display: block !important; }
+  .cf-asset-section { display: none !important; }  /* PC: cashflow 카드 내 자산 숨김 */
+  .asset-pc-only { display: block !important; }    /* PC: 별도 자산 카드 표시 */
   .chart-container { height: 180px; }
   .donut-inner { flex-direction: row; align-items: center; gap: 1rem; }
   .donut-inner .donut-legend { margin-top: 0; flex: 1; }
@@ -2281,21 +2284,21 @@ function renderDashboard() {
           </div>
         </div>
 
-        <div class="donut-tab-btns">
-          <button class="graph-pill ${dashDonutTab==='cashflow'?'active':''}" onclick="setDonutTab('cashflow')">수입 및 지출</button>
-          <button class="graph-pill ${dashDonutTab==='asset'?'active':''}" onclick="setDonutTab('asset')">자산 구성</button>
-        </div>
         <div class="dash-row2">
-          <div class="card donut-tab-card ${dashDonutTab==='cashflow'?'active':''}" data-tab="cashflow">
+          <div class="card donut-tab-card" data-tab="cashflow">
             <div class="section-title" style="margin-bottom:.4rem;">수입 구성</div>
             ${_incomeCfHtml}
             <div style="margin-top:.75rem;">
               <div class="section-title" style="margin-bottom:.4rem;">지출 구성</div>
               ${_expenseCfHtml}
             </div>
+            <div class="cf-asset-section" style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border);">
+              <div class="section-title" style="margin-bottom:.4rem;">자산 구성</div>
+              ${_assetCompHtml}
+            </div>
           </div>
 
-          <div class="card donut-tab-card ${dashDonutTab==='asset'?'active':''}" data-tab="asset">
+          <div class="card donut-tab-card asset-pc-only" data-tab="asset">
             <div class="section-title" style="margin-bottom:.5rem;">자산 구성</div>
             ${_assetCompHtml}
           </div>
