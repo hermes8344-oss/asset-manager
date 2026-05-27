@@ -110,11 +110,30 @@ body {
 .card { background: var(--surface); border-radius: var(--r); padding: 1rem; margin-bottom: .75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); }
 .card-sm { background: var(--surface2); border-radius: var(--r-sm); padding: .75rem; margin-bottom: .5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
 
-/* ── 메트릭 strip ── */
-.metric-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: .875rem; }
-.metric-card { background: var(--surface); border-radius: var(--r-sm); padding: .6rem .875rem; min-width: 0; border-left: 4px solid transparent; }
-.metric-label { font-size: 12px; color: var(--text3); margin-bottom: .3rem; letter-spacing: 0; }
-.metric-value { font-size: 20px; font-weight: 700; color: var(--text1); letter-spacing: -.5px; }
+/* ── 메트릭 strip (모바일: 가로 스크롤 1행) ── */
+.metric-strip {
+  display: flex; overflow-x: auto; gap: 8px;
+  margin-bottom: .875rem; padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.metric-strip::-webkit-scrollbar { display: none; }
+.metric-card {
+  flex: 0 0 auto; min-width: 84px;
+  background: var(--surface);
+  border-radius: 14px;
+  padding: .6rem .75rem .55rem;
+  border-top: 3px solid var(--cat, transparent);
+  border-left: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07);
+}
+.metric-label {
+  font-size: 11px; font-weight: 600;
+  color: var(--cat, var(--text3));
+  opacity: .9;
+  margin-bottom: .28rem; letter-spacing: 0;
+  white-space: nowrap;
+}
+.metric-value { font-size: 15px; font-weight: 700; color: var(--text1); letter-spacing: -.4px; white-space: nowrap; }
 .metric-value.neg { color: var(--red); }
 .metric-value.pos { color: var(--green); }
 .metric-delta { font-size: 12px; margin-top: .25rem; }
@@ -866,9 +885,10 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
   .dash-aside .card { margin-bottom: 0; }
 
   /* ── 대시보드: 메트릭 6열 (PC) ── */
-  .metric-strip { display: flex; flex-wrap: nowrap; gap: 10px; }
-  .metric-card { flex: 1; min-width: 0; padding: .75rem 1rem; }
-  .metric-value { font-size: 26px; }
+  .metric-strip { overflow-x: visible; padding-bottom: 0; flex-wrap: nowrap; gap: 10px; }
+  .metric-card { flex: 1; min-width: 0; padding: .75rem 1rem; border-top: none; border-left: 4px solid var(--cat, transparent); border-radius: var(--r-sm); }
+  .metric-label { font-size: 12px; color: var(--text3); }
+  .metric-value { font-size: 26px; letter-spacing: -.5px; }
 
   /* ── 대시보드: 차트+도넛 2:1 / 자산+목표 1:1 ── */
   .dash-row1 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; margin-bottom: 16px; }
@@ -2197,10 +2217,10 @@ function renderDashboard() {
 
         <div class="metric-strip">
           ${CATEGORY_CONFIG.map(c => {
-            const valStyle = c.valueColor ? `style="color:${c.valueColor};"` : '';
-            return `<div class="metric-card" style="border-left-color:${c.hex};">
+            const valStyle = c.valueColor ? `color:${c.valueColor};` : '';
+            return `<div class="metric-card" style="--cat:${c.hex};">
               <div class="metric-label">${c.name}</div>
-              <div class="metric-value" ${valStyle} data-raw="${cats[c.name]||0}">${fmtAbs(cats[c.name]||0)}</div>
+              <div class="metric-value" style="${valStyle}" data-raw="${cats[c.name]||0}">${fmtAbs(cats[c.name]||0)}</div>
             </div>`;
           }).join('')}
         </div>
