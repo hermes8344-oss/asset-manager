@@ -3068,7 +3068,12 @@ function showEditBar(cancelFn, saveFn, addLabel, addFn) {
   }
   bar.style.display = 'flex';
   if (window.innerWidth < 900) {
-    document.getElementById('app').style.paddingBottom = '108px';
+    // 편집 바 실제 높이(safe-area 포함)를 측정해 스크롤 여분 확보
+    requestAnimationFrame(function() {
+      var barH = bar.getBoundingClientRect().height;
+      var navH = document.getElementById('bottom-nav').getBoundingClientRect().height;
+      document.getElementById('app').style.paddingBottom = (navH + barH) + 'px';
+    });
   }
 }
 function hideEditBar() {
