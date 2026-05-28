@@ -3283,6 +3283,80 @@ function dragAccEnd() {
   _dragAccId = null;
   document.querySelectorAll('[data-acc-id]').forEach(r => r.classList.remove('acc-drag-active','acc-drag-target'));
 }
+
+// ── 수입/지출 드래그 정렬 ──
+let _dragCfType = null, _dragCfIdx = null;
+function dragCfStart(e, type, idx) {
+  _dragCfType = type; _dragCfIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.currentTarget.classList.add('acc-drag-active'), 0);
+}
+function dragCfOver(e, type, idx) {
+  if (!_dragCfType || _dragCfType !== type || _dragCfIdx === idx) return;
+  e.preventDefault();
+  document.querySelectorAll('[data-cf-row-type]').forEach(r => r.classList.remove('acc-drag-target'));
+  e.currentTarget.classList.add('acc-drag-target');
+}
+function dragCfDrop(e, type, idx) {
+  e.preventDefault();
+  document.querySelectorAll('[data-cf-row-type]').forEach(r => r.classList.remove('acc-drag-active','acc-drag-target'));
+  if (!_dragCfType || _dragCfType !== type || _dragCfIdx === idx) { _dragCfType = null; _dragCfIdx = null; return; }
+  const ym = state.currentMonth;
+  const arr = state.cashflow[ym]?.[type];
+  if (!arr) { _dragCfType = null; _dragCfIdx = null; return; }
+  const i = _dragCfIdx, j = idx;
+  if (i < 0 || j < 0 || i >= arr.length || j >= arr.length) { _dragCfType = null; _dragCfIdx = null; return; }
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+  _dragCfType = null; _dragCfIdx = null;
+  renderCashflow();
+}
+function dragCfEnd() {
+  _dragCfType = null; _dragCfIdx = null;
+  document.querySelectorAll('[data-cf-row-type]').forEach(r => r.classList.remove('acc-drag-active','acc-drag-target'));
+}
+function setupCfTouchDrag() {
+  if (!state.cashflowEditing) return;
+  let tType = null, tIdx = null, tRow = null;
+  document.querySelectorAll('.cf-drag-handle').forEach(handle => {
+    const row = handle.closest('[data-cf-row-type]');
+    if (!row) return;
+    handle.addEventListener('touchstart', e => {
+      e.preventDefault();
+      tType = row.dataset.cfRowType;
+      tIdx  = parseInt(row.dataset.cfRowIdx);
+      tRow  = row;
+      row.classList.add('acc-drag-active');
+    }, { passive: false });
+    handle.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (tType === null) return;
+      const t = e.touches[0];
+      const el = document.elementFromPoint(t.clientX, t.clientY);
+      const targetRow = el?.closest('[data-cf-row-type]');
+      document.querySelectorAll('[data-cf-row-type]').forEach(r => r.classList.remove('acc-drag-target'));
+      if (targetRow && targetRow !== tRow && targetRow.dataset.cfRowType === tType) targetRow.classList.add('acc-drag-target');
+    }, { passive: false });
+    handle.addEventListener('touchend', e => {
+      if (tType === null) return;
+      const t = e.changedTouches[0];
+      const el = document.elementFromPoint(t.clientX, t.clientY);
+      const targetRow = el?.closest('[data-cf-row-type]');
+      document.querySelectorAll('[data-cf-row-type]').forEach(r => r.classList.remove('acc-drag-active','acc-drag-target'));
+      const targetType = targetRow?.dataset.cfRowType;
+      const targetIdx  = parseInt(targetRow?.dataset.cfRowIdx);
+      if (targetRow && targetRow !== tRow && targetType === tType && !isNaN(targetIdx)) {
+        const ym = state.currentMonth;
+        const arr = state.cashflow[ym]?.[tType];
+        if (arr && tIdx >= 0 && targetIdx >= 0 && tIdx < arr.length && targetIdx < arr.length) {
+          [arr[tIdx], arr[targetIdx]] = [arr[targetIdx], arr[tIdx]];
+        }
+      }
+      tType = null; tIdx = null; tRow = null;
+      renderCashflow();
+    });
+  });
+}
+
 function setupAccTouchDrag() {
   if (!state.balanceEditing) return;
   let tDragId = null, tDragRow = null;
@@ -3611,7 +3685,8 @@ function renderCashflow() {
       const prevAmt = prevIncomeRow ? (prevIncomeRow.amount !== undefined ? (parseNum(prevIncomeRow.amount)||0) : (parseNum(prevIncomeRow.member1)||0)+(parseNum(prevIncomeRow.member2)||0)) : 0;
       const incMatch = prevAmt && amount === prevAmt;
       const incHintBg = incMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
-      return `<div class="cf-list-row${r._copied?' row-copied':''}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);">
+      return `<div class="cf-list-row${r._copied?' row-copied':''}" draggable="true" data-cf-row-type="income" data-cf-row-idx="${i}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);" ondragstart="dragCfStart(event,'income',${i})" ondragover="dragCfOver(event,'income',${i})" ondrop="dragCfDrop(event,'income',${i})" ondragend="dragCfEnd()">
+        <span class="fc-drag-handle cf-drag-handle">⠿</span>
         <div onclick="openRowEditModal('income',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
           ${badge}
           <div style="min-width:0;">
@@ -3660,7 +3735,8 @@ function renderCashflow() {
       const expMatch = prevExpAmt && curExpAmt === prevExpAmt;
       const expHintBg = expMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
       const subLine = [r.type, r.dueDate].filter(Boolean).join(' · ');
-      return `<div class="cf-list-row${r._copied?' row-copied':''}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);">
+      return `<div class="cf-list-row${r._copied?' row-copied':''}" draggable="true" data-cf-row-type="expense" data-cf-row-idx="${i}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);" ondragstart="dragCfStart(event,'expense',${i})" ondragover="dragCfOver(event,'expense',${i})" ondrop="dragCfDrop(event,'expense',${i})" ondragend="dragCfEnd()">
+        <span class="fc-drag-handle cf-drag-handle">⠿</span>
         <div onclick="openRowEditModal('expense',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
           ${badge}
           <div style="min-width:0;">
@@ -3748,7 +3824,8 @@ function renderCashflow() {
         const spBadge = cfOwnerBadgeLarge(spOwner);
         const prevSpRow = prevCf.special.find(p => p.label === r.label);
         const prevSpAmt = prevSpRow ? (parseNum(prevSpRow.amount)||0) : 0;
-        return `<div class="cf-list-row" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);">
+        return `<div class="cf-list-row" draggable="true" data-cf-row-type="special" data-cf-row-idx="${i}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);" ondragstart="dragCfStart(event,'special',${i})" ondragover="dragCfOver(event,'special',${i})" ondrop="dragCfDrop(event,'special',${i})" ondragend="dragCfEnd()">
+          <span class="fc-drag-handle cf-drag-handle">⠿</span>
           <div onclick="openRowEditModal('special',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
             ${spBadge}
             <div style="min-width:0;">
@@ -3813,7 +3890,8 @@ function renderCashflow() {
       const curSavAmt = parseNum(r.amount)||0;
       const savMatch = prevAmt && curSavAmt === prevAmt;
       const savHintBg = savMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
-      return `<div class="cf-list-row${r._copied?' row-copied':''}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);">
+      return `<div class="cf-list-row${r._copied?' row-copied':''}" draggable="true" data-cf-row-type="savings" data-cf-row-idx="${i}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);" ondragstart="dragCfStart(event,'savings',${i})" ondragover="dragCfOver(event,'savings',${i})" ondrop="dragCfDrop(event,'savings',${i})" ondragend="dragCfEnd()">
+        <span class="fc-drag-handle cf-drag-handle">⠿</span>
         <div onclick="openRowEditModal('savings',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
           ${badge}
           <div style="min-width:0;">
@@ -4014,6 +4092,7 @@ function renderCashflow() {
       const tbl = document.querySelector(`[data-cf-live="${type}"]`);
       if (tbl) tbl.addEventListener('input', updateCFSummaryLive);
     });
+    setTimeout(setupCfTouchDrag, 0);
   }
 
   updateFab();
