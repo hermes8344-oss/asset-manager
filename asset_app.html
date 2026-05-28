@@ -1334,7 +1334,7 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 </div>
 
 <!-- 확인 다이얼로그 -->
-<div class="dialog-overlay" id="confirm-dialog">
+<div class="dialog-overlay" id="confirm-dialog" onclick="if(event.target===this)closeDialog()">
   <div class="dialog">
     <div class="dialog-title" id="dialog-title">변경사항이 있어요</div>
     <div class="dialog-msg" id="dialog-msg">저장하지 않고 나가시겠어요?</div>
@@ -1342,6 +1342,7 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
       <button class="btn btn-secondary" id="dialog-cancel-btn">취소</button>
       <button class="btn btn-primary" id="dialog-confirm-btn">나가기</button>
     </div>
+    <button id="dialog-extra-btn" style="display:none;width:100%;margin-top:.5rem;padding:.7rem;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--red);background:transparent;color:var(--red);"></button>
   </div>
 </div>
 
@@ -3360,16 +3361,35 @@ function setupBalSwipe() {
 function deleteAccount(id) {
   const acc = state.accounts.find(a => a.id === id);
   const label = acc ? `${acc.institution} ${acc.nickname}` : '이 계좌';
-  showConfirm('계좌 삭제', `"${label}"을 삭제할까요?\n모든 달의 잔고 기록도 함께 삭제됩니다.`, () => {
-    state.accounts = state.accounts.filter(a => a.id !== id);
-    Object.keys(state.balances).forEach(ym => {
+  const ym = state.currentMonth;
+  showConfirm(
+    '계좌 삭제',
+    `"${label}"을 어떻게 삭제할까요?`,
+    () => {
+      // 이번달만 삭제: 이번달 잔고 기록만 제거, 계좌·이전 기록 유지
       if (state.balances[ym]) delete state.balances[ym][id];
-    });
-    delete balanceTempData[id];
-    delete balanceMemoTempData[id];
-    saveState();
-    renderBalance();
-  }, null, '삭제');
+      delete balanceTempData[id];
+      delete balanceMemoTempData[id];
+      saveState();
+      renderBalance();
+      showToast('이번달 잔고 기록이 삭제됐어요');
+    },
+    null,
+    '이번달만 삭제',
+    null,
+    '전월 기록 모두 삭제',
+    () => {
+      // 전체 삭제: 계좌 자체 + 전 월 잔고 기록 모두 제거
+      state.accounts = state.accounts.filter(a => a.id !== id);
+      Object.keys(state.balances).forEach(m => {
+        if (state.balances[m]) delete state.balances[m][id];
+      });
+      delete balanceTempData[id];
+      delete balanceMemoTempData[id];
+      saveState();
+      renderBalance();
+    }
+  );
 }
 function clearBalanceInput(accId) {
   const el = document.querySelector(`[data-id="${accId}"]`);
@@ -6629,7 +6649,7 @@ function goToday(screen) {
 // ══════════════════════════════════════════
 // 다이얼로그
 // ══════════════════════════════════════════
-function showConfirm(title, msg, onConfirm, onAlt, confirmLabel='나가기', altLabel=null) {
+function showConfirm(title, msg, onConfirm, onAlt, confirmLabel='나가기', altLabel=null, extraLabel=null, onExtra=null) {
   document.getElementById('dialog-title').textContent = title;
   document.getElementById('dialog-msg').textContent = msg;
   document.getElementById('dialog-confirm-btn').textContent = confirmLabel;
@@ -6643,6 +6663,14 @@ function showConfirm(title, msg, onConfirm, onAlt, confirmLabel='나가기', alt
   } else {
     document.getElementById('dialog-cancel-btn').textContent = '취소';
     document.getElementById('dialog-cancel-btn').onclick = closeDialog;
+  }
+  const extraBtn = document.getElementById('dialog-extra-btn');
+  if (extraLabel && onExtra) {
+    extraBtn.textContent = extraLabel;
+    extraBtn.onclick = () => { closeDialog(); onExtra(); };
+    extraBtn.style.display = '';
+  } else {
+    extraBtn.style.display = 'none';
   }
   document.getElementById('confirm-dialog').classList.add('open');
 }
