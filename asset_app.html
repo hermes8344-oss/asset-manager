@@ -3602,7 +3602,7 @@ function renderCashflow() {
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
             ${prevAmt?`<div style="font-size:10px;color:var(--text3);"><span style="${incHintBg}cursor:pointer;" onclick="fillFromHint(this)" title="클릭하면 입력돼요">전달 ${fmt(prevAmt)}</span></div>`:''}
-            <input type="text" inputmode="numeric" value="${amount?fmt(amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" oninput="this.classList.add('cell-changed');this.closest('.cf-list-row')?.classList.remove('row-copied');applyCommaFormat(this);syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('income',${i},'amount',parseNum(this.value))"/>
+            <input type="text" inputmode="numeric" value="${amount?fmt(amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" data-cf-type="income" data-cf-idx="${i}" oninput="this.classList.add('cell-changed');this.closest('.cf-list-row')?.classList.remove('row-copied');applyCommaFormat(this);syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('income',${i},'amount',parseNum(this.value))"/>
           </div>
           <button class="del-btn" onclick="clearCFInput('income',${i})" title="0으로 초기화" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
         </div>
@@ -3651,7 +3651,7 @@ function renderCashflow() {
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
             ${prevExpAmt?`<div style="font-size:10px;color:var(--text3);"><span style="${expHintBg}cursor:pointer;" onclick="fillFromHint(this)" title="클릭하면 입력돼요">전달 ${fmt(prevExpAmt)}</span></div>`:''}
-            <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevExpAmt||''}" oninput="this.classList.add('cell-changed');this.closest('.cf-list-row')?.classList.remove('row-copied');applyCommaFormat(this);syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('expense',${i},'amount',parseNum(this.value))"/>
+            <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevExpAmt||''}" data-cf-type="expense" data-cf-idx="${i}" oninput="this.classList.add('cell-changed');this.closest('.cf-list-row')?.classList.remove('row-copied');applyCommaFormat(this);syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('expense',${i},'amount',parseNum(this.value))"/>
           </div>
           <button class="del-btn" onclick="clearCFInput('expense',${i})" title="0으로 초기화" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
         </div>
@@ -3739,7 +3739,7 @@ function renderCashflow() {
           <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
               ${prevSpAmt?`<div style="font-size:10px;color:var(--text3);">전달 ${fmt(prevSpAmt)}</div>`:''}
-              <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" oninput="this.classList.add('cell-changed');applyCommaFormat(this)" onblur="formatInput(this)" onchange="updateCFRow('special',${i},'amount',parseNum(this.value))"/>
+              <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-cf-type="special" data-cf-idx="${i}" oninput="this.classList.add('cell-changed');applyCommaFormat(this)" onblur="formatInput(this)" onchange="updateCFRow('special',${i},'amount',parseNum(this.value))"/>
             </div>
             <button class="del-btn" onclick="clearCFInput('special',${i})" title="0으로 초기화" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
           </div>
@@ -3804,7 +3804,7 @@ function renderCashflow() {
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:90px;">
             ${prevAmt?`<div style="font-size:10px;color:var(--text3);"><span style="${savHintBg}cursor:pointer;" onclick="fillFromHint(this)" title="클릭하면 입력돼요">전달 ${fmt(prevAmt)}</span></div>`:''}
-            <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" oninput="this.closest('.cf-list-row')?.classList.remove('row-copied');applyCommaFormat(this);syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('savings',${i},'amount',parseNum(this.value))"/>
+            <input type="text" inputmode="numeric" value="${r.amount?fmt(r.amount):''}" placeholder="0" class="amount-input" data-prev-amt="${prevAmt||''}" data-cf-type="savings" data-cf-idx="${i}" oninput="this.closest('.cf-list-row')?.classList.remove('row-copied');applyCommaFormat(this);syncHintColor(this)" onblur="formatInput(this)" onchange="updateCFRow('savings',${i},'amount',parseNum(this.value))"/>
           </div>
           <button class="del-btn" onclick="clearCFInput('savings',${i})" title="0으로 초기화" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;border-radius:4px;flex-shrink:0;background:transparent;border:none;cursor:pointer;">✕</button>
         </div>
@@ -4029,7 +4029,19 @@ function toggleCashflowEdit() {
   }
 }
 function cancelCashflowEdit() { state.cashflowEditing = false; hideEditBar(); renderCashflow(); }
-function saveCashflow() { saveState(); state.cashflowEditing = false; hideEditBar(); flashSaved(); showToast(`${ymLabel(state.currentMonth)} 수입/지출 저장 완료`); renderCashflow(); }
+function saveCashflow() {
+  document.querySelectorAll('.amount-input[data-cf-type]').forEach(el => {
+    const type = el.dataset.cfType;
+    const idx = parseInt(el.dataset.cfIdx);
+    if (!isNaN(idx)) updateCFRow(type, idx, 'amount', parseNum(el.value));
+  });
+  saveState();
+  state.cashflowEditing = false;
+  hideEditBar();
+  flashSaved();
+  showToast(`${ymLabel(state.currentMonth)} 수입/지출 저장 완료`);
+  renderCashflow();
+}
 
 // ── 행 상세 편집 팝업 ──
 let _rowEditCtx = {};
