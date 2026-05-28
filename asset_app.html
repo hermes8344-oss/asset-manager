@@ -84,22 +84,30 @@ body {
   display: flex;
   background: var(--surface);
   border-top: 1px solid var(--border);
-  position: sticky;
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: 0;
   z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 10px);
 }
+.nav-icon { width: 22px; height: 22px; margin-bottom: 3px; flex-shrink: 0; display: block; overflow: hidden; }
 .nav-btn {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  padding: 1.5rem .25rem 1.35rem;
-  font-size: 17px; color: var(--text3);
+  padding: .75rem .25rem .5rem;
+  gap: 2px;
+  font-size: 10px; color: var(--text3);
   background: none; border: none; cursor: pointer;
   border-top: 2px solid transparent;
-  transition: color .15s;
+  overflow: hidden;
+  transition: color .15s, background-color .2s;
+  -webkit-tap-highlight-color: transparent;
 }
 .nav-btn.active { color: var(--accent); border-top-color: var(--accent); font-weight: 600; }
+.nav-btn.pressing { background-color: rgba(83, 74, 183, 0.1); transition: background-color .05s; }
 
 /* ── 공통 레이아웃 ── */
-.page-content { flex: 1; overflow-y: auto; padding: 1rem; padding-bottom: 0; }
+.page-content { flex: 1; overflow-y: auto; padding: 1rem; padding-bottom: 4.5rem; }
 .page-title { font-size: 24px; font-weight: 700; color: var(--text1); margin-bottom: .25rem; letter-spacing: -.5px; }
 .page-sub { font-size: 13px; color: var(--text3); margin-bottom: 1rem; }
 .section-title { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: .5rem; letter-spacing: 0; }
@@ -387,6 +395,15 @@ body {
 .fc-drag-handle { cursor: grab; color: var(--text3); padding: 0 4px; font-size: 14px; touch-action: none; user-select: none; }
 .fc-drag-active { opacity: 0.35; }
 .fixed-row.fc-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; background: rgba(83,74,183,.07); border-radius: 6px; }
+.cf-list-row { transition: transform 0.18s ease; }
+[data-acc-id] { transition: transform 0.18s ease; }
+.fc-draggable { transition: transform 0.18s ease; }
+.at-draggable  { transition: transform 0.18s ease; }
+.cf-dragging {
+  outline: 2px solid var(--accent); border-radius: 8px;
+  background: var(--surface); box-shadow: 0 8px 24px rgba(0,0,0,.16);
+  z-index: 50; position: relative; transition: none;
+}
 
 /* ── 특별지출 아이템 ── */
 .special-item { display: flex; justify-content: space-between; align-items: center; padding: .38rem 0; border-bottom: 1px solid var(--border); font-size: 13px; }
@@ -411,16 +428,18 @@ body {
 /* 모바일: 드래그핸들 좌측 고정 + 담당/납부일 헤더·값 1행 처리 */
 @media (max-width: 899px) {
   .row-indent { padding-left: 4px; }
-  /* 고정비: 해당일 숨기고 5컬럼 재배치 [핸들][항목][금액][주기][담당] */
-  .fixed-hdr, .fixed-row { grid-template-columns: 20px 1fr 19% 12% 50px; }
-  .fixed-hdr > :nth-child(5), .fixed-row > :nth-child(5) { display: none !important; }
-  /* 자동이체: 받는곳 컬럼 숨기고 5컬럼으로 재배치 [핸들][납부내용][금액][계좌/카드][납부일] */
-  .at-hdr,    .at-row    { grid-template-columns: 20px 1fr 19% 15% 40px; }
-  .at-hdr > :nth-child(5), .at-row > :nth-child(5) { display: none !important; }
+  /* 고정비: 해당일 숨기고 4컬럼 재배치 [항목][금액][주기][담당] */
+  .fixed-hdr, .fixed-row { grid-template-columns: 1fr 15% 10% 42px; }
+  .fixed-hdr > :nth-child(4), .fixed-row > :nth-child(4) { display: none !important; }
+  /* 자동이체: 받는곳 컬럼 숨기고 4컬럼으로 재배치 [납부내용][금액][계좌/카드][납부일] */
+  .at-hdr,    .at-row    { grid-template-columns: 1fr 18% 22% 34px; }
+  .at-hdr > :nth-child(4), .at-row > :nth-child(4) { display: none !important; }
   /* 헤더 텍스트 1행 + 글씨 약간 축소 */
   .fixed-hdr span, .at-hdr span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
   /* 데이터 마지막 열도 1행 (ownerBadge 원형 아이콘) */
-  .fixed-row > :last-child, .at-row > :last-child { white-space: nowrap; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .fixed-row > :last-child, .at-row > :last-child { white-space: nowrap; overflow: hidden; display: flex; align-items: center; justify-content: flex-end; }
+  /* 마지막 헤더(담당/납부일) 우측 정렬 */
+  .fixed-hdr > :last-child, .at-hdr > :last-child { text-align: right; }
   /* 자동이체 고정비 연동: 모바일은 x건만 표시 */
   .at-fc-labels { display: none !important; }
   .at-fc-count  { display: inline-block; }
@@ -430,13 +449,15 @@ body {
 }
 
 /* ── 고정비 ── */
-.fixed-hdr { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
-.fixed-row { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; position: relative; z-index: 1; background: var(--surface); }
+.fixed-hdr { display: grid; grid-template-columns: 1fr 17% 12% 16% 52px; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
+.fixed-row { display: grid; grid-template-columns: 1fr 17% 12% 16% 52px; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; position: relative; z-index: 1; background: var(--surface); }
 .fixed-row > * { min-width: 0; }
-.fixed-hdr > :nth-child(2) { text-align: center; }
-.fixed-row > :nth-child(2) { text-align: left; }
-.fixed-hdr > :nth-child(3),
-.fixed-row > :nth-child(3) { text-align: center; }
+.fixed-hdr > :nth-child(1) { text-align: center; }
+.fixed-row > :nth-child(1) { text-align: left; }
+.fixed-hdr > :nth-child(2),
+.fixed-row > :nth-child(2) { text-align: center; }
+.fixed-hdr > :last-child { text-align: right; }
+.fixed-row > :last-child { display: flex; align-items: center; justify-content: flex-end; }
 .at-swipe-wrap:last-child .fixed-row { border: none; }
 .fixed-cal-month { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; background: var(--surface); min-height: 70px; }
 .fixed-cal-month.current { background: var(--accent-light); border-color: var(--accent); }
@@ -453,12 +474,14 @@ body {
 .pill.card { background: rgba(186,117,23,.15); color: #BA7517; }
 
 /* ── 자동이체 목록 그리드 ── */
-.at-hdr { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
-.at-row { display: grid; grid-template-columns: 20px 25% 22% 15% 20% 1fr; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; background: var(--surface); transition: transform .2s ease; position: relative; z-index: 1; }
+.at-hdr { display: grid; grid-template-columns: 1fr 17% 12% 16% 52px; gap: 4px; font-size: 12px; color: var(--text3); padding: 0 0 .35rem; border-bottom: 1px solid var(--border); font-weight: 500; text-align: center; }
+.at-row { display: grid; grid-template-columns: 1fr 17% 12% 16% 52px; gap: 4px; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; background: var(--surface); transition: transform .2s ease; position: relative; z-index: 1; }
 .at-row > * { min-width: 0; }
-.at-row > :nth-child(2) { text-align: left; }
-.at-hdr > :nth-child(3),
-.at-row > :nth-child(3) { text-align: center; }
+.at-row > :nth-child(1) { text-align: left; }
+.at-hdr > :nth-child(2),
+.at-row > :nth-child(2) { text-align: center; }
+.at-hdr > :last-child { text-align: right; }
+.at-row > :last-child { display: flex; align-items: center; justify-content: flex-end; }
 .at-swipe-wrap:last-child .at-row { border: none; }
 .at-row.at-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; background: rgba(83,74,183,.07); border-radius: 6px; }
 /* ── 스와이프 액션 ── */
@@ -787,6 +810,8 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
   }
   .nav-btn {
     flex: none;
+    flex-direction: row;
+    gap: 10px;
     border-top: none;
     border-left: 3px solid transparent;
     padding: 14px 20px;
@@ -796,11 +821,13 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
     border-radius: 0;
     white-space: nowrap;
   }
+  .nav-icon { margin-bottom: 0; width: 18px; height: 18px; }
   .nav-btn.active {
     border-top-color: transparent;
     border-left-color: var(--accent);
     background: rgba(83,74,183,0.08);
   }
+  .nav-btn.pressing { background-color: rgba(83, 74, 183, 0.15); }
 
   /* ── 화면 컨테이너 ── */
   .screen { min-height: 100vh; }
@@ -948,29 +975,29 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 
 /* ── 모바일 FAB ── */
 .fab {
-  position: fixed; right: 1.25rem;
-  bottom: calc(56px + 1rem);
+  position: fixed; right: 1rem;
+  bottom: calc(56px + 1rem + env(safe-area-inset-bottom, 0px));
+  top: auto; left: auto;
   width: 52px; height: 52px;
   border-radius: 50%;
   background: var(--accent); color: #fff;
   box-shadow: 0 4px 16px rgba(83,74,183,.4);
-  display: flex; align-items: center; justify-content: center;
+  display: none; align-items: center; justify-content: center;
   border: none; cursor: pointer;
   transition: transform .15s, box-shadow .15s;
   z-index: 90;
 }
+.fab.visible { display: flex; }
 .fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(83,74,183,.25); }
 @media (min-width: 900px) { .fab { display: none !important; } }
-/* 대시보드·설정 탭 활성 시 FAB 강제 숨김 (CSS 형제 선택자로 JS 타이밍 무관하게 보장) */
-#screen-dashboard.active ~ #global-fab,
-#screen-settings.active ~ #global-fab,
-#screen-onboard.active ~ #global-fab,
-#screen-login.active ~ #global-fab { display: none !important; }
 
-/* FAB가 콘텐츠를 가리지 않도록 해당 탭 하단 여백 확보 (모바일 전용) */
+/* FAB가 콘텐츠를 가리지 않도록 해당 탭 여백 확보 (모바일 전용) */
 @media (max-width: 899px) {
   #screen-balance .page-content,
-  #screen-cashflow .page-content { padding-bottom: 5.5rem; }
+  #screen-cashflow .page-content {
+    padding-bottom: 5.5rem;
+    padding-right: 4.5rem;
+  }
 }
 
 /* ── 편집 셀 하이라이트 ── */
@@ -1117,7 +1144,7 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
   </div>
 
   <!-- 모바일 FAB -->
-  <button id="global-fab" class="fab" onclick="fabAction()" style="display:none;">
+  <button id="global-fab" class="fab" onclick="fabAction()">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -1126,10 +1153,36 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 
   <!-- 하단 네비 -->
   <nav id="bottom-nav" style="display:none;">
-    <button class="nav-btn active" onclick="switchTab('dashboard')" id="nav-dashboard">대시보드</button>
-    <button class="nav-btn" onclick="switchTab('balance')" id="nav-balance">계좌잔고</button>
-    <button class="nav-btn" onclick="switchTab('cashflow')" id="nav-cashflow">수입/지출</button>
-    <button class="nav-btn" onclick="switchTab('settings')" id="nav-settings">설정</button>
+    <button class="nav-btn active" onclick="switchTab('dashboard')" id="nav-dashboard">
+      <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      <span>대시보드</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('balance')" id="nav-balance">
+      <svg class="nav-icon" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="5" width="18" height="13" rx="2.5"/>
+        <line x1="2" y1="10" x2="20" y2="10"/>
+        <line x1="5" y1="14.5" x2="9" y2="14.5" stroke-width="2.2"/>
+      </svg>
+      <span>계좌잔고</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('cashflow')" id="nav-cashflow">
+      <svg class="nav-icon" width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <polygon points="6,3 9.5,9 7.5,9 7.5,16 4.5,16 4.5,9 2.5,9" fill="currentColor"/>
+        <polygon points="16,19 12.5,13 14.5,13 14.5,6 17.5,6 17.5,13 19.5,13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      </svg>
+      <span>수입/지출</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('settings')" id="nav-settings">
+      <svg class="nav-icon" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="5.5" x2="19" y2="5.5"/><circle cx="8" cy="5.5" r="2" fill="var(--surface)"/>
+        <line x1="3" y1="11" x2="19" y2="11"/><circle cx="14" cy="11" r="2" fill="var(--surface)"/>
+        <line x1="3" y1="16.5" x2="19" y2="16.5"/><circle cx="8" cy="16.5" r="2" fill="var(--surface)"/>
+      </svg>
+      <span>설정</span>
+    </button>
   </nav>
   <div class="safe-bottom" id="safe-bottom" style="display:none;"></div>
 </div>
@@ -1157,6 +1210,28 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
       <button class="btn" style="background:var(--red);color:#fff;border:none;" onclick="deleteCFMemoFromPopup()">삭제</button>
       <button class="btn btn-primary" onclick="saveCFMemoEdit()">저장</button>
     </div>
+  </div>
+</div>
+
+<!-- 특별지출 상세 팝업 (보기 모드) -->
+<div class="modal-overlay modal-popup" id="special-detail-modal" onclick="if(event.target===this)closeSpecialDetail()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title" id="special-detail-title"></div>
+      <button class="close-btn" onclick="closeSpecialDetail()">✕</button>
+    </div>
+    <div id="special-detail-content"></div>
+  </div>
+</div>
+
+<!-- 업데이트 내용 팝업 -->
+<div class="modal-overlay modal-popup" id="changelog-modal" onclick="if(event.target===this)closeChangelogModal()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title">업데이트 내역</div>
+      <button class="close-btn" onclick="closeChangelogModal()">✕</button>
+    </div>
+    <div id="changelog-modal-body" style="max-height:60vh;overflow-y:auto;padding-top:.25rem;"></div>
   </div>
 </div>
 
@@ -1226,9 +1301,8 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 </div>
 
 <!-- 행 상세 편집 팝업 -->
-<div class="modal-overlay" id="row-edit-modal" onclick="if(event.target===this)closeRowEditModal()">
+<div class="modal-overlay modal-popup" id="row-edit-modal" onclick="if(event.target===this)closeRowEditModal()">
   <div class="modal-sheet">
-    <div class="modal-handle"></div>
     <div class="modal-header">
       <div class="modal-title" id="row-edit-title">항목 수정</div>
       <button class="close-btn" onclick="closeRowEditModal()">✕</button>
@@ -1347,6 +1421,8 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 </div>
 
 <script>
+const APP_VERSION = 'v.26053003';
+const APP_CHANGELOG = [{"v":"v.26053003","d":"26.05.30","m":"금액 입력 커서 버그 수정 및 X 초기화 버튼 추가, 계좌 이번달만 삭제 시 항목 자체 삭제되도록 수정"}];
 // ══════════════════════════════════════════
 // 상태 & 저장소
 // ══════════════════════════════════════════
@@ -1823,11 +1899,27 @@ function enterApp() {
     document.getElementById('shared-banner-label').textContent =
       sharedPermission === 'view' ? '공유 가계부 보기 중 (보기 전용)' : '공유 가계부 관리 중';
   }
-  switchTab('dashboard');
+  _doSwitchTab('dashboard');
   setupSwipeNav();
   initIOSInstallBanner();
 }
 function switchTab(tab) {
+  if (tab === state.currentTab) return;
+  const isEditing = (state.currentTab === 'balance' && state.balanceEditing)
+                 || (state.currentTab === 'cashflow' && state.cashflowEditing);
+  if (isEditing) {
+    showConfirm(
+      '편집 중이에요',
+      '저장하지 않고 이동할까요? 변경사항은 사라져요.',
+      () => _doSwitchTab(tab),
+      null,
+      '이동'
+    );
+    return;
+  }
+  _doSwitchTab(tab);
+}
+function _doSwitchTab(tab) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`screen-${tab}`).classList.add('active');
@@ -2457,7 +2549,7 @@ function initGraphs() {
   const cleanNetData = hasNetData ? netData : netData.map(() => null);
   const cleanNetDash = hasNetData ? netDashData : netDashData.map(() => null);
 
-  graphData = { months, incomeData, expenseData, cleanNetData, cleanNetDash, isDark, nowM, barTipData };
+  graphData = { months, incomeData, expenseData, cleanNetData, cleanNetDash, isDark, nowM, isCurrentYear, barTipData };
   drawGraph('bar');
 }
 
@@ -2675,7 +2767,9 @@ function drawGraph(mode) {
   const xLabelY = PAD_T + cH + 16;
   xLabels.forEach(({i, x, label}) => {
     const isCur = (i + 1) === curMonth;
-    svgStr += `<text x="${x}" y="${xLabelY}" text-anchor="middle" font-size="10" font-weight="${isCur?700:400}" fill="${isCur?'var(--accent)':tcol}">${label}</text>`;
+    const isFuture = d.isCurrentYear && (i + 1) > d.nowM;
+    const opacity = isFuture ? ' opacity="0.35"' : '';
+    svgStr += `<text x="${x}" y="${xLabelY}" text-anchor="middle" font-size="10" font-weight="${isCur?700:400}" fill="${isCur?'var(--accent)':tcol}"${opacity}>${label}</text>`;
   });
 
   // 하단 기준선
@@ -3316,87 +3410,199 @@ function dragCfEnd() {
 }
 function setupCfTouchDrag() {
   if (!state.cashflowEditing) return;
-  let tType = null, tIdx = null, tRow = null;
-  document.querySelectorAll('.cf-drag-handle').forEach(handle => {
-    const row = handle.closest('[data-cf-row-type]');
-    if (!row) return;
-    handle.addEventListener('touchstart', e => {
+  document.querySelectorAll('[data-cf-row-type]').forEach(row => {
+    let pressTimer = null;
+    let isDragging = false;
+    let startClientY = 0, deltaY = 0;
+    let allTypeRows = [], rowTops = [], rowHeights = [];
+    let sourceIdx = 0, currentTargetIdx = 0;
+
+    const cancelPress = () => { clearTimeout(pressTimer); pressTimer = null; };
+
+    const onTouchStart = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' ||
+          e.target.tagName === 'BUTTON' || e.target.closest('.del-btn')) return;
+      startClientY = e.touches[0].clientY;
+      deltaY = 0;
+      pressTimer = setTimeout(() => {
+        isDragging = true;
+        const type = row.dataset.cfRowType;
+        allTypeRows = [...document.querySelectorAll(`[data-cf-row-type="${type}"]`)];
+        sourceIdx = allTypeRows.indexOf(row);
+        currentTargetIdx = sourceIdx;
+        rowTops = allTypeRows.map(r => r.getBoundingClientRect().top);
+        rowHeights = allTypeRows.map(r => r.offsetHeight);
+        row.classList.add('cf-dragging');
+        if (navigator.vibrate) navigator.vibrate(30);
+      }, 400);
+    };
+
+    const onTouchMove = (e) => {
+      deltaY = e.touches[0].clientY - startClientY;
+      if (!isDragging) {
+        if (Math.abs(deltaY) > 8) cancelPress();
+        return;
+      }
       e.preventDefault();
-      tType = row.dataset.cfRowType;
-      tIdx  = parseInt(row.dataset.cfRowIdx);
-      tRow  = row;
-      row.classList.add('acc-drag-active');
-    }, { passive: false });
-    handle.addEventListener('touchmove', e => {
-      e.preventDefault();
-      if (tType === null) return;
-      const t = e.touches[0];
-      const el = document.elementFromPoint(t.clientX, t.clientY);
-      const targetRow = el?.closest('[data-cf-row-type]');
-      document.querySelectorAll('[data-cf-row-type]').forEach(r => r.classList.remove('acc-drag-target'));
-      if (targetRow && targetRow !== tRow && targetRow.dataset.cfRowType === tType) targetRow.classList.add('acc-drag-target');
-    }, { passive: false });
-    handle.addEventListener('touchend', e => {
-      if (tType === null) return;
-      const t = e.changedTouches[0];
-      const el = document.elementFromPoint(t.clientX, t.clientY);
-      const targetRow = el?.closest('[data-cf-row-type]');
-      document.querySelectorAll('[data-cf-row-type]').forEach(r => r.classList.remove('acc-drag-active','acc-drag-target'));
-      const targetType = targetRow?.dataset.cfRowType;
-      const targetIdx  = parseInt(targetRow?.dataset.cfRowIdx);
-      if (targetRow && targetRow !== tRow && targetType === tType && !isNaN(targetIdx)) {
-        const ym = state.currentMonth;
-        const arr = state.cashflow[ym]?.[tType];
-        if (arr && tIdx >= 0 && targetIdx >= 0 && tIdx < arr.length && targetIdx < arr.length) {
-          [arr[tIdx], arr[targetIdx]] = [arr[targetIdx], arr[tIdx]];
+      row.style.transform = `translateY(${deltaY}px)`;
+
+      // 드래그 중심 Y로 목표 슬롯 계산
+      const dragCenterY = rowTops[sourceIdx] + rowHeights[sourceIdx] / 2 + deltaY;
+      let newTargetIdx = sourceIdx;
+      if (deltaY > 0) {
+        for (let i = sourceIdx + 1; i < allTypeRows.length; i++) {
+          if (dragCenterY > rowTops[i] + rowHeights[i] / 2) newTargetIdx = i; else break;
+        }
+      } else {
+        for (let i = sourceIdx - 1; i >= 0; i--) {
+          if (dragCenterY < rowTops[i] + rowHeights[i] / 2) newTargetIdx = i; else break;
         }
       }
-      tType = null; tIdx = null; tRow = null;
+
+      if (newTargetIdx !== currentTargetIdx) {
+        currentTargetIdx = newTargetIdx;
+        const rowH = rowHeights[sourceIdx];
+        allTypeRows.forEach((r, i) => {
+          if (r === row) return;
+          r.style.transition = 'transform 0.18s ease';
+          if (sourceIdx < currentTargetIdx) {
+            r.style.transform = (i > sourceIdx && i <= currentTargetIdx) ? `translateY(-${rowH}px)` : '';
+          } else {
+            r.style.transform = (i < sourceIdx && i >= currentTargetIdx) ? `translateY(${rowH}px)` : '';
+          }
+        });
+      }
+    };
+
+    const onTouchEnd = () => {
+      cancelPress();
+      if (!isDragging) { isDragging = false; return; }
+      isDragging = false;
+      row.classList.remove('cf-dragging');
+      row.style.transform = '';
+      allTypeRows.forEach(r => { r.style.transform = ''; r.style.transition = ''; });
+
+      if (currentTargetIdx !== sourceIdx) {
+        const type = row.dataset.cfRowType;
+        const ym = state.currentMonth;
+        const arr = state.cashflow[ym]?.[type];
+        if (arr) {
+          const srcIdx = parseInt(row.dataset.cfRowIdx);
+          const tgtIdx = parseInt(allTypeRows[currentTargetIdx].dataset.cfRowIdx);
+          const [moved] = arr.splice(srcIdx, 1);
+          arr.splice(tgtIdx, 0, moved);
+        }
+      }
+      allTypeRows = []; rowTops = []; rowHeights = [];
       renderCashflow();
-    });
+    };
+
+    row.addEventListener('touchstart', onTouchStart, { passive: true });
+    row.addEventListener('touchmove', onTouchMove, { passive: false });
+    row.addEventListener('touchend', onTouchEnd, { passive: true });
+    row.addEventListener('touchcancel', onTouchEnd, { passive: true });
   });
 }
 
 function setupAccTouchDrag() {
   if (!state.balanceEditing) return;
-  let tDragId = null, tDragRow = null;
-  document.querySelectorAll('.acc-drag-handle').forEach(handle => {
-    const row = handle.closest('[data-acc-id]');
-    if (!row) return;
-    handle.addEventListener('touchstart', e => {
+  document.querySelectorAll('[data-acc-id]').forEach(row => {
+    const accId = row.dataset.accId;
+    let pressTimer = null;
+    let isDragging = false;
+    let startClientY = 0, deltaY = 0;
+    let allCatRows = [], rowTops = [], rowHeights = [];
+    let sourceIdx = 0, currentTargetIdx = 0;
+
+    const cancelPress = () => { clearTimeout(pressTimer); pressTimer = null; };
+
+    const onTouchStart = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' ||
+          e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+      startClientY = e.touches[0].clientY;
+      deltaY = 0;
+      pressTimer = setTimeout(() => {
+        const acc = state.accounts.find(a => a.id === accId);
+        if (!acc) { isDragging = false; return; }
+        isDragging = true;
+        closeAllBalSwipes();
+        _saveBalanceTempFromDOM();
+        allCatRows = [...document.querySelectorAll('[data-acc-id]')].filter(r => {
+          const a = state.accounts.find(a => a.id === r.dataset.accId);
+          return a?.category === acc.category;
+        });
+        sourceIdx = allCatRows.indexOf(row);
+        currentTargetIdx = sourceIdx;
+        rowTops = allCatRows.map(r => r.getBoundingClientRect().top);
+        rowHeights = allCatRows.map(r => r.offsetHeight);
+        row.classList.add('cf-dragging');
+        if (navigator.vibrate) navigator.vibrate(30);
+      }, 400);
+    };
+
+    const onTouchMove = (e) => {
+      deltaY = e.touches[0].clientY - startClientY;
+      if (!isDragging) {
+        if (Math.abs(deltaY) > 8) cancelPress();
+        return;
+      }
       e.preventDefault();
-      _saveBalanceTempFromDOM();
-      tDragId = row.dataset.accId;
-      tDragRow = row;
-      row.classList.add('acc-drag-active');
-    }, { passive: false });
-    handle.addEventListener('touchmove', e => {
-      e.preventDefault();
-      if (!tDragId) return;
-      const t = e.touches[0];
-      const el = document.elementFromPoint(t.clientX, t.clientY);
-      const targetRow = el?.closest('[data-acc-id]');
-      document.querySelectorAll('[data-acc-id]').forEach(r => r.classList.remove('acc-drag-target'));
-      if (targetRow && targetRow !== tDragRow) targetRow.classList.add('acc-drag-target');
-    }, { passive: false });
-    handle.addEventListener('touchend', e => {
-      if (!tDragId) return;
-      const t = e.changedTouches[0];
-      const el = document.elementFromPoint(t.clientX, t.clientY);
-      const targetId = el?.closest('[data-acc-id]')?.dataset.accId;
-      document.querySelectorAll('[data-acc-id]').forEach(r => r.classList.remove('acc-drag-active','acc-drag-target'));
-      if (targetId && targetId !== tDragId) {
-        const acc = state.accounts.find(a => a.id === tDragId);
-        const tgt = state.accounts.find(a => a.id === targetId);
-        if (acc && tgt && acc.category === tgt.category) {
-          const i = state.accounts.indexOf(acc), j = state.accounts.indexOf(tgt);
-          [state.accounts[i], state.accounts[j]] = [state.accounts[j], state.accounts[i]];
+      row.style.transform = `translateY(${deltaY}px)`;
+
+      const dragCenterY = rowTops[sourceIdx] + rowHeights[sourceIdx] / 2 + deltaY;
+      let newTargetIdx = sourceIdx;
+      if (deltaY > 0) {
+        for (let i = sourceIdx + 1; i < allCatRows.length; i++) {
+          if (dragCenterY > rowTops[i] + rowHeights[i] / 2) newTargetIdx = i; else break;
+        }
+      } else {
+        for (let i = sourceIdx - 1; i >= 0; i--) {
+          if (dragCenterY < rowTops[i] + rowHeights[i] / 2) newTargetIdx = i; else break;
+        }
+      }
+
+      if (newTargetIdx !== currentTargetIdx) {
+        currentTargetIdx = newTargetIdx;
+        const rowH = rowHeights[sourceIdx];
+        allCatRows.forEach((r, i) => {
+          if (r === row) return;
+          r.style.transition = 'transform 0.18s ease';
+          if (sourceIdx < currentTargetIdx) {
+            r.style.transform = (i > sourceIdx && i <= currentTargetIdx) ? `translateY(-${rowH}px)` : '';
+          } else {
+            r.style.transform = (i < sourceIdx && i >= currentTargetIdx) ? `translateY(${rowH}px)` : '';
+          }
+        });
+      }
+    };
+
+    const onTouchEnd = () => {
+      cancelPress();
+      if (!isDragging) { isDragging = false; return; }
+      isDragging = false;
+      row.classList.remove('cf-dragging');
+      row.style.transform = '';
+      allCatRows.forEach(r => { r.style.transform = ''; r.style.transition = ''; });
+
+      if (currentTargetIdx !== sourceIdx) {
+        const srcAcc = state.accounts.find(a => a.id === accId);
+        const tgtAcc = state.accounts.find(a => a.id === allCatRows[currentTargetIdx]?.dataset.accId);
+        if (srcAcc && tgtAcc && srcAcc.category === tgtAcc.category) {
+          const si = state.accounts.indexOf(srcAcc);
+          const ti = state.accounts.indexOf(tgtAcc);
+          const [moved] = state.accounts.splice(si, 1);
+          state.accounts.splice(ti, 0, moved);
           saveState();
         }
       }
-      tDragId = null; tDragRow = null;
+      allCatRows = []; rowTops = []; rowHeights = [];
       renderBalance();
-    });
+    };
+
+    row.addEventListener('touchstart', onTouchStart, { passive: true });
+    row.addEventListener('touchmove', onTouchMove, { passive: false });
+    row.addEventListener('touchend', onTouchEnd, { passive: true });
+    row.addEventListener('touchcancel', onTouchEnd, { passive: true });
   });
 }
 
@@ -3440,13 +3646,14 @@ function deleteAccount(id) {
     '계좌 삭제',
     `"${label}"을 어떻게 삭제할까요?`,
     () => {
-      // 이번달만 삭제: 이번달 잔고 기록만 제거, 계좌·이전 기록 유지
+      // 이번달만 삭제: 계좌 항목 삭제 + 이번달 잔고만 삭제, 이전 월 기록 유지
+      state.accounts = state.accounts.filter(a => a.id !== id);
       if (state.balances[ym]) delete state.balances[ym][id];
       delete balanceTempData[id];
       delete balanceMemoTempData[id];
       saveState();
       renderBalance();
-      showToast('이번달 잔고 기록이 삭제됐어요');
+      showToast('계좌가 삭제됐어요 (이전 기록 유지)');
     },
     null,
     '이번달만 삭제',
@@ -3686,7 +3893,6 @@ function renderCashflow() {
       const incMatch = prevAmt && amount === prevAmt;
       const incHintBg = incMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
       return `<div class="cf-list-row${r._copied?' row-copied':''}" draggable="true" data-cf-row-type="income" data-cf-row-idx="${i}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);" ondragstart="dragCfStart(event,'income',${i})" ondragover="dragCfOver(event,'income',${i})" ondrop="dragCfDrop(event,'income',${i})" ondragend="dragCfEnd()">
-        <span class="fc-drag-handle cf-drag-handle">⠿</span>
         <div onclick="openRowEditModal('income',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
           ${badge}
           <div style="min-width:0;">
@@ -3736,7 +3942,6 @@ function renderCashflow() {
       const expHintBg = expMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
       const subLine = [r.type, r.dueDate].filter(Boolean).join(' · ');
       return `<div class="cf-list-row${r._copied?' row-copied':''}" draggable="true" data-cf-row-type="expense" data-cf-row-idx="${i}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);" ondragstart="dragCfStart(event,'expense',${i})" ondragover="dragCfOver(event,'expense',${i})" ondrop="dragCfDrop(event,'expense',${i})" ondragend="dragCfEnd()">
-        <span class="fc-drag-handle cf-drag-handle">⠿</span>
         <div onclick="openRowEditModal('expense',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
           ${badge}
           <div style="min-width:0;">
@@ -3825,8 +4030,7 @@ function renderCashflow() {
         const prevSpRow = prevCf.special.find(p => p.label === r.label);
         const prevSpAmt = prevSpRow ? (parseNum(prevSpRow.amount)||0) : 0;
         return `<div class="cf-list-row" draggable="true" data-cf-row-type="special" data-cf-row-idx="${i}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);" ondragstart="dragCfStart(event,'special',${i})" ondragover="dragCfOver(event,'special',${i})" ondrop="dragCfDrop(event,'special',${i})" ondragend="dragCfEnd()">
-          <span class="fc-drag-handle cf-drag-handle">⠿</span>
-          <div onclick="openRowEditModal('special',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
+            <div onclick="openRowEditModal('special',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
             ${spBadge}
             <div style="min-width:0;">
               <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
@@ -3853,14 +4057,14 @@ function renderCashflow() {
         <button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('special')">+ ${specialName} 추가</button>
       </div>`;
     } else {
-      const specialRows = specialFiltered.map(({r}) => {
+      const specialRows = specialFiltered.map(({r,i}) => {
         const spOwner = r.owner || cfg.member1Name;
         const spBadge = cfOwnerBadgeLarge(spOwner);
-        return `<div class="cf-list-row" style="display:flex;align-items:center;gap:12px;padding:.5rem 0;border-bottom:1px solid var(--border);">
+        return `<div class="cf-list-row" onclick="openSpecialDetail(${i})" style="display:flex;align-items:center;gap:12px;padding:.5rem 0;border-bottom:1px solid var(--border);cursor:pointer;">
           ${spBadge}
           <div style="flex:1;min-width:0;">
             <div style="font-size:14px;font-weight:600;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.label||''}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.memo||''}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.memo||'<span style="color:var(--text3);opacity:.5;">메모 없음</span>'}</div>
           </div>
           <div style="text-align:right;flex-shrink:0;">
             <div style="font-size:15px;font-weight:700;color:var(--text1);">${r.amount?fmt(r.amount):''}</div>
@@ -3891,7 +4095,6 @@ function renderCashflow() {
       const savMatch = prevAmt && curSavAmt === prevAmt;
       const savHintBg = savMatch ? 'background:rgba(83,74,183,0.13);border-radius:3px;padding:0 3px;' : '';
       return `<div class="cf-list-row${r._copied?' row-copied':''}" draggable="true" data-cf-row-type="savings" data-cf-row-idx="${i}" style="display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);" ondragstart="dragCfStart(event,'savings',${i})" ondragover="dragCfOver(event,'savings',${i})" ondrop="dragCfDrop(event,'savings',${i})" ondragend="dragCfEnd()">
-        <span class="fc-drag-handle cf-drag-handle">⠿</span>
         <div onclick="openRowEditModal('savings',${i})" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;cursor:pointer;">
           ${badge}
           <div style="min-width:0;">
@@ -4189,12 +4392,18 @@ function renderRowEditContent() {
       return `<button onclick="_rowEditCtx.data.owner='${m}';renderRowEditContent()" style="padding:.35rem .75rem;border-radius:20px;border:2px solid ${active?bg:'var(--border)'};background:${active?bg:'transparent'};color:${active?'#fff':'var(--text2)'};font-size:13px;font-weight:600;cursor:pointer;">${m}</button>`;
     }).join('');
     html = `
-      <div class="row-edit-label">별명</div>
-      <input class="row-edit-field" id="re-nickname" value="${(data.nickname||'').replace(/"/g,'&quot;')}" placeholder="계좌 별명"/>
-      <div class="row-edit-label">기관</div>
-      <input class="row-edit-field" id="re-institution" value="${(data.institution||'').replace(/"/g,'&quot;')}" placeholder="은행/증권사"/>
-      <div class="row-edit-label">소유자</div>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.25rem;">${ownerBtns}</div>
+      <div class="input-group">
+        <label class="input-label">별명</label>
+        <input class="input-field" id="re-nickname" value="${(data.nickname||'').replace(/"/g,'&quot;')}" placeholder="계좌 별명" style="width:100%;font-size:14px;"/>
+      </div>
+      <div class="input-group">
+        <label class="input-label">기관</label>
+        <input class="input-field" id="re-institution" value="${(data.institution||'').replace(/"/g,'&quot;')}" placeholder="은행/증권사" style="width:100%;font-size:14px;"/>
+      </div>
+      <div class="input-group" style="margin-bottom:0;">
+        <label class="input-label">소유자</label>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.375rem;">${ownerBtns}</div>
+      </div>
     `;
   } else {
     const ownerBtns = [...members, ...(cfg.memberCount===2?['공동']:[])].map(m => {
@@ -4202,24 +4411,38 @@ function renderRowEditContent() {
       const bg = m === cfg.member1Name ? '#534AB7' : m === cfg.member2Name ? '#0F6E56' : '#BA7517';
       return `<button onclick="_rowEditCtx.data.owner='${m}';renderRowEditContent()" style="padding:.35rem .75rem;border-radius:20px;border:2px solid ${active?bg:'var(--border)'};background:${active?bg:'transparent'};color:${active?'#fff':'var(--text2)'};font-size:13px;font-weight:600;cursor:pointer;">${m}</button>`;
     }).join('');
+    const secondField = type === 'special'
+      ? `<div class="input-group" style="${members.length > 1 ? '' : 'margin-bottom:0;'}">
+          <label class="input-label">메모</label>
+          <input class="input-field" id="re-memo" value="${(data.memo||'').replace(/"/g,'&quot;')}" placeholder="메모 (선택사항)" style="width:100%;font-size:14px;"/>
+        </div>`
+      : `<div class="input-group" style="${members.length > 1 ? '' : 'margin-bottom:0;'}">
+          <label class="input-label">구분/내용</label>
+          <input class="input-field" id="re-type" value="${(data.type_field||'').replace(/"/g,'&quot;')}" placeholder="구분" style="width:100%;font-size:14px;"/>
+        </div>`;
     html = `
-      <div class="row-edit-label">항목명</div>
-      <input class="row-edit-field" id="re-label" value="${(data.label||'').replace(/"/g,'&quot;')}" placeholder="항목명"/>
-      ${type !== 'special' ? `<div class="row-edit-label">구분/내용</div>
-      <input class="row-edit-field" id="re-type" value="${(data.type_field||'').replace(/"/g,'&quot;')}" placeholder="구분"/>` : ''}
-      ${members.length > 1 ? `<div class="row-edit-label">소유자</div><div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.25rem;">${ownerBtns}</div>` : ''}
+      <div class="input-group">
+        <label class="input-label">항목명</label>
+        <input class="input-field" id="re-label" value="${(data.label||'').replace(/"/g,'&quot;')}" placeholder="항목명" style="width:100%;font-size:14px;"/>
+      </div>
+      ${secondField}
+      ${members.length > 1 ? `<div class="input-group" style="margin-bottom:0;">
+        <label class="input-label">소유자</label>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.375rem;">${ownerBtns}</div>
+      </div>` : ''}
     `;
   }
   const { type: _rType, idxOrAccId: _rIdx } = _rowEditCtx;
   const _canDelete = _rType === 'balance' || (_rIdx !== -1);
   const _deleteLabel = _rType === 'balance' ? '계좌 삭제' : '항목 삭제';
-  html += `<div style="display:flex;gap:.625rem;margin-top:1.5rem;margin-bottom:.25rem;">
-    <button class="bar-cancel" onclick="closeRowEditModal()" style="flex:1;">취소</button>
-    <button class="bar-save" onclick="saveRowEditModal()" style="flex:1;">저장</button>
+  html += `
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="closeRowEditModal()">취소</button>
+    <button class="btn btn-primary" onclick="saveRowEditModal()">저장</button>
   </div>
   ${_canDelete ? `<button onclick="deleteFromRowEditModal()" style="width:100%;padding:.55rem;margin-top:.25rem;border:1px solid var(--red);background:transparent;color:var(--red);border-radius:8px;font-size:13px;cursor:pointer;">${_deleteLabel}</button>` : ''}`;
   const contentEl = document.getElementById('row-edit-content');
-  contentEl.style.padding = '0 .25rem .75rem';
+  contentEl.style.padding = '';
   contentEl.innerHTML = html;
 }
 
@@ -4246,6 +4469,8 @@ function saveRowEditModal() {
     } else {
       updateCFRow(type, idxOrAccId, 'label', label);
       if (typeField !== undefined && type !== 'special') updateCFRow(type, idxOrAccId, 'type', typeField);
+      const memoEl = document.getElementById('re-memo');
+      if (memoEl) updateCFRow(type, idxOrAccId, 'memo', memoEl.value.trim());
       if (owner) updateCFRow(type, idxOrAccId, 'owner', owner);
     }
   }
@@ -4722,6 +4947,75 @@ function updateCFRow(type, idx, field, val) {
   state.cashflow[ym][type][idx][field] = val;
   delete state.cashflow[ym][type][idx]._copied;
 }
+// ── 특별지출 상세 팝업 (보기 모드) ──
+let _specialDetailIdx = null;
+function openSpecialDetail(i) {
+  const ym = state.currentMonth;
+  const r = state.cashflow[ym]?.special?.[i];
+  if (!r) return;
+  _specialDetailIdx = i;
+  document.getElementById('special-detail-title').textContent = '특별지출 수정';
+  _renderSpecialDetailContent();
+  document.getElementById('special-detail-modal').classList.add('open');
+}
+function closeSpecialDetail() {
+  document.getElementById('special-detail-modal').classList.remove('open');
+  _specialDetailIdx = null;
+}
+function _getSpecialDetailRow() {
+  const ym = state.currentMonth;
+  return state.cashflow[ym]?.special?.[_specialDetailIdx] || {};
+}
+function _renderSpecialDetailContent() {
+  const r = _getSpecialDetailRow();
+  const label = (r.label || '').replace(/"/g,'&quot;');
+  const memo = (r.memo || '').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  document.getElementById('special-detail-content').innerHTML = `
+    <div class="input-group">
+      <label class="input-label">항목명</label>
+      <input class="input-field" id="sp-detail-label-input" value="${label}" placeholder="항목명" style="width:100%;font-size:14px;"/>
+    </div>
+    <div class="input-group">
+      <label class="input-label">금액</label>
+      <div style="position:relative;">
+        <input class="input-field" id="sp-detail-amount-input" inputmode="numeric"
+          value="${r.amount ? fmt(r.amount) : ''}" placeholder="0"
+          oninput="applyCommaFormat(this)" onblur="formatInput(this)"
+          style="width:100%;font-size:14px;text-align:right;padding-right:2rem;"/>
+        <button type="button" onclick="var el=document.getElementById('sp-detail-amount-input');el.value='';el.focus();"
+          style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:0;opacity:.7;" tabindex="-1">✕</button>
+      </div>
+    </div>
+    <div class="input-group" style="margin-bottom:0;">
+      <label class="input-label">메모</label>
+      <textarea class="input-field" id="sp-detail-memo-input" rows="4"
+        style="width:100%;resize:vertical;font-size:14px;line-height:1.7;"
+        placeholder="메모를 입력하세요">${memo}</textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="closeSpecialDetail()">취소</button>
+      <button class="btn btn-primary" onclick="saveSpecialDetail()">저장</button>
+    </div>`;
+  setTimeout(() => {
+    const el = document.getElementById('sp-detail-label-input');
+    if (el) el.focus();
+  }, 50);
+}
+function saveSpecialDetail() {
+  if (_specialDetailIdx === null) return;
+  const r = _getSpecialDetailRow();
+  const label = document.getElementById('sp-detail-label-input')?.value.trim() || r.label;
+  const amount = parseNum(document.getElementById('sp-detail-amount-input')?.value);
+  const memo = document.getElementById('sp-detail-memo-input')?.value || '';
+  updateCFRow('special', _specialDetailIdx, 'label', label);
+  updateCFRow('special', _specialDetailIdx, 'amount', amount || 0);
+  updateCFRow('special', _specialDetailIdx, 'memo', memo.trim());
+  saveState();
+  closeSpecialDetail();
+  renderCashflow();
+  showToast('저장됐어요');
+}
+
 function addSpecialRow() {
   const label = document.getElementById('sp-label')?.value.trim();
   const memo = document.getElementById('sp-memo')?.value.trim() || '';
@@ -4856,7 +5150,6 @@ function renderFixedTab() {
       <div class="fixed-row fc-draggable" draggable="true" data-fc-id="${f.id}"
         ondragstart="dragFcStart(event)" ondragover="dragFcOver(event)" ondrop="dragFcDrop(event)" ondragend="dragFcEnd(event)"
         onclick="openFcEditModal(event,${i})">
-        <span class="fc-drag-handle row-indent">⠿</span>
         <span class="row-indent" style="overflow:hidden;text-overflow:ellipsis;">
           <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.label}</div>
           ${atBadge}
@@ -4885,7 +5178,7 @@ function renderFixedTab() {
 
   return `
     <div class="card">
-      <div class="fixed-hdr"><span></span><span>항목</span><span>금액</span><span>주기</span><span>해당일</span><span>담당</span></div>
+      <div class="fixed-hdr"><span>항목</span><span>금액</span><span>주기</span><span>해당일</span><span>담당</span></div>
       ${rows}
     </div>
     <button class="add-btn" onclick="showAddFixed()">+ 고정비 항목 추가</button>
@@ -4909,7 +5202,7 @@ function setupFcSwipe() {
     if (!wrap) return;
     let sx = 0, sy = 0;
     wrap.addEventListener('touchstart', function(e) {
-      if (e.target.closest('.fc-drag-handle, .at-swipe-btns')) return;
+      if (e.target.closest('.at-swipe-btns')) return;
       sx = e.touches[0].clientX; sy = e.touches[0].clientY;
     }, { passive: true });
     wrap.addEventListener('touchcancel', function() { sx = 0; }, { passive: true });
@@ -4927,7 +5220,7 @@ function setupFcSwipe() {
       else if (Math.abs(dx) < 10 && isSwiped) { closeFcSwipe(row); _fcSwipeSuppressClick = true; setTimeout(()=>{ _fcSwipeSuppressClick = false; }, 250); }
       else if (Math.abs(dx) < 10 && !isSwiped) {
         // 탭: draggable 요소에서 click이 억제될 수 있으므로 touchend에서 직접 모달 열기
-        if (e.target.closest('.fc-drag-handle, .at-swipe-btns')) return;
+        if (e.target.closest('.at-swipe-btns')) return;
         const fcId = row.dataset.fcId;
         const idx = state.fixedCosts.findIndex(f => f.id === fcId);
         if (idx >= 0) {
@@ -4975,37 +5268,77 @@ function dragFcEnd(e) {
   _dragFcId = null;
 }
 function setupFcTouchDrag() {
-  let dragSrcId = null, lastTarget = null;
-  document.querySelectorAll('.fc-drag-handle').forEach(handle => {
-    const row = handle.closest('.fc-draggable');
-    if (!row) return;
-    handle.addEventListener('touchstart', e => {
+  document.querySelectorAll('.fc-draggable').forEach(row => {
+    let pressTimer = null, isDragging = false;
+    let startClientY = 0, deltaY = 0;
+    let allRows = [], rowTops = [], rowHeights = [];
+    let sourceIdx = 0, currentTargetIdx = 0;
+    const cancelPress = () => { clearTimeout(pressTimer); pressTimer = null; };
+    const onTouchStart = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' ||
+          e.target.closest('button, .at-swipe-btns')) return;
+      startClientY = e.touches[0].clientY; deltaY = 0;
+      pressTimer = setTimeout(() => {
+        isDragging = true;
+        allRows = [...document.querySelectorAll('.fc-draggable')];
+        sourceIdx = allRows.indexOf(row); currentTargetIdx = sourceIdx;
+        rowTops = allRows.map(r => r.getBoundingClientRect().top);
+        rowHeights = allRows.map(r => r.offsetHeight);
+        row.classList.add('cf-dragging');
+        if (navigator.vibrate) navigator.vibrate(30);
+      }, 400);
+    };
+    const onTouchMove = (e) => {
+      deltaY = e.touches[0].clientY - startClientY;
+      if (!isDragging) { if (Math.abs(deltaY) > 8) cancelPress(); return; }
       e.preventDefault();
-      dragSrcId = row.dataset.fcId;
-      row.classList.add('fc-drag-active');
-    }, { passive: false });
-    handle.addEventListener('touchmove', e => {
-      e.preventDefault();
-      const touch = e.touches[0];
-      const el = document.elementFromPoint(touch.clientX, touch.clientY);
-      const targetRow = el?.closest('.fc-draggable');
-      if (lastTarget && lastTarget !== row) lastTarget.classList.remove('fc-drag-target');
-      if (targetRow && targetRow !== row) { targetRow.classList.add('fc-drag-target'); lastTarget = targetRow; }
-    }, { passive: false });
-    handle.addEventListener('touchend', () => {
-      row.classList.remove('fc-drag-active');
-      if (lastTarget) lastTarget.classList.remove('fc-drag-target');
-      if (lastTarget && lastTarget !== row) {
-        const src = state.fixedCosts.find(f => f.id === dragSrcId);
-        const tgt = state.fixedCosts.find(f => f.id === lastTarget.dataset.fcId);
-        if (src && tgt) {
-          const i = state.fixedCosts.indexOf(src), j = state.fixedCosts.indexOf(tgt);
-          [state.fixedCosts[i], state.fixedCosts[j]] = [state.fixedCosts[j], state.fixedCosts[i]];
+      row.style.transform = `translateY(${deltaY}px)`;
+      const dragCenterY = rowTops[sourceIdx] + rowHeights[sourceIdx] / 2 + deltaY;
+      let newTargetIdx = sourceIdx;
+      if (deltaY > 0) {
+        for (let i = sourceIdx + 1; i < allRows.length; i++) {
+          if (dragCenterY > rowTops[i] + rowHeights[i] / 2) newTargetIdx = i; else break;
+        }
+      } else {
+        for (let i = sourceIdx - 1; i >= 0; i--) {
+          if (dragCenterY < rowTops[i] + rowHeights[i] / 2) newTargetIdx = i; else break;
+        }
+      }
+      if (newTargetIdx !== currentTargetIdx) {
+        currentTargetIdx = newTargetIdx;
+        const rowH = rowHeights[sourceIdx];
+        allRows.forEach((r, i) => {
+          if (r === row) return;
+          r.style.transition = 'transform 0.18s ease';
+          if (sourceIdx < currentTargetIdx)
+            r.style.transform = (i > sourceIdx && i <= currentTargetIdx) ? `translateY(-${rowH}px)` : '';
+          else
+            r.style.transform = (i < sourceIdx && i >= currentTargetIdx) ? `translateY(${rowH}px)` : '';
+        });
+      }
+    };
+    const onTouchEnd = () => {
+      cancelPress();
+      if (!isDragging) { isDragging = false; return; }
+      isDragging = false;
+      row.classList.remove('cf-dragging');
+      row.style.transform = '';
+      allRows.forEach(r => { r.style.transform = ''; r.style.transition = ''; });
+      if (currentTargetIdx !== sourceIdx) {
+        const si = state.fixedCosts.findIndex(f => f.id === row.dataset.fcId);
+        const ti = state.fixedCosts.findIndex(f => f.id === allRows[currentTargetIdx]?.dataset.fcId);
+        if (si >= 0 && ti >= 0 && si !== ti) {
+          const [moved] = state.fixedCosts.splice(si, 1);
+          state.fixedCosts.splice(ti, 0, moved);
           saveState(); renderSettings();
         }
       }
-      dragSrcId = null; lastTarget = null;
-    });
+      allRows = []; rowTops = []; rowHeights = [];
+    };
+    row.addEventListener('touchstart', onTouchStart, { passive: true });
+    row.addEventListener('touchmove', onTouchMove, { passive: false });
+    row.addEventListener('touchend', onTouchEnd, { passive: true });
+    row.addEventListener('touchcancel', onTouchEnd, { passive: true });
   });
 }
 
@@ -5035,37 +5368,80 @@ function dragAtEnd(e) {
   _dragAtId = null;
 }
 function setupAtTouchDrag() {
-  let dragSrcId = null, lastTarget = null;
-  document.querySelectorAll('.at-draggable .fc-drag-handle').forEach(handle => {
-    const row = handle.closest('.at-draggable');
-    if (!row) return;
-    handle.addEventListener('touchstart', e => {
+  document.querySelectorAll('.at-draggable').forEach(row => {
+    let pressTimer = null, isDragging = false;
+    let startClientY = 0, deltaY = 0;
+    let allRows = [], rowTops = [], rowHeights = [];
+    let sourceIdx = 0, currentTargetIdx = 0;
+    const cancelPress = () => { clearTimeout(pressTimer); pressTimer = null; };
+    const onTouchStart = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' ||
+          e.target.closest('button, .at-swipe-btns')) return;
+      startClientY = e.touches[0].clientY; deltaY = 0;
+      pressTimer = setTimeout(() => {
+        isDragging = true;
+        allRows = [...document.querySelectorAll('.at-draggable')];
+        sourceIdx = allRows.indexOf(row); currentTargetIdx = sourceIdx;
+        rowTops = allRows.map(r => r.getBoundingClientRect().top);
+        rowHeights = allRows.map(r => r.offsetHeight);
+        row.classList.add('cf-dragging');
+        if (navigator.vibrate) navigator.vibrate(30);
+      }, 400);
+    };
+    const onTouchMove = (e) => {
+      deltaY = e.touches[0].clientY - startClientY;
+      if (!isDragging) { if (Math.abs(deltaY) > 8) cancelPress(); return; }
       e.preventDefault();
-      dragSrcId = row.dataset.atId;
-      row.classList.add('fc-drag-active');
-    }, { passive: false });
-    handle.addEventListener('touchmove', e => {
-      e.preventDefault();
-      const touch = e.touches[0];
-      const el = document.elementFromPoint(touch.clientX, touch.clientY);
-      const targetRow = el?.closest('.at-draggable');
-      if (lastTarget && lastTarget !== row) lastTarget.classList.remove('at-drag-target');
-      if (targetRow && targetRow !== row) { targetRow.classList.add('at-drag-target'); lastTarget = targetRow; }
-    }, { passive: false });
-    handle.addEventListener('touchend', () => {
-      row.classList.remove('fc-drag-active');
-      if (lastTarget) lastTarget.classList.remove('at-drag-target');
-      if (lastTarget && lastTarget !== row) {
+      row.style.transform = `translateY(${deltaY}px)`;
+      const dragCenterY = rowTops[sourceIdx] + rowHeights[sourceIdx] / 2 + deltaY;
+      let newTargetIdx = sourceIdx;
+      if (deltaY > 0) {
+        for (let i = sourceIdx + 1; i < allRows.length; i++) {
+          if (dragCenterY > rowTops[i] + rowHeights[i] / 2) newTargetIdx = i; else break;
+        }
+      } else {
+        for (let i = sourceIdx - 1; i >= 0; i--) {
+          if (dragCenterY < rowTops[i] + rowHeights[i] / 2) newTargetIdx = i; else break;
+        }
+      }
+      if (newTargetIdx !== currentTargetIdx) {
+        currentTargetIdx = newTargetIdx;
+        const rowH = rowHeights[sourceIdx];
+        allRows.forEach((r, i) => {
+          if (r === row) return;
+          r.style.transition = 'transform 0.18s ease';
+          if (sourceIdx < currentTargetIdx)
+            r.style.transform = (i > sourceIdx && i <= currentTargetIdx) ? `translateY(-${rowH}px)` : '';
+          else
+            r.style.transform = (i < sourceIdx && i >= currentTargetIdx) ? `translateY(${rowH}px)` : '';
+        });
+      }
+    };
+    const onTouchEnd = () => {
+      cancelPress();
+      if (!isDragging) { isDragging = false; return; }
+      isDragging = false;
+      row.classList.remove('cf-dragging');
+      row.style.transform = '';
+      allRows.forEach(r => { r.style.transform = ''; r.style.transition = ''; });
+      if (currentTargetIdx !== sourceIdx) {
+        const atId = row.dataset.atId;
+        const tgtId = allRows[currentTargetIdx]?.dataset.atId;
         const ats = state.autoTransfers;
-        const si = ats.findIndex(a => (a.id||String(ats.indexOf(a))) === dragSrcId);
-        const ti = ats.findIndex(a => (a.id||String(ats.indexOf(a))) === lastTarget.dataset.atId);
+        const si = ats.findIndex(a => (a.id||String(ats.indexOf(a))) === atId);
+        const ti = ats.findIndex(a => (a.id||String(ats.indexOf(a))) === tgtId);
         if (si >= 0 && ti >= 0 && si !== ti) {
-          [ats[si], ats[ti]] = [ats[ti], ats[si]];
+          const [moved] = ats.splice(si, 1);
+          ats.splice(ti, 0, moved);
           saveState(); renderSettings();
         }
       }
-      dragSrcId = null; lastTarget = null;
-    });
+      allRows = []; rowTops = []; rowHeights = [];
+    };
+    row.addEventListener('touchstart', onTouchStart, { passive: true });
+    row.addEventListener('touchmove', onTouchMove, { passive: false });
+    row.addEventListener('touchend', onTouchEnd, { passive: true });
+    row.addEventListener('touchcancel', onTouchEnd, { passive: true });
   });
 }
 
@@ -5133,9 +5509,13 @@ function openFcEditModal(e, i) {
       <input class="input-field" id="fc-modal-label" value="${f.label}" placeholder="항목명" style="width:100%;font-size:14px;"/>
     </div>
     <div class="input-group"><label class="input-label">금액</label>
-      <input class="input-field" id="fc-modal-amount" inputmode="numeric" value="${fmt(f.amount)}"
-        oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')"
-        onblur="formatInput(this)" style="width:100%;font-size:14px;text-align:right;"/>
+      <div style="position:relative;">
+        <input class="input-field" id="fc-modal-amount" inputmode="numeric" value="${fmt(f.amount)}"
+          oninput="applyCommaFormat(this)"
+          onblur="formatInput(this)" style="width:100%;font-size:14px;text-align:right;padding-right:2rem;"/>
+        <button type="button" onclick="var el=document.getElementById('fc-modal-amount');el.value='';el.focus();"
+          style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:0;opacity:.7;" tabindex="-1">✕</button>
+      </div>
     </div>
     <div class="input-group"><label class="input-label">주기</label>
       <select class="input-field" id="fc-modal-cycle" onchange="renderFcModalCycleFields()" style="width:100%;font-size:14px;color:var(--text1);">
@@ -5224,9 +5604,13 @@ function openAtEditModal(e, i) {
         ${sourceLabelFull} ✎</button>
     </div>
     <div class="input-group"><label class="input-label">금액</label>
-      <input class="input-field" id="at-modal-amount" inputmode="numeric" value="${at.amount ? fmt(at.amount) : ''}" placeholder="0"
-        oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')"
-        onblur="formatInput(this)" style="width:100%;font-size:14px;text-align:right;"/>
+      <div style="position:relative;">
+        <input class="input-field" id="at-modal-amount" inputmode="numeric" value="${at.amount ? fmt(at.amount) : ''}" placeholder="0"
+          oninput="applyCommaFormat(this)"
+          onblur="formatInput(this)" style="width:100%;font-size:14px;text-align:right;padding-right:2rem;"/>
+        <button type="button" onclick="var el=document.getElementById('at-modal-amount');el.value='';el.focus();"
+          style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:0;opacity:.7;" tabindex="-1">✕</button>
+      </div>
     </div>
     <div class="input-group"><label class="input-label">받는 곳</label>
       <input class="input-field" id="at-modal-payee" value="${at.payee||''}" placeholder="받는 곳" style="width:100%;font-size:14px;"/>
@@ -5372,9 +5756,13 @@ function renderFixedModalStep2() {
     </div>
     <div class="input-group">
       <label class="input-label">금액</label>
-      <input class="input-field" id="fm-amount" inputmode="numeric" placeholder="0"
-        oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')"
-        onblur="formatInput(this)" style="text-align:right;"/>
+      <div style="position:relative;">
+        <input class="input-field" id="fm-amount" inputmode="numeric" placeholder="0"
+          oninput="applyCommaFormat(this)"
+          onblur="formatInput(this)" style="text-align:right;padding-right:2rem;"/>
+        <button type="button" onclick="var el=document.getElementById('fm-amount');el.value='';el.focus();"
+          style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:0;opacity:.7;" tabindex="-1">✕</button>
+      </div>
     </div>
     <div class="input-group">
       <label class="input-label">주기</label>
@@ -5523,7 +5911,6 @@ function renderAutoTransferTab() {
       <div class="at-row at-draggable" draggable="true" data-at-id="${at.id||i}"
         ondragstart="dragAtStart(event)" ondragover="dragAtOver(event)" ondrop="dragAtDrop(event)" ondragend="dragAtEnd(event)"
         onclick="openAtEditModal(event,${i})">
-        <span class="fc-drag-handle row-indent">⠿</span>
         <span class="row-indent" style="text-align:left;overflow:hidden;text-overflow:ellipsis;">
           <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${at.label}</div>
           ${linkedFCHtml}
@@ -5533,7 +5920,7 @@ function renderAutoTransferTab() {
           <!-- PC: 기존 오너뱃지 + 전체 계좌명 -->
           <span class="at-src-full" style="flex-direction:column;align-items:center;justify-content:center;gap:2px;">${ownerBadgeHtml}<span class="pill ${pillClass}" style="font-size:9px;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:100%;">${sourceLabel}</span></span>
           <!-- 모바일: 원형 뱃지 2개 (오너 1글자 + 기관 2글자) -->
-          <span class="at-src-abbr" style="flex-direction:row;align-items:center;justify-content:center;gap:3px;">${cfg.memberCount >= 2 && at.type === 'account' && acc ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:20px;border-radius:10px;padding:0 3px;background:${ownerBg};color:${ownerColor};font-size:9px;font-weight:700;flex-shrink:0;">${ownerChar}</span>` : ''}<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:${srcBg};color:${srcColor};font-size:9px;font-weight:700;flex-shrink:0;">${srcChars}</span></span>
+          <span class="at-src-abbr" style="flex-direction:row;align-items:center;justify-content:center;gap:3px;">${cfg.memberCount >= 2 && at.type === 'account' && acc ? `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:20px;border-radius:10px;padding:0 3px;background:${ownerBg};color:${ownerColor};font-size:9px;font-weight:700;flex-shrink:0;">${ownerChar}</span>` : ''}<span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:20px;border-radius:10px;padding:0 3px;background:${srcBg};color:${srcColor};font-size:9px;font-weight:700;flex-shrink:0;">${srcChars}</span></span>
         </span>
         <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--text3);text-align:center;">${at.payee||'-'}</span>
         <span style="font-size:10px;color:var(--text3);text-align:center;">${at.day ? at.day+'일' : '-'}</span>
@@ -5546,7 +5933,7 @@ function renderAutoTransferTab() {
 
   return `
     <div class="card">
-      <div class="at-hdr"><span></span><span>납부내용</span><span>금액</span><span>계좌/카드</span><span>받는 곳</span><span>납부일</span></div>
+      <div class="at-hdr"><span>납부내용</span><span>금액</span><span>계좌/카드</span><span>받는 곳</span><span>납부일</span></div>
       ${rows}
     </div>
     <button class="add-btn" onclick="openAutoTransferModal()">+ 자동이체 추가</button>
@@ -5566,7 +5953,7 @@ function setupAtSwipe() {
     if (!row) return;
     let sx = 0, sy = 0;
     wrap.addEventListener('touchstart', function(e) {
-      if (e.target.closest('.fc-drag-handle, .at-swipe-btns')) return;
+      if (e.target.closest('.at-swipe-btns')) return;
       sx = e.touches[0].clientX;
       sy = e.touches[0].clientY;
     }, { passive: true });
@@ -5583,7 +5970,7 @@ function setupAtSwipe() {
       else if (dx > 20 && isSwiped) { closeAtSwipe(row); }
       else if (Math.abs(dx) < 10 && isSwiped) { closeAtSwipe(row); _atSwipeSuppressClick = true; setTimeout(()=>{ _atSwipeSuppressClick = false; }, 250); }
       else if (Math.abs(dx) < 10 && !isSwiped) {
-        if (e.target.closest('.fc-drag-handle, .at-swipe-btns')) return;
+        if (e.target.closest('.at-swipe-btns')) return;
         const atId = row.dataset.atId;
         const idx = (state.autoTransfers||[]).findIndex(at => at.id === atId);
         if (idx >= 0) {
@@ -5780,7 +6167,11 @@ function renderAutoTransferStep2() {
     </div>
     <div class="input-group">
       <label class="input-label">금액</label>
-      <input class="input-field" id="at-amount" inputmode="numeric" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')" onblur="formatInput(this)" style="text-align:right;"/>
+      <div style="position:relative;">
+        <input class="input-field" id="at-amount" inputmode="numeric" placeholder="0" oninput="applyCommaFormat(this)" onblur="formatInput(this)" style="text-align:right;padding-right:2rem;"/>
+        <button type="button" onclick="var el=document.getElementById('at-amount');el.value='';el.focus();"
+          style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:0;opacity:.7;" tabindex="-1">✕</button>
+      </div>
     </div>
     <div class="input-group">
       <label class="input-label">납부일</label>
@@ -5911,9 +6302,13 @@ function renderGoalModalContent() {
   const typeFields = d.type === 'amount'
     ? `<div class="input-group">
         <label class="input-label">목표 금액</label>
-        <input class="input-field" id="gm-target" inputmode="numeric" placeholder="300,000,000"
-          oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\\B(?=(\\d{3})+(?!\\d))/g,',')"
-          onblur="formatInput(this)" style="text-align:right;"/>
+        <div style="position:relative;">
+          <input class="input-field" id="gm-target" inputmode="numeric" placeholder="300,000,000"
+            oninput="applyCommaFormat(this)"
+            onblur="formatInput(this)" style="text-align:right;padding-right:2rem;"/>
+          <button type="button" onclick="var el=document.getElementById('gm-target');el.value='';el.focus();"
+            style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:0;opacity:.7;" tabindex="-1">✕</button>
+        </div>
        </div>
        <div class="input-group">
         <label class="input-label">연동 방식</label>
@@ -6374,12 +6769,19 @@ function renderEtcTab() {
             <div style="font-size:11px;color:var(--text3);margin-top:2px;">${_lastUpdatedBy === currentUser.id ? '내가' : '상대방이'} 수정했어요 · ${_formatLastUpdated(_lastUpdatedAt)}</div>
           </div>
         </div>` : ''}
-        <div class="setting-row" style="border:none;">
+        <div class="setting-row">
           <div>
             <div class="setting-label">데이터 초기화</div>
             <div style="font-size:11px;color:var(--text3);margin-top:2px;">모든 데이터가 삭제되며 복구할 수 없어요</div>
           </div>
           <button class="btn-sm" style="color:var(--red);border-color:var(--red);" onclick="resetData()">초기화</button>
+        </div>
+        <div class="setting-row" style="border:none;">
+          <div>
+            <div class="setting-label">업데이트</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px;">${APP_VERSION}</div>
+          </div>
+          <button class="btn-sm" onclick="showChangelogModal()">업데이트 내용</button>
         </div>
       </div>
     </div>
@@ -6704,6 +7106,26 @@ function resetData() {
     location.reload();
   });
 }
+function showChangelogModal() {
+  const body = document.getElementById('changelog-modal-body');
+  if (!body) return;
+  if (!APP_CHANGELOG || APP_CHANGELOG.length === 0) {
+    body.innerHTML = '<div style="font-size:13px;color:var(--text3);text-align:center;padding:1.5rem 0;">업데이트 내역이 없어요</div>';
+  } else {
+    body.innerHTML = APP_CHANGELOG.map(item => `
+      <div style="padding:.65rem 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+          <span style="font-size:12px;font-weight:700;color:var(--accent);">${item.v}</span>
+          <span style="font-size:11px;color:var(--text3);">${item.d}</span>
+        </div>
+        <div style="font-size:13px;color:var(--text2);">${item.m}</div>
+      </div>`).join('');
+  }
+  document.getElementById('changelog-modal').classList.add('open');
+}
+function closeChangelogModal() {
+  document.getElementById('changelog-modal').classList.remove('open');
+}
 
 // ══════════════════════════════════════════
 // 월 선택
@@ -7003,7 +7425,7 @@ function setupSwipeNav() {
     if (!el) return;
     let sx = 0, sy = 0;
     el.addEventListener('touchstart', function(e) {
-      if (e.target.closest('.acc-drag-handle,.fc-drag-handle,button,input,select,[ontouchstart]')) { sx = 0; return; }
+      if (e.target.closest('.fc-drag-handle,button,input,select,[ontouchstart]')) { sx = 0; return; }
       sx = e.touches[0].clientX;
       sy = e.touches[0].clientY;
     }, { passive: true });
@@ -7025,10 +7447,24 @@ function setupSwipeNav() {
 function updateFab() {
   const fab = document.getElementById('global-fab');
   if (!fab) return;
-  const show = (state.currentTab === 'balance' && !state.balanceEditing) ||
-               (state.currentTab === 'cashflow' && !state.cashflowEditing);
-  fab.style.display = show ? 'flex' : 'none';
+  const show = window.innerWidth < 900 &&
+               ((state.currentTab === 'balance' && !state.balanceEditing) ||
+                (state.currentTab === 'cashflow' && !state.cashflowEditing));
+  fab.classList.toggle('visible', show);
 }
+
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('touchstart', function() {
+    this.classList.add('pressing');
+  }, { passive: true });
+  btn.addEventListener('touchend', function() {
+    const el = this;
+    setTimeout(() => el.classList.remove('pressing'), 200);
+  }, { passive: true });
+  btn.addEventListener('touchcancel', function() {
+    this.classList.remove('pressing');
+  }, { passive: true });
+});
 
 window.addEventListener('beforeunload', (e) => {
   if (state.balanceEditing || state.cashflowEditing) {
