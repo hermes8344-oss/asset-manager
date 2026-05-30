@@ -991,13 +991,10 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 .fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(83,74,183,.25); }
 @media (min-width: 900px) { .fab { display: none !important; } }
 
-/* FAB가 콘텐츠를 가리지 않도록 해당 탭 여백 확보 (모바일 전용) */
+/* FAB가 콘텐츠를 가리지 않도록 하단 여백 확보 (모바일 전용) */
 @media (max-width: 899px) {
   #screen-balance .page-content,
-  #screen-cashflow .page-content {
-    padding-bottom: 5.5rem;
-    padding-right: 4.5rem;
-  }
+  #screen-cashflow .page-content { padding-bottom: 5.5rem; }
 }
 
 /* ── 편집 셀 하이라이트 ── */
@@ -1421,8 +1418,8 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 </div>
 
 <script>
-const APP_VERSION = 'v.26053003';
-const APP_CHANGELOG = [{"v":"v.26053003","d":"26.05.30","m":"금액 입력 커서 버그 수정 및 X 초기화 버튼 추가, 계좌 이번달만 삭제 시 항목 자체 삭제되도록 수정"}];
+const APP_VERSION = 'v.26053004';
+const APP_CHANGELOG = [{"v":"v.26053004","d":"26.05.30","m":"FAB 표시 버그 수정 및 설정 기타 탭 버전·업데이트 내역 기능 추가"},{"v":"v.26053003","d":"26.05.30","m":"금액 입력 커서 버그 수정 및 X 초기화 버튼 추가, 계좌 이번달만 삭제 시 항목 자체 삭제되도록 수정"}];
 // ══════════════════════════════════════════
 // 상태 & 저장소
 // ══════════════════════════════════════════
