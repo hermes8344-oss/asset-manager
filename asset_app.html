@@ -431,11 +431,21 @@ body {
   /* 고정비: 해당일 숨기고 4컬럼 재배치 [항목][금액][주기][담당] */
   .fixed-hdr, .fixed-row { grid-template-columns: 1fr 15% 10% 42px; }
   .fixed-hdr > :nth-child(4), .fixed-row > :nth-child(4) { display: none !important; }
-  /* 자동이체: 받는곳 컬럼 숨기고 4컬럼으로 재배치 [납부내용][금액][계좌/카드][납부일] */
-  .at-hdr,    .at-row    { grid-template-columns: 1fr 18% 22% 34px; }
+  /* 자동이체: 받는곳 컬럼 숨기고 4컬럼 재배치 [납부내용][금액][계좌/카드][납부일] */
+  /* 납부일 46px: 1em padding 추가 후에도 텍스트 여유 확보 */
+  .at-hdr,    .at-row    { grid-template-columns: 1fr 18% 22% 46px; }
   .at-hdr > :nth-child(4), .at-row > :nth-child(4) { display: none !important; }
   /* 헤더 텍스트 1행 + 글씨 약간 축소 */
   .fixed-hdr span, .at-hdr span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
+  /* 금액 헤더+데이터를 좌측으로 1글자 이동 */
+  .at-hdr > :nth-child(2) { text-align: left; }
+  .at-row  > :nth-child(2) { text-align: left; }
+  /* 계좌/카드·납부일 헤더+데이터를 우측으로 1글자 이동 */
+  .at-hdr > :nth-child(3) { overflow: visible; text-overflow: clip; padding-left: 1em; }
+  /* 셀 자체를 flex로 만들어 뱃지를 우측 정렬 — 인라인 overflow:hidden 우회 */
+  .at-row  > :nth-child(3) { display: flex !important; align-items: center; justify-content: center; overflow: visible !important; }
+  .at-hdr > :nth-child(5) { padding-left: 1em; }
+  .at-row  > :nth-child(5) { padding-left: 1em; }
   /* 데이터 마지막 열도 1행 (ownerBadge 원형 아이콘) */
   .fixed-row > :last-child, .at-row > :last-child { white-space: nowrap; overflow: hidden; display: flex; align-items: center; justify-content: flex-end; }
   /* 마지막 헤더(담당/납부일) 우측 정렬 */
@@ -458,6 +468,10 @@ body {
 .fixed-row > :nth-child(2) { text-align: center; }
 .fixed-hdr > :last-child { text-align: right; }
 .fixed-row > :last-child { display: flex; align-items: center; justify-content: flex-end; }
+@media (min-width: 900px) {
+  /* 항목 열을 여유 공간의 2/3로 축소, 나머지 1/3은 우측 빈 공간으로 → 이후 열 좌측 이동 */
+  .fixed-hdr, .fixed-row { grid-template-columns: 2fr 17% 12% 16% 52px 1fr; }
+}
 .at-swipe-wrap:last-child .fixed-row { border: none; }
 .fixed-cal-month { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; background: var(--surface); min-height: 70px; }
 .fixed-cal-month.current { background: var(--accent-light); border-color: var(--accent); }
@@ -484,6 +498,10 @@ body {
 .at-row > :last-child { display: flex; align-items: center; justify-content: flex-end; }
 .at-swipe-wrap:last-child .at-row { border: none; }
 .at-row.at-drag-target { outline: 2px solid var(--accent); outline-offset: -2px; background: rgba(83,74,183,.07); border-radius: 6px; }
+@media (min-width: 900px) {
+  /* 납부내용 열을 여유 공간의 2/3로 축소, 고정비와 동일한 비율 */
+  .at-hdr, .at-row { grid-template-columns: 2fr 17% 12% 16% 52px 1fr; }
+}
 /* ── 스와이프 액션 ── */
 .at-swipe-wrap { position: relative; overflow: hidden; }
 .at-swipe-btns { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: stretch; z-index: 0; }
@@ -1184,6 +1202,18 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
   <div class="safe-bottom" id="safe-bottom" style="display:none;"></div>
 </div>
 
+<!-- 지난 메모 전체 팝업 -->
+<div class="modal-overlay modal-popup" id="past-memos-modal" onclick="if(event.target===this)closePastMemosModal()">
+  <div class="modal-sheet" style="max-width:430px;max-height:80vh;display:flex;flex-direction:column;padding-bottom:.75rem;">
+    <div class="modal-handle"></div>
+    <div class="modal-header" style="flex-shrink:0;">
+      <div class="modal-title">지난 메모</div>
+      <button class="close-btn" onclick="closePastMemosModal()">✕</button>
+    </div>
+    <div id="past-memos-content" style="overflow-y:auto;flex:1;padding-top:.25rem;"></div>
+  </div>
+</div>
+
 <!-- 이달 메모 상세 팝업 -->
 <div class="modal-overlay" id="cf-memo-detail-modal" onclick="if(event.target===this)closeCFMemoDetail()">
   <div class="modal-sheet" style="max-width:430px;">
@@ -1418,8 +1448,8 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 </div>
 
 <script>
-const APP_VERSION = 'v.26053004';
-const APP_CHANGELOG = [{"v":"v.26053004","d":"26.05.30","m":"FAB 표시 버그 수정 및 설정 기타 탭 버전·업데이트 내역 기능 추가"},{"v":"v.26053003","d":"26.05.30","m":"금액 입력 커서 버그 수정 및 X 초기화 버튼 추가, 계좌 이번달만 삭제 시 항목 자체 삭제되도록 수정"}];
+const APP_VERSION = 'v.26060101';
+const APP_CHANGELOG = [{"v":"v.26060101","d":"26.06.01","m":"UI 개선: 이름변경 모달, 수입지출 편집 취소 버그 수정, 설정 고정비/자동이체 PC·모바일 레이아웃 조정, 지난 메모 카드 추가"},{"v":"v.26053004","d":"26.05.30","m":"FAB 표시 버그 수정 및 설정 기타 탭 버전·업데이트 내역 기능 추가"},{"v":"v.26053003","d":"26.05.30","m":"금액 입력 커서 버그 수정 및 X 초기화 버튼 추가, 계좌 이번달만 삭제 시 항목 자체 삭제되도록 수정"}];
 // ══════════════════════════════════════════
 // 상태 & 저장소
 // ══════════════════════════════════════════
@@ -3070,7 +3100,6 @@ function renderBalance() {
       <div style="display:flex;align-items:center;gap:6px;">
         ${isEdit ? `<div class="hdr-edit-btns">
           <button class="hdr-cancel" onclick="cancelBalanceEdit()">취소</button>
-          <button class="hdr-add" onclick="openAccountModal()">+ 계좌</button>
           <button class="hdr-save" onclick="saveBalance()">저장</button>
         </div>` : ''}
         ${!isEdit ? `<button class="pc-edit-btn" onclick="toggleBalanceEdit()">수정하기</button>` : ''}
@@ -4074,7 +4103,7 @@ function renderCashflow() {
           <div class="cat-total" style="color:var(--amber);">${fmtW(cfSpecialTotal)}</div>
         </div>
         <div class="cf-list">
-          ${specialRows || '<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">이달 특별지출 내역이 없어요 · 편집 모드에서 추가할 수 있어요</div>'}
+          ${specialRows || '<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">이달 특별지출 내역이 없어요</div>'}
         </div>
         ${specialRows ? '<div style="font-size:11px;color:var(--text3);text-align:right;margin-top:.35rem;">편집 모드에서 항목을 수정·추가할 수 있어요</div>' : ''}
       </div>`;
@@ -4131,7 +4160,7 @@ function renderCashflow() {
       <div class="cat-total" style="color:var(--blue);">${fmtW(cfSavingsListTotal)}</div>
     </div>
     <div class="cf-list" data-cf-live="savings">
-      ${savingsListRows || `<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 저축 항목 추가 버튼으로 등록해보세요' : '이달 저축 내역이 없어요 · 편집 모드에서 추가할 수 있어요'}</div>`}
+      ${savingsListRows || `<div style="text-align:center;color:var(--text3);padding:.75rem 0;font-size:11px;">${isEdit ? '+ 저축 항목 추가 버튼으로 등록해보세요' : '이달 저축 내역이 없어요'}</div>`}
     </div>
     ${isEdit ? `<button class="add-btn" style="margin-top:.5rem;" onclick="addCFRow('savings')">+ 저축 항목 추가</button>` : ''}
   </div>`;
@@ -4271,6 +4300,28 @@ function renderCashflow() {
                 <button class="btn btn-primary" style="padding:.3rem .7rem;font-size:12px;" onclick="addCFMemo()">추가</button>
               </div>
             </div>` : '';
+          const pastMemoMonths = Object.keys(state.cashflow)
+            .filter(m => m < ym && (state.cashflow[m]?.memos?.length > 0))
+            .sort((a, b) => b.localeCompare(a));
+          const pastCardHtml = pastMemoMonths.length > 0 ? (() => {
+            const recentYM = pastMemoMonths[0];
+            const recentMemos = state.cashflow[recentYM].memos || [];
+            const previewHtml = recentMemos.slice(0, 2).map(m => `
+              <div style="display:flex;align-items:center;gap:6px;padding:.25rem 0;">
+                <span style="font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">${m.text||''}</span>
+                ${m.amount ? `<span style="font-size:12px;color:var(--text3);flex-shrink:0;">${fmtW(m.amount)}</span>` : ''}
+              </div>`).join('');
+            const moreCount = recentMemos.length - 2;
+            return `<div class="card" style="cursor:pointer;margin-top:.5rem;" onclick="openPastMemosModal()">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.25rem;">
+                <div class="section-title">지난 메모</div>
+                <span style="font-size:11px;color:var(--text3);">›</span>
+              </div>
+              <div style="font-size:11px;color:var(--accent);font-weight:600;margin-bottom:.2rem;">${ymLabel(recentYM)}</div>
+              ${previewHtml}
+              ${moreCount > 0 ? `<div style="font-size:11px;color:var(--text3);margin-top:.2rem;">외 ${moreCount}개 · 전체 ${pastMemoMonths.length}개월 보기</div>` : (pastMemoMonths.length > 1 ? `<div style="font-size:11px;color:var(--text3);margin-top:.2rem;">전체 ${pastMemoMonths.length}개월 보기</div>` : '')}
+            </div>`;
+          })() : '';
           return `<div class="card">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem;">
               <div class="section-title">이달 메모</div>
@@ -4278,7 +4329,7 @@ function renderCashflow() {
             </div>
             ${memoListHtml || (!cfMemoFormOpen ? `<div style="font-size:12px;color:var(--text3);padding:.1rem 0;">아직 메모가 없어요</div>` : '')}
             ${memoFormHtml}
-          </div>`;
+          </div>${pastCardHtml}`;
         })()}
       </div>
     </div>
@@ -4303,16 +4354,18 @@ function ensureCF(ym) {
   if (!state.cashflow[ym].special) state.cashflow[ym].special = [];
   if (!state.cashflow[ym].savings) state.cashflow[ym].savings = [];
 }
+let _cfEditSnapshot = null;
 function toggleCashflowEdit() {
   if (state.cashflowEditing) {
     showConfirm('변경사항이 있어요', '저장하지 않고 나가시겠어요?', () => {
-      state.cashflowEditing = false;
-      hideEditBar();
-      renderCashflow();
+      cancelCashflowEdit();
     });
   } else {
     const ym = state.currentMonth;
     state.cashflowEditing = true;
+    // 편집 진입 전 스냅샷 저장 (취소 시 복구용)
+    const hadData = !!state.cashflow[ym];
+    _cfEditSnapshot = { ym, hadData, data: hadData ? JSON.parse(JSON.stringify(state.cashflow[ym])) : null };
     ensureCF(ym);
     const cf = state.cashflow[ym];
     const prevCf = state.cashflow[prevYM(ym)] || {};
@@ -4327,13 +4380,27 @@ function toggleCashflowEdit() {
     showEditBar(cancelCashflowEdit, saveCashflow);
   }
 }
-function cancelCashflowEdit() { state.cashflowEditing = false; hideEditBar(); renderCashflow(); }
+function cancelCashflowEdit() {
+  // 편집 진입 전 상태로 복구
+  if (_cfEditSnapshot !== null) {
+    if (_cfEditSnapshot.hadData) {
+      state.cashflow[_cfEditSnapshot.ym] = _cfEditSnapshot.data;
+    } else {
+      delete state.cashflow[_cfEditSnapshot.ym];
+    }
+    _cfEditSnapshot = null;
+  }
+  state.cashflowEditing = false;
+  hideEditBar();
+  renderCashflow();
+}
 function saveCashflow() {
   document.querySelectorAll('.amount-input[data-cf-type]').forEach(el => {
     const type = el.dataset.cfType;
     const idx = parseInt(el.dataset.cfIdx);
     if (!isNaN(idx)) updateCFRow(type, idx, 'amount', parseNum(el.value));
   });
+  _cfEditSnapshot = null;
   saveState();
   state.cashflowEditing = false;
   hideEditBar();
@@ -4937,6 +5004,30 @@ function deleteCFMemoFromPopup() {
     deleteCFMemo(cfMemoDetailIdx);
     closeCFMemoDetail();
   });
+}
+function openPastMemosModal() {
+  const ym = state.currentMonth;
+  const pastMonths = Object.keys(state.cashflow)
+    .filter(m => m < ym && (state.cashflow[m]?.memos?.length > 0))
+    .sort((a, b) => b.localeCompare(a));
+  const html = pastMonths.map(m => {
+    const memos = state.cashflow[m].memos || [];
+    const memosHtml = memos.map(memo => `
+      <div style="padding:.45rem 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <div style="font-size:13px;color:var(--text1);word-break:break-all;line-height:1.55;flex:1;min-width:0;">${memo.text||''}</div>
+        ${memo.amount ? `<div style="font-size:12px;color:var(--text2);white-space:nowrap;flex-shrink:0;padding-top:2px;">${fmtW(memo.amount)}</div>` : ''}
+      </div>`).join('');
+    return `<div style="margin-bottom:1.25rem;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:.35rem;">${ymLabel(m)}</div>
+      ${memosHtml}
+    </div>`;
+  }).join('');
+  document.getElementById('past-memos-content').innerHTML = html ||
+    '<div style="color:var(--text3);font-size:13px;padding:.5rem 0;">이전 메모가 없어요</div>';
+  document.getElementById('past-memos-modal').classList.add('open');
+}
+function closePastMemosModal() {
+  document.getElementById('past-memos-modal').classList.remove('open');
 }
 function updateCFRow(type, idx, field, val) {
   const ym = state.currentMonth;
@@ -7508,13 +7599,13 @@ function openNameEditModal() {
   const fields = document.getElementById('name-edit-fields');
   fields.innerHTML = `
     <div style="margin-bottom:.75rem;">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:.35rem;">${cfg.memberCount === 2 ? cfg.member1Name + ' 이름' : '이름'}</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:.35rem;">${cfg.memberCount === 2 ? '사용자1 이름' : '이름'}</div>
       <input id="ne-name1" class="input-field" style="width:100%;font-size:15px;" maxlength="6"
         value="${cfg.member1Name || ''}" placeholder="이름 입력"/>
     </div>
     ${cfg.memberCount === 2 ? `
     <div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:.35rem;">${cfg.member2Name || '파트너'} 이름</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:.35rem;">사용자2 이름</div>
       <input id="ne-name2" class="input-field" style="width:100%;font-size:15px;" maxlength="6"
         value="${cfg.member2Name || ''}" placeholder="이름 입력"/>
     </div>` : ''}
@@ -7575,7 +7666,7 @@ document.addEventListener('keydown', function(e) {
     <div id="name-edit-fields"></div>
     <div style="display:flex;gap:.5rem;margin-top:1.25rem;">
       <button class="btn" style="flex:1;background:var(--surface2);color:var(--text2);" onclick="closeNameEditModal()">취소</button>
-      <button class="btn btn-primary" style="flex:2;" onclick="saveNameEdit()">저장</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveNameEdit()">저장</button>
     </div>
   </div>
 </div>
