@@ -1448,8 +1448,8 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 </div>
 
 <script>
-const APP_VERSION = 'v.26060101';
-const APP_CHANGELOG = [{"v":"v.26060101","d":"26.06.01","m":"UI 개선: 이름변경 모달, 수입지출 편집 취소 버그 수정, 설정 고정비/자동이체 PC·모바일 레이아웃 조정, 지난 메모 카드 추가"},{"v":"v.26053004","d":"26.05.30","m":"FAB 표시 버그 수정 및 설정 기타 탭 버전·업데이트 내역 기능 추가"},{"v":"v.26053003","d":"26.05.30","m":"금액 입력 커서 버그 수정 및 X 초기화 버튼 추가, 계좌 이번달만 삭제 시 항목 자체 삭제되도록 수정"}];
+const APP_VERSION = 'v.26060401';
+const APP_CHANGELOG = [{"v":"v.26060401","d":"26.06.04","m":"계좌잔고 편집 모드 진입 시 0으로 저장된 값이 전월값으로 덮어씌워지는 버그 수정"},{"v":"v.26060101","d":"26.06.01","m":"UI 개선: 이름변경 모달, 수입지출 편집 취소 버그 수정, 설정 고정비/자동이체 PC·모바일 레이아웃 조정, 지난 메모 카드 추가"},{"v":"v.26053004","d":"26.05.30","m":"FAB 표시 버그 수정 및 설정 기타 탭 버전·업데이트 내역 기능 추가"},{"v":"v.26053003","d":"26.05.30","m":"금액 입력 커서 버그 수정 및 X 초기화 버튼 추가, 계좌 이번달만 삭제 시 항목 자체 삭제되도록 수정"}];
 // ══════════════════════════════════════════
 // 상태 & 저장소
 // ══════════════════════════════════════════
@@ -3208,8 +3208,8 @@ function toggleBalanceEdit() {
     balanceTempData = {};
     balanceMemoTempData = {};
     state.accounts.forEach(a => {
-      // 현재 월 값이 없으면 전월 값을 기본으로 사용
-      balanceTempData[a.id] = cur[a.id] || prevData[a.id] || 0;
+      // 현재 월 값이 없으면 전월 값을 기본으로 사용 (0으로 저장된 경우 전월값 폴백 방지)
+      balanceTempData[a.id] = (a.id in cur) ? cur[a.id] : (prevData[a.id] ?? 0);
       balanceMemoTempData[a.id] = curMemos[a.id] || '';
     });
     state.balanceEditing = true;
