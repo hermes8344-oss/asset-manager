@@ -425,37 +425,23 @@ body {
 @media (min-width: 900px) { .at-fc-count { display: none !important; } }
 /* PC: 자동이체 계좌/카드 전체 표시, 약어 숨김 */
 @media (min-width: 900px) { .at-src-abbr { display: none !important; } .at-src-full { display: flex !important; } }
-/* 모바일: 드래그핸들 좌측 고정 + 담당/납부일 헤더·값 1행 처리 */
+/* 모바일: 고정비·자동이체 2열([항목/납부내용] + [금액])만 표시 */
 @media (max-width: 899px) {
   .row-indent { padding-left: 4px; }
-  /* 고정비: 해당일 숨기고 4컬럼 재배치 [항목][금액][주기][담당] */
-  .fixed-hdr, .fixed-row { grid-template-columns: 1fr 15% 10% 42px; }
-  .fixed-hdr > :nth-child(4), .fixed-row > :nth-child(4) { display: none !important; }
-  /* 자동이체: 받는곳 컬럼 숨기고 4컬럼 재배치 [납부내용][금액][계좌/카드][납부일] */
-  /* 납부일 46px: 1em padding 추가 후에도 텍스트 여유 확보 */
-  .at-hdr,    .at-row    { grid-template-columns: 1fr 18% 22% 46px; }
-  .at-hdr > :nth-child(4), .at-row > :nth-child(4) { display: none !important; }
+  /* 고정비: 모바일에서 [항목][금액] 2열만 표시, 나머지 숨김 */
+  .fixed-hdr, .fixed-row { grid-template-columns: 1fr 38% !important; }
+  .fixed-hdr > :nth-child(n+3), .fixed-row > :nth-child(n+3) { display: none !important; }
+  /* 자동이체: 모바일에서 [납부내용][금액] 2열만 표시, 나머지 숨김 */
+  .at-hdr, .at-row { grid-template-columns: 1fr 38% !important; }
+  .at-hdr > :nth-child(n+3), .at-row > :nth-child(n+3) { display: none !important; }
   /* 헤더 텍스트 1행 + 글씨 약간 축소 */
   .fixed-hdr span, .at-hdr span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
-  /* 금액 헤더+데이터를 좌측으로 1글자 이동 */
-  .at-hdr > :nth-child(2) { text-align: left; }
-  .at-row  > :nth-child(2) { text-align: left; }
-  /* 계좌/카드·납부일 헤더+데이터를 우측으로 1글자 이동 */
-  .at-hdr > :nth-child(3) { overflow: visible; text-overflow: clip; padding-left: 1em; }
-  /* 셀 자체를 flex로 만들어 뱃지를 우측 정렬 — 인라인 overflow:hidden 우회 */
-  .at-row  > :nth-child(3) { display: flex !important; align-items: center; justify-content: center; overflow: visible !important; }
-  .at-hdr > :nth-child(5) { padding-left: 1em; }
-  .at-row  > :nth-child(5) { padding-left: 1em; }
-  /* 데이터 마지막 열도 1행 (ownerBadge 원형 아이콘) */
-  .fixed-row > :last-child, .at-row > :last-child { white-space: nowrap; overflow: hidden; display: flex; align-items: center; justify-content: flex-end; }
-  /* 마지막 헤더(담당/납부일) 우측 정렬 */
-  .fixed-hdr > :last-child, .at-hdr > :last-child { text-align: right; }
+  /* 금액 컬럼 우측 정렬 */
+  .fixed-hdr > :nth-child(2), .fixed-row > :nth-child(2) { text-align: right; }
+  .at-hdr > :nth-child(2), .at-row > :nth-child(2) { text-align: right; }
   /* 자동이체 고정비 연동: 모바일은 x건만 표시 */
   .at-fc-labels { display: none !important; }
   .at-fc-count  { display: inline-block; }
-  /* 자동이체 계좌/카드 컬럼: 모바일은 원형 뱃지 2개(약어), PC는 전체 표시 */
-  .at-src-full  { display: none !important; }
-  .at-src-abbr  { display: flex !important; }
 }
 
 /* ── 고정비 ── */
@@ -1448,8 +1434,8 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 </div>
 
 <script>
-const APP_VERSION = 'v.26060401';
-const APP_CHANGELOG = [{"v":"v.26060401","d":"26.06.04","m":"계좌잔고 편집 모드 진입 시 0으로 저장된 값이 전월값으로 덮어씌워지는 버그 수정"},{"v":"v.26060101","d":"26.06.01","m":"UI 개선: 이름변경 모달, 수입지출 편집 취소 버그 수정, 설정 고정비/자동이체 PC·모바일 레이아웃 조정, 지난 메모 카드 추가"},{"v":"v.26053004","d":"26.05.30","m":"FAB 표시 버그 수정 및 설정 기타 탭 버전·업데이트 내역 기능 추가"},{"v":"v.26053003","d":"26.05.30","m":"금액 입력 커서 버그 수정 및 X 초기화 버튼 추가, 계좌 이번달만 삭제 시 항목 자체 삭제되도록 수정"}];
+const APP_VERSION = 'v.26061301';
+const APP_CHANGELOG = [{"v":"v.26061301","d":"26.06.13","m":"설정 고정비·자동이체 모바일 2열 레이아웃 및 금액 잘림 수정"},{"v":"v.26060401","d":"26.06.04","m":"계좌잔고 편집 모드 진입 시 0으로 저장된 값이 전월값으로 덮어씌워지는 버그 수정"},{"v":"v.26060101","d":"26.06.01","m":"UI 개선: 이름변경 모달, 수입지출 편집 취소 버그 수정, 설정 고정비/자동이체 PC·모바일 레이아웃 조정, 지난 메모 카드 추가"},{"v":"v.26053004","d":"26.05.30","m":"FAB 표시 버그 수정 및 설정 기타 탭 버전·업데이트 내역 기능 추가"},{"v":"v.26053003","d":"26.05.30","m":"금액 입력 커서 버그 수정 및 X 초기화 버튼 추가, 계좌 이번달만 삭제 시 항목 자체 삭제되도록 수정"}];
 // ══════════════════════════════════════════
 // 상태 & 저장소
 // ══════════════════════════════════════════
@@ -4442,6 +4428,19 @@ function openRowEditModal(type, idxOrAccId) {
   document.getElementById('row-edit-modal').classList.add('open');
 }
 
+function _syncRowEditFields() {
+  const labelEl = document.getElementById('re-label');
+  if (labelEl) _rowEditCtx.data.label = labelEl.value;
+  const memoEl = document.getElementById('re-memo');
+  if (memoEl) _rowEditCtx.data.memo = memoEl.value;
+  const typeEl = document.getElementById('re-type');
+  if (typeEl) _rowEditCtx.data.type_field = typeEl.value;
+  const nickEl = document.getElementById('re-nickname');
+  if (nickEl) _rowEditCtx.data.nickname = nickEl.value;
+  const instEl = document.getElementById('re-institution');
+  if (instEl) _rowEditCtx.data.institution = instEl.value;
+}
+
 function renderRowEditContent() {
   const { type, data } = _rowEditCtx;
   const cfg = state.config || {};
@@ -4453,7 +4452,7 @@ function renderRowEditContent() {
     const ownerBtns = [...members, ...(cfg.memberCount===2?['공동']:[])].map(m => {
       const active = data.owner === m;
       const bg = m === cfg.member1Name ? '#534AB7' : m === cfg.member2Name ? '#0F6E56' : '#BA7517';
-      return `<button onclick="_rowEditCtx.data.owner='${m}';renderRowEditContent()" style="padding:.35rem .75rem;border-radius:20px;border:2px solid ${active?bg:'var(--border)'};background:${active?bg:'transparent'};color:${active?'#fff':'var(--text2)'};font-size:13px;font-weight:600;cursor:pointer;">${m}</button>`;
+      return `<button onclick="_rowEditCtx.data.owner='${m}';_syncRowEditFields();renderRowEditContent()" style="padding:.35rem .75rem;border-radius:20px;border:2px solid ${active?bg:'var(--border)'};background:${active?bg:'transparent'};color:${active?'#fff':'var(--text2)'};font-size:13px;font-weight:600;cursor:pointer;">${m}</button>`;
     }).join('');
     html = `
       <div class="input-group">
@@ -4473,7 +4472,7 @@ function renderRowEditContent() {
     const ownerBtns = [...members, ...(cfg.memberCount===2?['공동']:[])].map(m => {
       const active = data.owner === m;
       const bg = m === cfg.member1Name ? '#534AB7' : m === cfg.member2Name ? '#0F6E56' : '#BA7517';
-      return `<button onclick="_rowEditCtx.data.owner='${m}';renderRowEditContent()" style="padding:.35rem .75rem;border-radius:20px;border:2px solid ${active?bg:'var(--border)'};background:${active?bg:'transparent'};color:${active?'#fff':'var(--text2)'};font-size:13px;font-weight:600;cursor:pointer;">${m}</button>`;
+      return `<button onclick="_rowEditCtx.data.owner='${m}';_syncRowEditFields();renderRowEditContent()" style="padding:.35rem .75rem;border-radius:20px;border:2px solid ${active?bg:'var(--border)'};background:${active?bg:'transparent'};color:${active?'#fff':'var(--text2)'};font-size:13px;font-weight:600;cursor:pointer;">${m}</button>`;
     }).join('');
     const secondField = type === 'special'
       ? `<div class="input-group" style="${members.length > 1 ? '' : 'margin-bottom:0;'}">
