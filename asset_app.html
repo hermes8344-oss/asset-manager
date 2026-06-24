@@ -1409,6 +1409,17 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
   </div>
 </div>
 
+<!-- 예상 수입 추가/수정 팝업 -->
+<div class="modal-overlay modal-popup" id="ei-edit-modal" onclick="if(event.target===this)closeEIEditModal()">
+  <div class="modal-sheet">
+    <div class="modal-header">
+      <div class="modal-title" id="ei-modal-title">예상 수입 추가</div>
+      <button class="close-btn" onclick="closeEIEditModal()">✕</button>
+    </div>
+    <div id="ei-edit-modal-body"></div>
+  </div>
+</div>
+
 <!-- 목표 추가/수정 팝업 -->
 <div class="modal-overlay modal-popup" id="goal-modal" onclick="if(event.target===this)closeGoalModal()">
   <div class="modal-sheet">
@@ -1434,8 +1445,8 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 </div>
 
 <script>
-const APP_VERSION = 'v.26061301';
-const APP_CHANGELOG = [{"v":"v.26061301","d":"26.06.13","m":"설정 고정비·자동이체 모바일 2열 레이아웃 및 금액 잘림 수정"},{"v":"v.26060401","d":"26.06.04","m":"계좌잔고 편집 모드 진입 시 0으로 저장된 값이 전월값으로 덮어씌워지는 버그 수정"},{"v":"v.26060101","d":"26.06.01","m":"UI 개선: 이름변경 모달, 수입지출 편집 취소 버그 수정, 설정 고정비/자동이체 PC·모바일 레이아웃 조정, 지난 메모 카드 추가"},{"v":"v.26053004","d":"26.05.30","m":"FAB 표시 버그 수정 및 설정 기타 탭 버전·업데이트 내역 기능 추가"},{"v":"v.26053003","d":"26.05.30","m":"금액 입력 커서 버그 수정 및 X 초기화 버튼 추가, 계좌 이번달만 삭제 시 항목 자체 삭제되도록 수정"}];
+const APP_VERSION = 'v.26062401';
+const APP_CHANGELOG = [{"v":"v.26062401","d":"26.06.24","m":"수입/지출 이달요약 카드에 예상수입·자동이체 후 여유 기능 추가"},{"v":"v.26061301","d":"26.06.13","m":"설정 고정비·자동이체 모바일 2열 레이아웃 및 금액 잘림 수정"},{"v":"v.26060401","d":"26.06.04","m":"계좌잔고 편집 모드 진입 시 0으로 저장된 값이 전월값으로 덮어씌워지는 버그 수정"},{"v":"v.26060101","d":"26.06.01","m":"UI 개선: 이름변경 모달, 수입지출 편집 취소 버그 수정, 설정 고정비/자동이체 PC·모바일 레이아웃 조정, 지난 메모 카드 추가"},{"v":"v.26053004","d":"26.05.30","m":"FAB 표시 버그 수정 및 설정 기타 탭 버전·업데이트 내역 기능 추가"},{"v":"v.26053003","d":"26.05.30","m":"금액 입력 커서 버그 수정 및 X 초기화 버튼 추가, 계좌 이번달만 삭제 시 항목 자체 삭제되도록 수정"}];
 // ══════════════════════════════════════════
 // 상태 & 저장소
 // ══════════════════════════════════════════
@@ -1459,6 +1470,7 @@ let state = {
   goals: [],
   loans: [],
   autoTransfers: [],
+  expectedIncomes: [],
   currentTab: 'dashboard',
   currentMonth: currentYM(),
   balanceEditing: false,
@@ -1507,6 +1519,7 @@ async function _doSave() {
     goals: state.goals,
     loans: state.loans,
     autoTransfers: state.autoTransfers,
+    expectedIncomes: state.expectedIncomes,
     balanceLastUpdated: state.balanceLastUpdated,
   };
   const targetId = ownerUserId || currentUser?.id;
@@ -1541,6 +1554,7 @@ async function loadState() {
   Object.assign(state, saved);
   state.loans = saved.loans || [];
   state.autoTransfers = saved.autoTransfers || [];
+  state.expectedIncomes = saved.expectedIncomes || [];
   return !!state.config;
 }
 
@@ -1715,6 +1729,7 @@ async function checkAndMigrate() {
       Object.assign(state, saved);
       state.loans = saved.loans || [];
       state.autoTransfers = saved.autoTransfers || [];
+      state.expectedIncomes = saved.expectedIncomes || [];
       await _doSave();
       showToast('데이터를 클라우드에 저장했어요');
     },
@@ -4016,6 +4031,25 @@ function renderCashflow() {
   const upcomingATList = Object.entries(_upcomingMap)
     .sort(([a],[b]) => a.localeCompare(b))
     .map(([,v]) => v);
+  const upcomingATTotal = upcomingATList.reduce((s, item) => s + item.total, 0);
+
+  // 다가오는 수입: 수령일별 그룹화
+  const _upcomingIncomeMap = {};
+  (state.expectedIncomes || []).forEach(ei => {
+    if (!ei.day) return;
+    let m, y;
+    if (ei.day >= _todayDay) { m = _todayMon; y = _todayYr; }
+    else if (_todayMon === 12) { m = 1; y = _todayYr + 1; }
+    else { m = _todayMon + 1; y = _todayYr; }
+    const key = `${y}-${String(m).padStart(2,'0')}-${String(ei.day).padStart(2,'0')}`;
+    if (!_upcomingIncomeMap[key]) _upcomingIncomeMap[key] = { month: m, day: ei.day, items: [] };
+    _upcomingIncomeMap[key].items.push(ei);
+  });
+  const upcomingIncomeList = Object.entries(_upcomingIncomeMap)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([,v]) => v);
+  const upcomingIncomeTotal = upcomingIncomeList.reduce((s, item) => s + item.items.reduce((s2, ei) => s2 + (ei.amount||0), 0), 0);
+  const upcomingCashBalance = upcomingIncomeTotal - upcomingATTotal;
 
   // 특별지출
   const specialEnabled = cfg.specialAccountEnabled;
@@ -4234,7 +4268,23 @@ function renderCashflow() {
           <div class="section-title" style="margin-bottom:.75rem;">이달 요약</div>
           <div class="sum-row"><span class="sum-label">총수입</span><span class="sum-val" id="cf-live-income" style="color:var(--green);">${fmtW(incomeTotal)}</span></div>
           <div class="sum-row"><span class="sum-label">총지출</span><span class="sum-val" id="cf-live-expense" style="color:var(--red);">${fmtW(expenseTotal)}</span></div>
-          ${cfAutoTransferTotal > 0 ? `<div class="sum-row"><span class="sum-label">자동이체</span><span class="sum-val" style="color:var(--red);">${fmtW(cfAutoTransferTotal)}</span></div>` : ''}
+          <div class="sum-row" style="border-top:1px solid var(--border);margin-top:.5rem;padding-top:.5rem;">
+            <span class="sum-label" style="font-weight:600;">남은 돈</span>
+            <span class="sum-val" id="cf-live-remaining" style="font-weight:700;color:${cfRemaining>=0?'var(--green)':'var(--red)'};">${fmtW(cfRemaining)}</span>
+          </div>
+          ${cfSavingsListTotal > 0 ? `<div class="sum-row"><span class="sum-label">이달 저축</span><span id="cf-live-savings" class="sum-val" style="color:var(--blue);">${fmtW(cfSavingsListTotal)}</span></div>` : `<div class="sum-row" style="display:${isEdit?'flex':'none'};"><span class="sum-label">이달 저축</span><span id="cf-live-savings" class="sum-val" style="color:var(--blue);">-</span></div>`}
+          ${(upcomingIncomeList.length > 0 || upcomingATList.length > 0) ? `<div style="border-top:1px solid var(--border);margin-top:.75rem;padding-top:.75rem;"></div>` : ''}
+          ${upcomingIncomeList.map((item, idx) => item.items.map((ei, eiIdx) => `
+            <div class="sum-row">
+              <span class="sum-label" style="display:flex;flex-direction:column;gap:1px;">
+                ${idx === 0 && eiIdx === 0 ? `<span style="font-size:11px;color:var(--text3);font-weight:500;">다가오는 수입</span>` : ''}
+                <span>${ei.label}</span>
+              </span>
+              <span class="sum-val" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
+                <span style="font-size:10px;color:var(--text3);">${item.month}/${item.day}</span>
+                <span style="color:var(--blue, #378ADD);">${fmtW(ei.amount||0)}</span>
+              </span>
+            </div>`).join('')).join('')}
           ${upcomingATList.map((item, idx) => `
             <div class="sum-row">
               <span class="sum-label">${idx === 0 ? '다가오는 자동이체' : ''}</span>
@@ -4243,11 +4293,14 @@ function renderCashflow() {
                 <span style="color:var(--red);">${fmtW(item.total)}</span>
               </span>
             </div>`).join('')}
-          ${cfSavingsListTotal > 0 ? `<div class="sum-row"><span class="sum-label">이달 저축</span><span id="cf-live-savings" class="sum-val" style="color:var(--blue);">${fmtW(cfSavingsListTotal)}</span></div>` : `<div class="sum-row" style="display:${isEdit?'flex':'none'};"><span class="sum-label">이달 저축</span><span id="cf-live-savings" class="sum-val" style="color:var(--blue);">-</span></div>`}
-          <div class="sum-row" style="border-top:1px solid var(--border);margin-top:.5rem;padding-top:.5rem;">
-            <span class="sum-label" style="font-weight:600;">남은 돈</span>
-            <span class="sum-val" id="cf-live-remaining" style="font-weight:700;color:${cfRemaining>=0?'var(--green)':'var(--red)'};">${fmtW(cfRemaining)}</span>
-          </div>
+          ${(upcomingIncomeList.length > 0 || upcomingATList.length > 0) ? `
+          <div class="sum-row" style="border-top:1px solid var(--border);margin-top:.4rem;padding-top:.4rem;">
+            <span class="sum-label" style="display:flex;flex-direction:column;gap:1px;">
+              <span style="font-size:10px;color:var(--text3);">수입 − 자동이체</span>
+              <span style="font-weight:600;">자동이체 후 여유</span>
+            </span>
+            <span class="sum-val" style="font-weight:700;color:${upcomingCashBalance>=0?'var(--green)':'var(--red)'};">${upcomingCashBalance<0?'−':'+'}${fmtW(Math.abs(upcomingCashBalance))}</span>
+          </div>` : ''}
         </div>
 
         ${atCardItems.length > 0 ? `
@@ -6018,6 +6071,37 @@ function renderAutoTransferTab() {
     </div>`;
   }).join('') || '<div class="empty-state" style="padding:.75rem 0;">등록된 자동이체가 없어요</div>';
 
+  // 예상 수입 섹션
+  const eiRows = (state.expectedIncomes || []).map((ei, i) => {
+    const cfg2 = state.config || {};
+    const ownerBg    = ei.owner === '공동'           ? 'var(--surface2)'
+                     : ei.owner === cfg2.member1Name ? 'var(--accent-light)'
+                     :                                  'var(--green-light)';
+    const ownerColor = ei.owner === '공동'           ? 'var(--text3)'
+                     : ei.owner === cfg2.member1Name ? 'var(--accent)'
+                     :                                  'var(--green)';
+    const ownerBadge = (cfg2.memberCount >= 2 && ei.owner)
+      ? `<span style="font-size:8px;padding:1px 5px;border-radius:10px;background:${ownerBg};color:${ownerColor};font-weight:600;display:inline-block;margin-top:2px;">${ei.owner}</span>`
+      : '';
+    return `<div class="at-swipe-wrap ei-swipe-wrap">
+      <div class="at-row" style="cursor:pointer;" onclick="openEIEditModal(${i})">
+        <span class="row-indent" style="text-align:left;overflow:hidden;text-overflow:ellipsis;">
+          <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ei.label}</div>
+          ${ownerBadge}
+        </span>
+        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--blue,#378ADD);">${ei.amount ? fmtW(ei.amount) : '0원'}</span>
+        <span></span>
+        <span></span>
+        <span style="font-size:10px;color:var(--text3);text-align:center;">${ei.day ? ei.day+'일' : '-'}</span>
+      </div>
+      <div class="at-swipe-btns">
+        <button class="at-swipe-delete-btn" onclick="deleteExpectedIncome(${i})">삭제</button>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty-state" style="padding:.75rem 0;">등록된 예상 수입이 없어요</div>';
+
+  const eiTotal = (state.expectedIncomes || []).reduce((s,ei) => s+(ei.amount||0), 0);
+
   return `
     <div class="card">
       <div class="at-hdr"><span>납부내용</span><span>금액</span><span>계좌/카드</span><span>받는 곳</span><span>납부일</span></div>
@@ -6025,7 +6109,86 @@ function renderAutoTransferTab() {
     </div>
     <button class="add-btn" onclick="openAutoTransferModal()">+ 자동이체 추가</button>
     <div class="sbar" style="margin-top:.75rem;"><span class="sbar-label">이달 자동이체 합계</span><span class="sbar-value">${fmtW(thisMonthTotal)}</span></div>
+
+    <div style="margin-top:1.5rem;">
+      <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.5rem;">
+        <div class="section-title" style="margin:0;">예상 수입</div>
+        <span style="font-size:11px;color:var(--text3);">— 수령일 기준 이달 요약에 표시됩니다</span>
+      </div>
+      <div class="card">
+        <div class="at-hdr"><span>항목</span><span>금액</span><span></span><span></span><span>수령일</span></div>
+        ${eiRows}
+      </div>
+      <button class="add-btn" onclick="openEIEditModal(-1)">+ 예상 수입 추가</button>
+      <div class="sbar" style="margin-top:.75rem;"><span class="sbar-label">예상 수입 합계</span><span class="sbar-value" style="color:var(--blue,#378ADD);">${fmtW(eiTotal)}</span></div>
+    </div>
   `;
+}
+
+// ── 예상 수입 모달 ──
+function openEIEditModal(idx) {
+  const isNew = idx < 0;
+  const ei = isNew ? {} : (state.expectedIncomes[idx] || {});
+  const cfg = state.config || {};
+  document.getElementById('ei-modal-title').textContent = isNew ? '예상 수입 추가' : '예상 수입 수정';
+  const ownerOpts = ['공동', cfg.member1Name || ''];
+  if (cfg.memberCount >= 2 && cfg.member2Name) ownerOpts.push(cfg.member2Name);
+  const ownerSelectHtml = cfg.memberCount >= 2
+    ? `<div class="input-group"><label class="input-label">담당자</label>
+        <select class="input-field" id="ei-modal-owner" style="width:100%;font-size:14px;color:var(--text1);">
+          ${ownerOpts.map(o => `<option value="${o}" ${(ei.owner||cfg.member1Name)===o?'selected':''}>${o}</option>`).join('')}
+        </select></div>`
+    : '';
+  document.getElementById('ei-edit-modal-body').innerHTML = `
+    <div class="input-group"><label class="input-label">항목명</label>
+      <input class="input-field" id="ei-modal-label" value="${ei.label||''}" placeholder="예) 동현 급여, 월세 수입" style="width:100%;font-size:14px;"/>
+    </div>
+    <div class="input-group"><label class="input-label">금액</label>
+      <div style="position:relative;">
+        <input class="input-field" id="ei-modal-amount" inputmode="numeric" value="${ei.amount ? fmt(ei.amount) : ''}" placeholder="0"
+          oninput="applyCommaFormat(this)" onblur="formatInput(this)"
+          style="width:100%;font-size:14px;text-align:right;padding-right:2rem;"/>
+        <button type="button" onclick="var el=document.getElementById('ei-modal-amount');el.value='';el.focus();"
+          style="position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:0;opacity:.7;" tabindex="-1">✕</button>
+      </div>
+    </div>
+    <div class="input-group"><label class="input-label">수령일</label>
+      ${daySelectHtml('ei-modal-day', ei.day, 'width:100%;font-size:14px;color:var(--text1);')}
+    </div>
+    ${ownerSelectHtml}
+    <div class="btn-row" style="padding-top:.5rem;border-top:1px solid var(--border);margin-top:.5rem;">
+      ${!isNew ? `<button class="btn btn-danger" onclick="deleteExpectedIncome(${idx});closeEIEditModal();" style="margin-right:auto;background:none;border:none;color:var(--red);font-size:13px;cursor:pointer;padding:0;">삭제</button>` : ''}
+      <button class="btn btn-secondary" onclick="closeEIEditModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveEIModal(${idx})">저장</button>
+    </div>`;
+  document.getElementById('ei-edit-modal').classList.add('open');
+}
+function closeEIEditModal() {
+  document.getElementById('ei-edit-modal').classList.remove('open');
+}
+function saveEIModal(idx) {
+  const label = document.getElementById('ei-modal-label')?.value.trim();
+  const amount = parseNum(document.getElementById('ei-modal-amount')?.value) || 0;
+  const day = parseInt(document.getElementById('ei-modal-day')?.value) || null;
+  const owner = document.getElementById('ei-modal-owner')?.value || (state.config?.member1Name || '');
+  if (!label) { showToast('항목명을 입력해주세요', 'error'); return; }
+  if (!state.expectedIncomes) state.expectedIncomes = [];
+  if (idx < 0) {
+    state.expectedIncomes.push({ id: uuid(), label, amount, day, owner });
+  } else {
+    state.expectedIncomes[idx] = { ...state.expectedIncomes[idx], label, amount, day, owner };
+  }
+  saveState();
+  showToast('저장됐어요');
+  closeEIEditModal();
+  renderSettings();
+}
+function deleteExpectedIncome(idx) {
+  if (!state.expectedIncomes) return;
+  state.expectedIncomes.splice(idx, 1);
+  saveState();
+  showToast('삭제됐어요');
+  renderSettings();
 }
 
 function openAtSwipe(row) { row.classList.add('at-swiped'); row.style.transform = 'translateX(-60px)'; }
@@ -7086,6 +7249,7 @@ function exportData() {
     goals: state.goals,
     loans: state.loans,
     autoTransfers: state.autoTransfers,
+    expectedIncomes: state.expectedIncomes,
   };
   const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
