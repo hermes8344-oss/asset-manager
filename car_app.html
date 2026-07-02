@@ -587,16 +587,30 @@ async function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   const isStandalone = window.navigator.standalone ||
     window.matchMedia('(display-mode: standalone)').matches;
+
+  if (isStandalone) {
+    // iOS 홈 화면 앱: Safari 팝업/redirect 모두 불가
+    // → Safari에서 동일 페이지 열어 로그인 → 돌아올 때 reload로 auth 상태 수령
+    showConfirm(
+      'Safari에서 Google 로그인 창이 열립니다.<br>로그인 후 앱으로 돌아오면 자동으로 시작됩니다.',
+      () => {
+        window.open(location.href, '_blank');
+        document.addEventListener('visibilitychange', function _reload() {
+          if (document.visibilityState === 'visible') {
+            document.removeEventListener('visibilitychange', _reload);
+            window.location.reload();
+          }
+        });
+      }
+    );
+    return;
+  }
+
+  // Safari 브라우저: 팝업 사용 (redirect는 iOS ITP에서 차단됨)
   try {
-    if (isStandalone) {
-      // 홈 화면 앱(standalone)은 팝업 불가 → redirect
-      await _auth.signInWithRedirect(provider);
-    } else {
-      // Safari 브라우저는 팝업 사용 (redirect는 iOS ITP에서 차단됨)
-      await _auth.signInWithPopup(provider);
-    }
+    await _auth.signInWithPopup(provider);
   } catch(e) {
-    if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
+    if (e.code === 'auth/popup-blocked') {
       await _auth.signInWithRedirect(provider);
     } else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
       showToast('로그인 오류: ' + (e.code || e.message), 'error');
