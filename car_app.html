@@ -584,10 +584,23 @@ async function loadState() {
 
 // ── 인증 ──
 async function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  const isStandalone = window.navigator.standalone ||
+    window.matchMedia('(display-mode: standalone)').matches;
   try {
-    await _auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+    if (isStandalone) {
+      // 홈 화면 앱(standalone)은 팝업 불가 → redirect
+      await _auth.signInWithRedirect(provider);
+    } else {
+      // Safari 브라우저는 팝업 사용 (redirect는 iOS ITP에서 차단됨)
+      await _auth.signInWithPopup(provider);
+    }
   } catch(e) {
-    showToast('로그인 오류: ' + e.code, 'error');
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') {
+      await _auth.signInWithRedirect(provider);
+    } else if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+      showToast('로그인 오류: ' + (e.code || e.message), 'error');
+    }
   }
 }
 async function doSignOut() {
