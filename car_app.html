@@ -589,20 +589,9 @@ async function signInWithGoogle() {
     window.matchMedia('(display-mode: standalone)').matches;
 
   if (isStandalone) {
-    // iOS 홈 화면 앱: Safari 팝업/redirect 모두 불가
-    // → Safari에서 동일 페이지 열어 로그인 → 돌아올 때 reload로 auth 상태 수령
-    showConfirm(
-      'Safari에서 Google 로그인 창이 열립니다.<br>로그인 후 앱으로 돌아오면 자동으로 시작됩니다.',
-      () => {
-        window.open(location.href, '_blank');
-        document.addEventListener('visibilitychange', function _reload() {
-          if (document.visibilityState === 'visible') {
-            document.removeEventListener('visibilitychange', _reload);
-            window.location.reload();
-          }
-        });
-      }
-    );
+    // 홈 화면 앱(standalone): signInWithRedirect로 직접 이동
+    // iOS 16+ 에서 OAuth 콜백이 standalone으로 돌아오는 경우 바로 로그인됨
+    await _auth.signInWithRedirect(provider);
     return;
   }
 
