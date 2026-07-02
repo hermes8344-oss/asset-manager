@@ -1,0 +1,1814 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>차량관리</title>
+<meta name="theme-color" content="#1A6FE0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="차량관리"/>
+<link rel="manifest" href="car_manifest.json"/>
+<link rel="apple-touch-icon" href="car_icon.svg"/>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface2: #eef2f7;
+  --border: #E0E7EF;
+  --text1: #1a1e2e;
+  --text2: #5a6478;
+  --text3: #aab2c0;
+  --accent: #1A6FE0;
+  --accent-light: #dceeff;
+  --green: #00B493;
+  --green-light: #E5F8F5;
+  --red: #F04452;
+  --red-light: #FEF0F1;
+  --amber: #BA7517;
+  --amber-light: #faeeda;
+  --blue: #378ADD;
+  --blue-light: #e6f1fb;
+  --r: 16px;
+  --r-sm: 10px;
+  --r-xs: 6px;
+  font-size: 14px;
+}
+[data-theme="dark"] {
+  --bg: #0f1117;
+  --surface: #181c26;
+  --surface2: #1e2230;
+  --border: #2a3040;
+  --text1: #eef0f5;
+  --text2: #8892a4;
+  --text3: #464e5e;
+  --accent-light: #0d2d55;
+}
+[data-theme="dark"] .card { box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+  background: var(--bg);
+  color: var(--text1);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+#app { width: 100%; max-width: 430px; min-height: 100vh; background: var(--bg); position: relative; display: flex; flex-direction: column; }
+.safe-top { height: env(safe-area-inset-top, 12px); }
+.safe-bottom { height: env(safe-area-inset-bottom, 8px); }
+.screen { display: none; flex-direction: column; flex: 1; }
+.screen.active { display: flex; }
+
+/* ── 하단 네비 ── */
+#bottom-nav {
+  display: flex; background: var(--surface); border-top: 1px solid var(--border);
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 10px);
+  max-width: 430px; margin: 0 auto;
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: .65rem .25rem .4rem; gap: 3px;
+  font-size: 10px; color: var(--text3); background: none; border: none; cursor: pointer;
+  border-top: 2px solid transparent; transition: color .15s;
+}
+.nav-btn.active { color: var(--accent); border-top-color: var(--accent); font-weight: 700; }
+.nav-btn svg { width: 20px; height: 20px; }
+
+/* ── 공통 ── */
+.page-content { flex: 1; overflow-y: auto; padding: 1rem; padding-bottom: 5rem; }
+.page-title { font-size: 22px; font-weight: 700; color: var(--text1); margin-bottom: .2rem; letter-spacing: -.5px; }
+.page-sub { font-size: 12px; color: var(--text3); margin-bottom: 1rem; }
+.section-title { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: .5rem; letter-spacing: .2px; text-transform: uppercase; }
+.section-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
+.divider { border: none; border-top: 1px solid var(--border); margin: .75rem 0; }
+.card { background: var(--surface); border-radius: var(--r); padding: 1rem; margin-bottom: .75rem; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.card-sm { background: var(--surface2); border-radius: var(--r-sm); padding: .75rem; margin-bottom: .5rem; }
+.badge { display: inline-block; padding: .15rem .5rem; border-radius: 99px; font-size: 11px; font-weight: 600; }
+
+/* ── 히어로 카드 ── */
+.hero-card {
+  background: linear-gradient(135deg, var(--accent) 0%, #2d8ef5 100%);
+  border-radius: var(--r); padding: 1.1rem 1rem; margin-bottom: .75rem;
+  color: #fff; position: relative; overflow: hidden;
+}
+.hero-card::after {
+  content: ''; position: absolute; right: -20px; top: -20px;
+  width: 120px; height: 120px; border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+}
+.hero-label { font-size: 12px; font-weight: 600; opacity: .85; margin-bottom: .3rem; }
+.hero-value { font-size: 28px; font-weight: 700; letter-spacing: -.5px; line-height: 1.1; }
+.hero-sub { font-size: 12px; opacity: .8; margin-top: .25rem; }
+.hero-metrics { display: flex; gap: .75rem; margin-top: .75rem; }
+.hero-metric { flex: 1; background: rgba(255,255,255,0.15); border-radius: 10px; padding: .5rem .65rem; }
+.hero-metric-label { font-size: 10px; opacity: .8; margin-bottom: .15rem; }
+.hero-metric-value { font-size: 15px; font-weight: 700; }
+
+/* ── 차량 선택 pill ── */
+.vehicle-pill-wrap { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; overflow-x: auto; padding-bottom: 2px; }
+.vehicle-pill {
+  display: flex; align-items: center; gap: .35rem;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 99px; padding: .35rem .75rem;
+  font-size: 13px; font-weight: 500; color: var(--text2);
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  transition: all .15s;
+}
+.vehicle-pill.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.vehicle-pill-add {
+  background: none; border: 1.5px dashed var(--border); border-radius: 99px;
+  padding: .35rem .75rem; font-size: 13px; color: var(--text3); cursor: pointer;
+  white-space: nowrap; flex-shrink: 0;
+}
+
+/* ── 알림 카드 ── */
+.reminder-list { display: flex; flex-direction: column; gap: .5rem; }
+.reminder-item {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .65rem .75rem; background: var(--surface); border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+}
+.reminder-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.reminder-dot.red { background: var(--red); }
+.reminder-dot.amber { background: var(--amber); }
+.reminder-dot.green { background: var(--green); }
+.reminder-info { flex: 1; min-width: 0; }
+.reminder-type { font-size: 13px; font-weight: 600; color: var(--text1); }
+.reminder-next { font-size: 11px; color: var(--text2); margin-top: .1rem; }
+.reminder-badge { font-size: 11px; font-weight: 700; padding: .2rem .5rem; border-radius: 99px; }
+.reminder-badge.red { background: var(--red-light); color: var(--red); }
+.reminder-badge.amber { background: var(--amber-light); color: var(--amber); }
+.reminder-badge.green { background: var(--green-light); color: var(--green); }
+
+/* ── 퀵 버튼 ── */
+.quick-btns { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: .75rem; }
+.quick-btn {
+  display: flex; align-items: center; gap: .5rem; padding: .75rem 1rem;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--r-sm); cursor: pointer; font-size: 13px; font-weight: 600;
+  color: var(--text1); transition: background .15s;
+}
+.quick-btn:active { background: var(--surface2); }
+.quick-btn svg { width: 18px; height: 18px; color: var(--accent); flex-shrink: 0; }
+
+/* ── 정비 기록 리스트 ── */
+.log-group-label { font-size: 12px; font-weight: 700; color: var(--text3); margin-bottom: .4rem; padding: 0 .25rem; }
+.log-item {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .75rem; background: var(--surface); border-radius: var(--r-sm);
+  margin-bottom: .4rem; cursor: pointer; border: 1px solid var(--border);
+  transition: background .1s;
+}
+.log-item:active { background: var(--surface2); }
+.log-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+.log-body { flex: 1; min-width: 0; }
+.log-type { font-size: 13px; font-weight: 600; color: var(--text1); }
+.log-meta { font-size: 11px; color: var(--text2); margin-top: .1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.log-cost { font-size: 14px; font-weight: 700; color: var(--text1); text-align: right; }
+.log-km { font-size: 11px; color: var(--text3); text-align: right; margin-top: .1rem; }
+
+/* ── 주유 리스트 ── */
+.fuel-summary { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: .75rem; }
+.fuel-stat-card { background: var(--surface); border-radius: var(--r-sm); padding: .75rem; border: 1px solid var(--border); }
+.fuel-stat-label { font-size: 11px; color: var(--text2); margin-bottom: .25rem; }
+.fuel-stat-value { font-size: 18px; font-weight: 700; color: var(--text1); }
+.fuel-stat-unit { font-size: 11px; color: var(--text3); font-weight: 400; }
+.fuel-item {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .75rem; background: var(--surface); border-radius: var(--r-sm);
+  margin-bottom: .4rem; border: 1px solid var(--border); cursor: pointer;
+}
+.fuel-item:active { background: var(--surface2); }
+.full-badge { background: var(--accent-light); color: var(--accent); border-radius: 99px; font-size: 10px; font-weight: 700; padding: .1rem .4rem; }
+.partial-badge { background: var(--surface2); color: var(--text3); border-radius: 99px; font-size: 10px; font-weight: 700; padding: .1rem .4rem; }
+.fuel-body { flex: 1; min-width: 0; }
+.fuel-date { font-size: 13px; font-weight: 600; color: var(--text1); display: flex; align-items: center; gap: .4rem; }
+.fuel-meta { font-size: 11px; color: var(--text2); margin-top: .1rem; }
+.fuel-efficiency { font-size: 14px; font-weight: 700; color: var(--accent); text-align: right; }
+.fuel-efficiency-unit { font-size: 10px; color: var(--text3); font-weight: 400; }
+.fuel-cost { font-size: 12px; color: var(--text2); text-align: right; margin-top: .15rem; }
+
+/* ── FAB ── */
+.fab {
+  position: fixed; bottom: 70px; right: max(calc(50% - 215px + 16px), 16px);
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--accent); color: #fff; border: none; cursor: pointer;
+  font-size: 26px; box-shadow: 0 4px 14px rgba(26,111,224,0.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 90; transition: transform .15s;
+}
+.fab:active { transform: scale(.93); }
+
+/* ── 통계 ── */
+.stat-period-btns { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 1rem; }
+.stat-period-btn { flex: 1; background: var(--surface2); border: none; padding: .45rem; font-size: 13px; font-weight: 600; color: var(--text2); cursor: pointer; }
+.stat-period-btn.active { background: var(--accent); color: #fff; }
+.stat-cards { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: .75rem; }
+.stat-card { background: var(--surface); border-radius: var(--r-sm); padding: .75rem; border: 1px solid var(--border); }
+.stat-card-label { font-size: 11px; color: var(--text2); margin-bottom: .25rem; }
+.stat-card-value { font-size: 17px; font-weight: 700; color: var(--text1); }
+.stat-card-sub { font-size: 11px; color: var(--text3); margin-top: .1rem; }
+.chart-container { position: relative; height: 180px; }
+.chart-empty { height: 180px; display: flex; align-items: center; justify-content: center; color: var(--text3); font-size: 13px; }
+
+/* ── 설정 ── */
+.settings-section { margin-bottom: 1.25rem; }
+.settings-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .75rem 1rem; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.settings-row:first-of-type { border-radius: var(--r-sm) var(--r-sm) 0 0; }
+.settings-row:last-of-type { border-radius: 0 0 var(--r-sm) var(--r-sm); border-bottom: none; }
+.settings-row:only-of-type { border-radius: var(--r-sm); border-bottom: none; }
+.settings-label { font-size: 13px; font-weight: 500; color: var(--text1); }
+.settings-value { font-size: 13px; color: var(--text2); }
+.settings-btn { background: none; border: none; font-size: 13px; color: var(--accent); font-weight: 600; cursor: pointer; }
+.reminder-edit-row {
+  display: flex; align-items: center; gap: .5rem; padding: .6rem .75rem;
+  background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.reminder-edit-row:last-of-type { border-bottom: none; }
+.reminder-edit-name { flex: 1; font-size: 13px; font-weight: 500; min-width: 80px; }
+.reminder-edit-input { width: 72px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: .3rem .4rem; font-size: 12px; text-align: center; color: var(--text1); }
+.reminder-edit-input:focus { border-color: var(--accent); outline: none; }
+.reminder-edit-unit { font-size: 11px; color: var(--text3); }
+.reminder-del-btn { background: none; border: none; cursor: pointer; color: var(--red); font-size: 16px; padding: 0 .25rem; }
+
+/* ── 팝업 ── */
+.popup-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; padding: 1rem;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.popup-overlay.open { opacity: 1; pointer-events: all; }
+.popup-box {
+  background: var(--surface); border-radius: 20px; padding: 1.25rem;
+  width: 100%; max-width: 380px; max-height: 90vh; overflow-y: auto;
+  transform: scale(.95) translateY(10px); transition: transform .2s;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.popup-overlay.open .popup-box { transform: scale(1) translateY(0); }
+.popup-title { font-size: 17px; font-weight: 700; color: var(--text1); margin-bottom: 1rem; }
+.popup-close { float: right; background: none; border: none; font-size: 20px; color: var(--text3); cursor: pointer; margin-top: -2px; }
+.form-group { margin-bottom: .875rem; }
+.form-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: .35rem; display: block; }
+.form-input {
+  width: 100%; padding: .65rem .75rem; border: 1.5px solid var(--border); border-radius: var(--r-sm);
+  background: var(--surface2); color: var(--text1); font-size: 14px; font-family: inherit;
+  transition: border-color .15s;
+}
+.form-input:focus { border-color: var(--accent); outline: none; background: var(--surface); }
+.form-km-input {
+  width: 100%; padding: .8rem .75rem; border: 2px solid var(--accent); border-radius: var(--r-sm);
+  background: var(--accent-light); color: var(--text1); font-size: 17px; font-weight: 700;
+  font-family: inherit; text-align: right;
+}
+.form-km-input:focus { outline: none; }
+.form-km-label { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: .35rem; display: block; }
+.chip-group { display: flex; flex-wrap: wrap; gap: .35rem; }
+.chip {
+  padding: .35rem .65rem; border-radius: 99px; font-size: 12px; font-weight: 600;
+  background: var(--surface2); border: 1.5px solid var(--border); color: var(--text2);
+  cursor: pointer; transition: all .15s;
+}
+.chip.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .6rem 0; }
+.toggle-label { font-size: 14px; font-weight: 500; color: var(--text1); }
+.toggle-sw { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+.toggle-sw input { display: none; }
+.toggle-track {
+  position: absolute; inset: 0; border-radius: 13px; background: var(--border); transition: background .2s; cursor: pointer;
+}
+.toggle-sw input:checked + .toggle-track { background: var(--accent); }
+.toggle-thumb {
+  position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  pointer-events: none;
+}
+.toggle-sw input:checked ~ .toggle-thumb { transform: translateX(18px); }
+.form-hint { font-size: 11px; color: var(--text3); margin-top: .3rem; }
+.popup-actions { display: flex; gap: .5rem; margin-top: 1rem; }
+.btn-primary { flex: 1; padding: .75rem; background: var(--accent); color: #fff; border: none; border-radius: var(--r-sm); font-size: 15px; font-weight: 700; cursor: pointer; }
+.btn-secondary { flex: 1; padding: .75rem; background: var(--surface2); color: var(--text2); border: 1.5px solid var(--border); border-radius: var(--r-sm); font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn-danger { padding: .75rem 1rem; background: var(--red-light); color: var(--red); border: none; border-radius: var(--r-sm); font-size: 14px; font-weight: 600; cursor: pointer; }
+
+/* ── 온보딩 ── */
+#onboarding { background: var(--bg); z-index: 300; }
+.onboard-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1.5rem; text-align: center; }
+.onboard-icon { font-size: 52px; margin-bottom: 1.5rem; }
+.onboard-title { font-size: 24px; font-weight: 700; color: var(--text1); margin-bottom: .5rem; letter-spacing: -.5px; }
+.onboard-desc { font-size: 14px; color: var(--text2); margin-bottom: 2rem; line-height: 1.6; }
+.onboard-form { width: 100%; max-width: 340px; text-align: left; }
+.step-indicator { display: flex; gap: .35rem; justify-content: center; margin-bottom: 2rem; }
+.step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+.step-dot.active { background: var(--accent); width: 20px; border-radius: 4px; }
+
+/* ── 빈 상태 ── */
+.empty-state { text-align: center; padding: 3rem 1rem; }
+.empty-icon { font-size: 40px; margin-bottom: .75rem; }
+.empty-text { font-size: 14px; color: var(--text2); font-weight: 500; margin-bottom: .25rem; }
+.empty-sub { font-size: 12px; color: var(--text3); }
+
+/* ── 토스트 & 배너 ── */
+#car-toast {
+  position: fixed; bottom: 80px; left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(26,30,46,.92); color: #fff;
+  font-size: 13px; font-weight: 600;
+  padding: .45rem 1.1rem; border-radius: 99px;
+  z-index: 9998; opacity: 0;
+  transition: opacity .2s, transform .2s;
+  pointer-events: none; white-space: nowrap;
+  max-width: calc(100% - 2rem);
+}
+#car-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#car-toast.error { background: rgba(240,68,82,.92); }
+@keyframes slideUpBanner {
+  from { transform: translateY(120%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes bounce-down {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(5px); }
+}
+
+/* ── PC 반응형 ── */
+@media (min-width: 900px) {
+  body { background: #e8edf5; }
+  #app { margin: 0 auto; box-shadow: 0 0 40px rgba(0,0,0,0.12); }
+  #bottom-nav { left: max(0px, calc(50% - 215px)); right: auto; width: 430px; }
+  .fab { right: max(calc(50% - 215px + 16px), calc(50% - 199px)); }
+}
+
+/* ── 다크모드 네비 pressing ── */
+.nav-btn.pressing { background: rgba(26,111,224,0.08); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="safe-top"></div>
+
+  <!-- 로그인 화면 -->
+  <div id="screen-login" style="display:flex;position:fixed;inset:0;z-index:400;
+    background:var(--bg);flex-direction:column;align-items:center;justify-content:center;
+    padding:2rem 1.5rem;overflow-y:auto;">
+    <div style="width:100%;max-width:340px;text-align:center">
+      <div style="width:76px;height:76px;background:linear-gradient(135deg,#1A6FE0 0%,#2d8ef5 100%);
+        border-radius:22px;display:inline-flex;align-items:center;justify-content:center;
+        font-size:38px;margin-bottom:1.5rem;box-shadow:0 8px 24px rgba(26,111,224,.25);">🚗</div>
+      <div style="font-size:26px;font-weight:800;color:var(--text1);margin-bottom:.4rem;letter-spacing:-.5px;">차량관리</div>
+      <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:2.5rem;">
+        정비 · 주유 · 소모품 알림을<br>한 곳에서 관리하세요
+      </div>
+      <button onclick="signInWithGoogle()" style="width:100%;display:flex;align-items:center;
+        justify-content:center;gap:10px;padding:14px;background:var(--surface);
+        border:1.5px solid var(--border);border-radius:14px;font-size:15px;font-weight:700;
+        color:var(--text1);cursor:pointer;margin-bottom:.75rem;
+        box-shadow:0 1px 6px rgba(0,0,0,.07);">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Google로 시작하기
+      </button>
+      <button onclick="useLocalOnly()" style="width:100%;padding:.75rem;background:none;border:none;
+        font-size:13px;color:var(--text3);cursor:pointer;">
+        이 기기에서만 사용하기
+      </button>
+    </div>
+  </div>
+
+  <!-- iOS 홈 화면 추가 배너 -->
+  <div id="ios-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;
+    z-index:9999;padding:0 12px max(12px,env(safe-area-inset-bottom));pointer-events:none;">
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:18px;
+      padding:14px;box-shadow:0 8px 32px rgba(0,0,0,.2);
+      display:flex;align-items:flex-start;gap:12px;pointer-events:all;
+      animation:slideUpBanner .35s cubic-bezier(.34,1.56,.64,1);">
+      <div style="width:44px;height:44px;background:linear-gradient(135deg,#1A6FE0,#2d8ef5);
+        border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;">🚗</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--text1);margin-bottom:.25rem">홈 화면에 추가하기</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.5">
+          하단 <span style="background:#007AFF;color:#fff;border-radius:4px;padding:1px 5px;font-size:11px;">공유</span>
+          버튼 → <b>홈 화면에 추가</b>를 탭하면<br>앱처럼 사용할 수 있어요 📱
+        </div>
+        <div style="margin-top:.4rem;text-align:center;font-size:16px;animation:bounce-down .9s infinite">⬇︎</div>
+      </div>
+      <button onclick="dismissIOSBanner()" style="background:none;border:none;color:var(--text3);
+        font-size:22px;cursor:pointer;padding:0;line-height:1;flex-shrink:0">×</button>
+    </div>
+  </div>
+
+  <!-- 토스트 -->
+  <div id="car-toast"></div>
+
+  <!-- 온보딩 -->
+  <div id="onboarding" class="screen">
+    <div class="onboard-wrap">
+      <div id="onboard-content"></div>
+    </div>
+  </div>
+
+  <!-- 홈 -->
+  <div id="screen-home" class="screen">
+    <div class="page-content" id="home-content"></div>
+  </div>
+
+  <!-- 정비기록 -->
+  <div id="screen-maint" class="screen">
+    <div class="page-content" id="maint-content"></div>
+    <button class="fab" onclick="openPopup('add-maint')">+</button>
+  </div>
+
+  <!-- 주유 -->
+  <div id="screen-fuel" class="screen">
+    <div class="page-content" id="fuel-content"></div>
+    <button class="fab" onclick="openPopup('add-fuel')">+</button>
+  </div>
+
+  <!-- 통계 -->
+  <div id="screen-stats" class="screen">
+    <div class="page-content" id="stats-content"></div>
+  </div>
+
+  <!-- 설정 -->
+  <div id="screen-settings" class="screen">
+    <div class="page-content" id="settings-content"></div>
+  </div>
+
+  <!-- 하단 네비 -->
+  <nav id="bottom-nav">
+    <button class="nav-btn active" id="nav-home" onclick="switchTab('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      홈
+    </button>
+    <button class="nav-btn" id="nav-maint" onclick="switchTab('maint')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      정비
+    </button>
+    <button class="nav-btn" id="nav-fuel" onclick="switchTab('fuel')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"/><path d="M3 11h11"/><path d="M3 6h11"/><path d="M16 10h2a2 2 0 0 1 2 2v7a1 1 0 0 1-2 0v-5h-2"/><line x1="3" y1="22" x2="20" y2="22"/></svg>
+      주유
+    </button>
+    <button class="nav-btn" id="nav-stats" onclick="switchTab('stats')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      통계
+    </button>
+    <button class="nav-btn" id="nav-settings" onclick="switchTab('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      설정
+    </button>
+  </nav>
+  <div class="safe-bottom"></div>
+
+  <!-- 팝업들 -->
+  <div class="popup-overlay" id="popup-add-maint" onclick="popupOutsideClick(event,'add-maint')">
+    <div class="popup-box" id="popup-box-add-maint"></div>
+  </div>
+  <div class="popup-overlay" id="popup-add-fuel" onclick="popupOutsideClick(event,'add-fuel')">
+    <div class="popup-box" id="popup-box-add-fuel"></div>
+  </div>
+  <div class="popup-overlay" id="popup-add-vehicle" onclick="popupOutsideClick(event,'add-vehicle')">
+    <div class="popup-box" id="popup-box-add-vehicle"></div>
+  </div>
+  <div class="popup-overlay" id="popup-edit-maint" onclick="popupOutsideClick(event,'edit-maint')">
+    <div class="popup-box" id="popup-box-edit-maint"></div>
+  </div>
+  <div class="popup-overlay" id="popup-edit-fuel" onclick="popupOutsideClick(event,'edit-fuel')">
+    <div class="popup-box" id="popup-box-edit-fuel"></div>
+  </div>
+  <div class="popup-overlay" id="popup-edit-vehicle" onclick="popupOutsideClick(event,'edit-vehicle')">
+    <div class="popup-box" id="popup-box-edit-vehicle"></div>
+  </div>
+  <div class="popup-overlay" id="popup-confirm" onclick="">
+    <div class="popup-box" id="popup-box-confirm"></div>
+  </div>
+</div>
+
+<script>
+// ── Firebase ──
+const FIREBASE_CONFIG = {
+  apiKey:            'AIzaSyDvSFIlkdswVxRLm25zg4pbN-Vb7NAEQ2A',
+  authDomain:        'car-app-2365b.firebaseapp.com',
+  projectId:         'car-app-2365b',
+  storageBucket:     'car-app-2365b.firebasestorage.app',
+  messagingSenderId: '567797825784',
+  appId:             '1:567797825784:web:0bec7ad5460fa2ba9cfb0d',
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+const _auth = firebase.auth();
+const _db   = firebase.firestore();
+_db.enablePersistence({ synchronizeTabs: false }).catch(() => {});
+
+let currentUser = null;
+const LOCAL_ONLY_KEY = 'car_local_only';
+
+// ── 상수 ──
+const STORAGE_KEY = 'car_app_v1';
+const DEFAULT_REMINDERS = [
+  { type:'엔진오일',   intervalKm:10000, intervalMonths:6  },
+  { type:'에어필터',   intervalKm:20000, intervalMonths:12 },
+  { type:'에어컨 필터',intervalKm:15000, intervalMonths:12 },
+  { type:'브레이크패드',intervalKm:30000, intervalMonths:24 },
+  { type:'타이어',     intervalKm:40000, intervalMonths:36 },
+  { type:'냉각수',     intervalKm:40000, intervalMonths:24 },
+  { type:'와이퍼',     intervalKm:null,  intervalMonths:12 },
+  { type:'점화플러그', intervalKm:60000, intervalMonths:null},
+];
+const MAINT_TYPES = ['엔진오일','타이어','에어필터','브레이크','세차','냉각수','점검','기타'];
+const TYPE_ICONS = {
+  '엔진오일':'🛢️','타이어':'🔄','에어필터':'💨','브레이크':'🔴',
+  '세차':'🚿','냉각수':'💧','점검':'🔍','기타':'🔧',
+  '에어컨 필터':'❄️','와이퍼':'🌧️','점화플러그':'⚡',
+};
+
+// ── 상태 ──
+let state = {
+  vehicles: [],
+  maintenanceLogs: [],
+  fuelLogs: [],
+  reminders: [],
+};
+let currentVehicleId = null;
+let currentTab = 'home';
+let statsPeriod = 'month'; // 'month' | 'year'
+let statsChart = null;
+let typeChart = null;
+let effChart = null;
+let editingId = null; // 편집 중인 항목 id
+
+// ── 저장/불러오기 ──
+async function _doSave() {
+  const payload = {
+    vehicles:        state.vehicles,
+    maintenanceLogs: state.maintenanceLogs,
+    fuelLogs:        state.fuelLogs,
+    reminders:       state.reminders,
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  if (currentUser) {
+    await _db.collection('users').doc(currentUser.uid)
+      .set({ data: payload, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true })
+      .catch(e => console.warn('Firestore 오프라인 큐:', e.code));
+  }
+}
+let saveTimer = null;
+function saveState() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => _doSave(), 200);
+}
+async function loadState() {
+  let saved = null;
+  if (currentUser) {
+    const doc = await _db.collection('users').doc(currentUser.uid).get().catch(() => null);
+    if (doc?.exists) saved = doc.data()?.data;
+  }
+  if (!saved) {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) try { saved = JSON.parse(raw); } catch(e) {}
+  }
+  if (!saved) return false;
+  state = { ...state, ...saved };
+  return !!(state.vehicles?.length);
+}
+
+// ── 인증 ──
+async function signInWithGoogle() {
+  try {
+    await _auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+  } catch(e) {
+    showToast('로그인 오류: ' + e.code, 'error');
+  }
+}
+async function doSignOut() {
+  await _auth.signOut();
+  localStorage.removeItem(LOCAL_ONLY_KEY);
+  currentUser = null;
+  showLoginScreen();
+}
+async function useLocalOnly() {
+  localStorage.setItem(LOCAL_ONLY_KEY, '1');
+  await loadState();
+  enterApp();
+}
+async function showLoginForSync() {
+  localStorage.removeItem(LOCAL_ONLY_KEY);
+  await _auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+}
+async function checkAndMigrate() {
+  if (!currentUser) return;
+  const doc = await _db.collection('users').doc(currentUser.uid).get().catch(() => null);
+  if (doc?.exists) return;
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  let saved; try { saved = JSON.parse(raw); } catch(e) { return; }
+  if (!saved?.vehicles?.length) return;
+  showConfirm(
+    `이 기기에 차량 ${saved.vehicles.length}대의 데이터가 있어요.<br>클라우드에 업로드할까요?`,
+    async () => { Object.assign(state, saved); await _doSave(); showToast('클라우드에 저장됐어요 ☁️'); }
+  );
+}
+
+// ── 화면 전환 ──
+function showLoginScreen() {
+  document.getElementById('screen-login').style.display = 'flex';
+  document.getElementById('onboarding').classList.remove('active');
+  document.getElementById('bottom-nav').style.display = 'none';
+}
+function enterApp() {
+  document.getElementById('screen-login').style.display = 'none';
+  currentVehicleId = state.vehicles[0]?.id || null;
+  if (state.vehicles.length) {
+    document.getElementById('onboarding').classList.remove('active');
+    document.getElementById('bottom-nav').style.display = '';
+    switchTab('home');
+    initIOSInstallBanner();
+  } else {
+    document.getElementById('bottom-nav').style.display = 'none';
+    document.getElementById('onboarding').classList.add('active');
+    startOnboarding();
+  }
+}
+
+// ── 유틸 ──
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+let _toastTimer = null;
+function showToast(msg, type) {
+  const el = document.getElementById('car-toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = type ? 'show ' + type : 'show';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.className = ''; }, 2200);
+}
+function initIOSInstallBanner() {
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.navigator.standalone ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  if (!isIOS || isStandalone || localStorage.getItem('car_ios_banner')) return;
+  setTimeout(() => {
+    const el = document.getElementById('ios-install-banner');
+    if (el) el.style.display = 'block';
+  }, 1500);
+}
+function dismissIOSBanner() {
+  const el = document.getElementById('ios-install-banner');
+  if (el) el.style.display = 'none';
+  localStorage.setItem('car_ios_banner', '1');
+}
+
+function uuid() { return crypto.randomUUID(); }
+function fmt(n) { return Math.round(n).toLocaleString('ko-KR'); }
+function fmtKm(n) { return Math.round(n).toLocaleString('ko-KR') + ' km'; }
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function monthStr(d) {
+  const dt = d ? new Date(d) : new Date();
+  return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0');
+}
+function parseNum(s) { return parseInt(String(s).replace(/,/g,''),10) || 0; }
+
+// ── 차량 ──
+function currentVehicle() { return state.vehicles.find(v=>v.id===currentVehicleId); }
+function vehicleMaintLogs(vid) { return state.maintenanceLogs.filter(l=>l.vehicleId===vid).sort((a,b)=>b.date.localeCompare(a.date)); }
+function vehicleFuelLogs(vid) { return state.fuelLogs.filter(l=>l.vehicleId===vid).sort((a,b)=>b.date.localeCompare(a.date)); }
+function vehicleReminders(vid) { return state.reminders.filter(r=>r.vehicleId===vid); }
+
+function initDefaultReminders(vehicleId) {
+  DEFAULT_REMINDERS.forEach(d => {
+    state.reminders.push({
+      id: uuid(), vehicleId,
+      type: d.type,
+      lastMileage: null, lastDate: null,
+      intervalKm: d.intervalKm, intervalMonths: d.intervalMonths,
+    });
+  });
+}
+
+function updateVehicleMileage(vehicleId, km) {
+  const v = state.vehicles.find(v=>v.id===vehicleId);
+  if (v && km > (v.currentMileage||0)) v.currentMileage = km;
+}
+
+// ── 알림 계산 ──
+function calcReminderStatus(reminder, vehicle) {
+  const currentKm = vehicle.currentMileage || 0;
+  const today = new Date();
+  let kmLeft = null, daysLeft = null;
+
+  if (reminder.intervalKm && reminder.lastMileage != null) {
+    const nextKm = reminder.lastMileage + reminder.intervalKm;
+    kmLeft = nextKm - currentKm;
+  } else if (reminder.intervalKm && !reminder.lastMileage) {
+    kmLeft = reminder.intervalKm;
+  }
+
+  if (reminder.intervalMonths && reminder.lastDate) {
+    const lastDt = new Date(reminder.lastDate);
+    const nextDt = new Date(lastDt);
+    nextDt.setMonth(nextDt.getMonth() + reminder.intervalMonths);
+    daysLeft = Math.round((nextDt - today) / (1000*60*60*24));
+  } else if (reminder.intervalMonths && !reminder.lastDate) {
+    daysLeft = reminder.intervalMonths * 30;
+  }
+
+  // 두 기준 중 먼저 도래하는 쪽
+  let urgency = 'green'; // green / amber / red
+  let label = '';
+
+  const kmUrgent = kmLeft != null && kmLeft <= 1000;
+  const kmAmber = kmLeft != null && kmLeft <= 3000;
+  const dayUrgent = daysLeft != null && daysLeft <= 30;
+  const dayAmber = daysLeft != null && daysLeft <= 90;
+
+  if (kmUrgent || dayUrgent) urgency = 'red';
+  else if (kmAmber || dayAmber) urgency = 'amber';
+
+  if (kmLeft != null && daysLeft != null) {
+    if (kmLeft < daysLeft * 20) label = `${fmt(Math.max(0,kmLeft))} km 후`;
+    else label = daysLeft > 0 ? `${daysLeft}일 후` : '교체 시기';
+  } else if (kmLeft != null) {
+    label = `${fmt(Math.max(0,kmLeft))} km 후`;
+  } else if (daysLeft != null) {
+    label = daysLeft > 0 ? `${daysLeft}일 후` : '교체 시기';
+  } else {
+    label = '미설정';
+    urgency = 'green';
+  }
+
+  if (kmLeft != null && kmLeft <= 0) { label = '교체 시기!'; urgency = 'red'; }
+  if (daysLeft != null && daysLeft <= 0) { label = '교체 시기!'; urgency = 'red'; }
+
+  return { urgency, label };
+}
+
+// ── 연비 계산 ──
+function calcFuelEfficiency(fuelLogs) {
+  // 만땅 기록들만 연속 구간으로 계산
+  const fullLogs = [...fuelLogs].sort((a,b)=>a.date.localeCompare(b.date)).filter(l=>l.isFull);
+  if (fullLogs.length < 2) return null;
+  const efficiencies = [];
+  for (let i=1; i<fullLogs.length; i++) {
+    const dist = fullLogs[i].mileage - fullLogs[i-1].mileage;
+    if (dist > 0 && fullLogs[i].liters > 0) efficiencies.push(dist / fullLogs[i].liters);
+  }
+  if (!efficiencies.length) return null;
+  return efficiencies.reduce((a,b)=>a+b,0) / efficiencies.length;
+}
+
+function getFuelEfficiencyForLog(log, fuelLogs) {
+  if (!log.isFull) return null;
+  const sorted = [...fuelLogs].filter(l=>l.vehicleId===log.vehicleId && l.isFull).sort((a,b)=>a.date.localeCompare(b.date));
+  const idx = sorted.findIndex(l=>l.id===log.id);
+  if (idx <= 0) return null;
+  const prev = sorted[idx-1];
+  const dist = log.mileage - prev.mileage;
+  if (dist <= 0 || log.liters <= 0) return null;
+  return dist / log.liters;
+}
+
+// ── 탭 전환 ──
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.screen').forEach(s => { if(s.id !== 'onboarding') s.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+  document.getElementById('nav-' + tab).classList.add('active');
+  if (tab === 'home') renderHome();
+  else if (tab === 'maint') renderMaint();
+  else if (tab === 'fuel') renderFuel();
+  else if (tab === 'stats') renderStats();
+  else if (tab === 'settings') renderSettings();
+}
+
+// ── 팝업 ──
+function openPopup(name, skipRender) {
+  if (!skipRender) {
+    if (name === 'add-maint') renderAddMaintPopup();
+    else if (name === 'add-fuel') renderAddFuelPopup();
+    else if (name === 'add-vehicle') renderAddVehiclePopup(null);
+  }
+  document.getElementById('popup-' + name).classList.add('open');
+}
+function closePopup(name) {
+  document.getElementById('popup-' + name).classList.remove('open');
+  editingId = null;
+}
+function popupOutsideClick(e, name) {
+  if (e.target === document.getElementById('popup-' + name)) closePopup(name);
+}
+
+// ── 확인 다이얼로그 ──
+function showConfirm(msg, onOk) {
+  document.getElementById('popup-box-confirm').innerHTML = `
+    <div class="popup-title">확인</div>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:1.25rem;line-height:1.5">${msg}</p>
+    <div class="popup-actions">
+      <button class="btn-secondary" onclick="closePopup('confirm')">취소</button>
+      <button class="btn-primary" style="background:var(--red)" id="confirm-ok-btn">확인</button>
+    </div>`;
+  document.getElementById('confirm-ok-btn').onclick = () => { closePopup('confirm'); onOk(); };
+  document.getElementById('popup-confirm').classList.add('open');
+}
+
+function showPromptDialog(title, placeholder, onConfirm) {
+  document.getElementById('popup-box-confirm').innerHTML = `
+    <div class="popup-title">${title}</div>
+    <div class="form-group" style="margin-bottom:.5rem">
+      <input class="form-input" id="prompt-input" placeholder="${placeholder}"/>
+    </div>
+    <div class="popup-actions">
+      <button class="btn-secondary" onclick="closePopup('confirm')">취소</button>
+      <button class="btn-primary" id="prompt-ok-btn">추가</button>
+    </div>`;
+  document.getElementById('prompt-ok-btn').onclick = () => {
+    const val = document.getElementById('prompt-input').value.trim();
+    if (!val) return;
+    closePopup('confirm');
+    onConfirm(val);
+  };
+  document.getElementById('popup-confirm').classList.add('open');
+  setTimeout(() => document.getElementById('prompt-input')?.focus(), 100);
+}
+
+// ── 온보딩 ──
+let onboardStep = 1;
+let onboardVehicle = {};
+
+function startOnboarding() {
+  renderOnboardStep();
+}
+
+function renderOnboardStep() {
+  const el = document.getElementById('onboard-content');
+  if (onboardStep === 1) {
+    el.innerHTML = `
+      <div class="step-indicator">
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+      </div>
+      <div class="onboard-icon">🚗</div>
+      <div class="onboard-title">차량관리에<br>오신 걸 환영합니다</div>
+      <div class="onboard-desc">정비 기록, 주유 이력, 소모품 알림을<br>한 곳에서 관리하세요</div>
+      <div class="onboard-form">
+        <div class="form-group">
+          <label class="form-label">차량 닉네임 *</label>
+          <input class="form-input" id="ob-nickname" placeholder="예: 내 BMW, 출퇴근차" maxlength="20"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">번호판 *</label>
+          <input class="form-input" id="ob-plate" placeholder="예: 123가4567"/>
+        </div>
+        <button class="btn-primary" style="width:100%;margin-top:.5rem" onclick="onboardNext1()">다음 →</button>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="step-indicator">
+        <div class="step-dot"></div>
+        <div class="step-dot active"></div>
+      </div>
+      <div class="onboard-icon">📋</div>
+      <div class="onboard-title">차량 정보를<br>입력해주세요</div>
+      <div class="onboard-desc">더 정확한 관리를 위해<br>차종과 연식을 입력해주세요</div>
+      <div class="onboard-form">
+        <div class="form-group">
+          <label class="form-label">제조사 (선택)</label>
+          <input class="form-input" id="ob-make" placeholder="예: BMW, 현대, 기아" value="${onboardVehicle.make||''}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">모델명 (선택)</label>
+          <input class="form-input" id="ob-model" placeholder="예: 520d, 아반떼, K5" value="${onboardVehicle.model||''}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">연식 (선택)</label>
+          <input class="form-input" id="ob-year" type="number" placeholder="예: 2020" min="1990" max="2030" value="${onboardVehicle.year||''}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">현재 주행거리 (선택)</label>
+          <input class="form-input" id="ob-mileage" type="number" placeholder="예: 45000" min="0"/>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-top:.5rem">
+          <button class="btn-secondary" onclick="onboardStep=1;renderOnboardStep()">← 이전</button>
+          <button class="btn-primary" style="flex:1" onclick="onboardFinish()">시작하기</button>
+        </div>
+      </div>`;
+  }
+}
+
+function onboardNext1() {
+  const nickname = document.getElementById('ob-nickname').value.trim();
+  const plate = document.getElementById('ob-plate').value.trim();
+  if (!nickname) { alert('차량 닉네임을 입력해주세요'); return; }
+  if (!plate) { alert('번호판을 입력해주세요'); return; }
+  onboardVehicle = { nickname, plate };
+  onboardStep = 2;
+  renderOnboardStep();
+}
+
+function onboardFinish() {
+  const make = document.getElementById('ob-make').value.trim();
+  const model = document.getElementById('ob-model').value.trim();
+  const year = parseInt(document.getElementById('ob-year').value)||null;
+  const mileage = parseInt(document.getElementById('ob-mileage').value)||0;
+  const vid = uuid();
+  state.vehicles.push({
+    id: vid,
+    nickname: onboardVehicle.nickname,
+    licensePlate: onboardVehicle.plate,
+    make, model, year,
+    currentMileage: mileage,
+  });
+  initDefaultReminders(vid);
+  currentVehicleId = vid;
+  saveState();
+  enterApp();
+}
+
+// ── 차량 추가 팝업 ──
+function renderAddVehiclePopup(editId) {
+  const v = editId ? state.vehicles.find(x=>x.id===editId) : null;
+  const isEdit = !!v;
+  document.getElementById('popup-box-add-vehicle').innerHTML = `
+    <button class="popup-close" onclick="closePopup('add-vehicle')">×</button>
+    <div class="popup-title">${isEdit?'차량 수정':'차량 추가'}</div>
+    <div class="form-group">
+      <label class="form-label">차량 닉네임 *</label>
+      <input class="form-input" id="veh-nickname" placeholder="예: 내 BMW" value="${v?.nickname||''}" maxlength="20"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">번호판 *</label>
+      <input class="form-input" id="veh-plate" placeholder="예: 123가4567" value="${v?.licensePlate||''}"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">제조사</label>
+      <input class="form-input" id="veh-make" placeholder="BMW, 현대, 기아..." value="${v?.make||''}"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">모델명</label>
+      <input class="form-input" id="veh-model" placeholder="520d, 아반떼..." value="${v?.model||''}"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">연식</label>
+      <input class="form-input" id="veh-year" type="number" placeholder="2020" value="${v?.year||''}"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">현재 주행거리 (km)</label>
+      <input class="form-input" id="veh-mileage" type="number" placeholder="45000" value="${v?.currentMileage||''}"/>
+    </div>
+    <div class="popup-actions">
+      ${isEdit ? `<button class="btn-danger" onclick="deleteVehicle('${editId}')">삭제</button>` : ''}
+      <button class="btn-secondary" onclick="closePopup('add-vehicle')">취소</button>
+      <button class="btn-primary" onclick="saveVehicle(${isEdit?`'${editId}'`:'null'})">${isEdit?'저장':'추가'}</button>
+    </div>`;
+}
+
+function saveVehicle(editId) {
+  const nickname = document.getElementById('veh-nickname').value.trim();
+  const plate = document.getElementById('veh-plate').value.trim();
+  if (!nickname || !plate) { alert('닉네임과 번호판은 필수입니다'); return; }
+  const data = {
+    nickname, licensePlate: plate,
+    make: document.getElementById('veh-make').value.trim(),
+    model: document.getElementById('veh-model').value.trim(),
+    year: parseInt(document.getElementById('veh-year').value)||null,
+    currentMileage: parseInt(document.getElementById('veh-mileage').value)||0,
+  };
+  if (editId) {
+    const idx = state.vehicles.findIndex(v=>v.id===editId);
+    if (idx>=0) state.vehicles[idx] = { ...state.vehicles[idx], ...data };
+  } else {
+    const vid = uuid();
+    state.vehicles.push({ id:vid, ...data });
+    initDefaultReminders(vid);
+    if (!currentVehicleId) currentVehicleId = vid;
+  }
+  saveState();
+  closePopup('add-vehicle');
+  renderSettings();
+}
+
+function deleteVehicle(vid) {
+  showConfirm('이 차량과 모든 기록을 삭제할까요?', () => {
+    state.vehicles = state.vehicles.filter(v=>v.id!==vid);
+    state.maintenanceLogs = state.maintenanceLogs.filter(l=>l.vehicleId!==vid);
+    state.fuelLogs = state.fuelLogs.filter(l=>l.vehicleId!==vid);
+    state.reminders = state.reminders.filter(r=>r.vehicleId!==vid);
+    if (currentVehicleId === vid) currentVehicleId = state.vehicles[0]?.id || null;
+    saveState();
+    closePopup('add-vehicle');
+    renderSettings();
+  });
+}
+
+// ── 정비 팝업 ──
+let selectedMaintType = '';
+function renderAddMaintPopup(editId) {
+  const log = editId ? state.maintenanceLogs.find(l=>l.id===editId) : null;
+  selectedMaintType = log?.type || '';
+  const isEdit = !!log;
+  const v = currentVehicle();
+  document.getElementById('popup-box-add-maint').innerHTML = `
+    <button class="popup-close" onclick="closePopup('add-maint')">×</button>
+    <div class="popup-title">${isEdit?'정비 수정':'정비 추가'}</div>
+    <div class="form-group">
+      <label class="form-km-label">현재 주행거리 (km)</label>
+      <input class="form-km-input" id="maint-km" type="number" placeholder="${v?.currentMileage||0}" value="${log?.mileage||v?.currentMileage||''}" inputmode="numeric"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">정비 종류</label>
+      <div class="chip-group" id="maint-type-chips">
+        ${MAINT_TYPES.map(t=>`<div class="chip${selectedMaintType===t?' active':''}" onclick="selectMaintType('${t}')">${t}</div>`).join('')}
+      </div>
+      <input class="form-input" id="maint-type-custom" placeholder="직접 입력" style="margin-top:.5rem" value="${MAINT_TYPES.includes(log?.type||'') ? '' : (log?.type||'')}" oninput="if(this.value){selectedMaintType=this.value;document.querySelectorAll('#maint-type-chips .chip').forEach(c=>c.classList.remove('active'))}"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">날짜</label>
+      <input class="form-input" id="maint-date" type="date" value="${log?.date||todayStr()}"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">비용 (원)</label>
+      <input class="form-input" id="maint-cost" type="number" placeholder="0" value="${log?.cost||''}" inputmode="numeric"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">정비소</label>
+      <input class="form-input" id="maint-shop" placeholder="정비소 이름" value="${log?.shop||''}"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">메모</label>
+      <input class="form-input" id="maint-memo" placeholder="추가 메모" value="${log?.memo||''}"/>
+    </div>
+    <div class="popup-actions">
+      ${isEdit ? `<button class="btn-danger" onclick="deleteMaintLog('${editId}')">삭제</button>` : ''}
+      <button class="btn-secondary" onclick="closePopup('add-maint')">취소</button>
+      <button class="btn-primary" onclick="saveMaintLog(${isEdit?`'${editId}'`:'null'})">${isEdit?'저장':'추가'}</button>
+    </div>`;
+}
+
+function selectMaintType(t) {
+  selectedMaintType = t;
+  document.querySelectorAll('#maint-type-chips .chip').forEach(c => c.classList.toggle('active', c.textContent===t));
+  document.getElementById('maint-type-custom').value = '';
+}
+
+function saveMaintLog(editId) {
+  const km = parseInt(document.getElementById('maint-km').value)||0;
+  const customType = document.getElementById('maint-type-custom').value.trim();
+  const type = customType || selectedMaintType;
+  if (!type) { alert('정비 종류를 선택하거나 입력해주세요'); return; }
+  const date = document.getElementById('maint-date').value || todayStr();
+  const cost = parseInt(document.getElementById('maint-cost').value)||0;
+  const shop = document.getElementById('maint-shop').value.trim();
+  const memo = document.getElementById('maint-memo').value.trim();
+  const vid = currentVehicleId;
+
+  if (editId) {
+    const idx = state.maintenanceLogs.findIndex(l=>l.id===editId);
+    if (idx>=0) state.maintenanceLogs[idx] = { ...state.maintenanceLogs[idx], mileage:km, type, date, cost, shop, memo };
+  } else {
+    state.maintenanceLogs.push({ id:uuid(), vehicleId:vid, mileage:km, type, date, cost, shop, memo });
+  }
+
+  // 소모품 알림 업데이트
+  const reminder = state.reminders.find(r=>r.vehicleId===vid && r.type===type);
+  if (reminder) { reminder.lastMileage = km; reminder.lastDate = date; }
+
+  updateVehicleMileage(vid, km);
+  saveState();
+  closePopup('add-maint');
+  if (currentTab === 'maint') renderMaint();
+  else if (currentTab === 'home') renderHome();
+}
+
+function deleteMaintLog(id) {
+  showConfirm('이 정비 기록을 삭제할까요?', () => {
+    state.maintenanceLogs = state.maintenanceLogs.filter(l=>l.id!==id);
+    saveState();
+    closePopup('add-maint');
+    renderMaint();
+  });
+}
+
+function calcFuelCost() {
+  const liters = parseFloat(document.getElementById('fuel-liters')?.value) || 0;
+  const ppl = parseFloat(document.getElementById('fuel-ppl')?.value) || 0;
+  if (liters > 0 && ppl > 0) document.getElementById('fuel-cost').value = Math.round(liters * ppl);
+}
+function calcFuelPPL() {
+  const liters = parseFloat(document.getElementById('fuel-liters')?.value) || 0;
+  const cost = parseFloat(document.getElementById('fuel-cost')?.value) || 0;
+  if (liters > 0 && cost > 0) document.getElementById('fuel-ppl').value = Math.round(cost / liters);
+}
+
+// ── 주유 팝업 ──
+let fuelIsFull = true;
+function renderAddFuelPopup(editId) {
+  const log = editId ? state.fuelLogs.find(l=>l.id===editId) : null;
+  fuelIsFull = log ? log.isFull : true;
+  const isEdit = !!log;
+  const v = currentVehicle();
+  const existingPPL = log?.pricePerLiter || (log?.totalCost && log?.liters ? Math.round(log.totalCost / log.liters) : '');
+  document.getElementById('popup-box-add-fuel').innerHTML = `
+    <button class="popup-close" onclick="closePopup('add-fuel')">×</button>
+    <div class="popup-title">${isEdit?'주유 수정':'주유 추가'}</div>
+    <div class="form-group">
+      <label class="form-label">날짜</label>
+      <input class="form-input" id="fuel-date" type="date" value="${log?.date||todayStr()}"/>
+    </div>
+    <div class="form-group">
+      <label class="form-km-label">현재 주행거리 (km)</label>
+      <input class="form-km-input" id="fuel-km" type="number" placeholder="${v?.currentMileage||0}" value="${log?.mileage||v?.currentMileage||''}" inputmode="numeric"/>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">만땅 주유</span>
+      <label class="toggle-sw">
+        <input type="checkbox" id="fuel-isfull" ${fuelIsFull?'checked':''} onchange="fuelIsFullChange(this.checked)"/>
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+    <p class="form-hint" id="fuel-full-hint" style="${fuelIsFull?'display:none':''}">부분 주유는 연비 계산에 포함되지 않아요</p>
+    <div class="form-group">
+      <label class="form-label">주유량 (L)</label>
+      <input class="form-input" id="fuel-liters" type="number" step="0.01" placeholder="0.00" value="${log?.liters||''}" inputmode="decimal" oninput="calcFuelCost()"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">리터당 가격 (원/L)</label>
+      <input class="form-input" id="fuel-ppl" type="number" placeholder="예: 1850" value="${existingPPL}" inputmode="numeric" oninput="calcFuelCost()"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">총금액 (원)</label>
+      <input class="form-input" id="fuel-cost" type="number" placeholder="0" value="${log?.totalCost||''}" inputmode="numeric" oninput="calcFuelPPL()"/>
+    </div>
+    <div class="popup-actions">
+      ${isEdit ? `<button class="btn-danger" onclick="deleteFuelLog('${editId}')">삭제</button>` : ''}
+      <button class="btn-secondary" onclick="closePopup('add-fuel')">취소</button>
+      <button class="btn-primary" onclick="saveFuelLog(${isEdit?`'${editId}'`:'null'})">${isEdit?'저장':'추가'}</button>
+    </div>`;
+}
+
+function fuelIsFullChange(checked) {
+  fuelIsFull = checked;
+  document.getElementById('fuel-full-hint').style.display = checked ? 'none' : '';
+}
+
+function saveFuelLog(editId) {
+  const km = parseInt(document.getElementById('fuel-km').value)||0;
+  const liters = parseFloat(document.getElementById('fuel-liters').value)||0;
+  const totalCost = parseInt(document.getElementById('fuel-cost').value)||0;
+  const pricePerLiter = parseInt(document.getElementById('fuel-ppl').value)||0;
+  const date = document.getElementById('fuel-date').value || todayStr();
+  const isFull = document.getElementById('fuel-isfull').checked;
+  const vid = currentVehicleId;
+
+  if (editId) {
+    const idx = state.fuelLogs.findIndex(l=>l.id===editId);
+    if (idx>=0) state.fuelLogs[idx] = { ...state.fuelLogs[idx], mileage:km, liters, totalCost, pricePerLiter, date, isFull };
+  } else {
+    state.fuelLogs.push({ id:uuid(), vehicleId:vid, mileage:km, liters, totalCost, pricePerLiter, date, isFull });
+  }
+  updateVehicleMileage(vid, km);
+  saveState();
+  closePopup('add-fuel');
+  if (currentTab === 'fuel') renderFuel();
+  else if (currentTab === 'home') renderHome();
+}
+
+function deleteFuelLog(id) {
+  showConfirm('이 주유 기록을 삭제할까요?', () => {
+    state.fuelLogs = state.fuelLogs.filter(l=>l.id!==id);
+    saveState();
+    closePopup('add-fuel');
+    renderFuel();
+  });
+}
+
+// ── 차량 pill HTML 헬퍼 ──
+function vehiclePillsHtml() {
+  return `<div class="vehicle-pill-wrap">` +
+    state.vehicles.map(vv =>
+      `<button class="vehicle-pill${vv.id===currentVehicleId?' active':''}" onclick="selectVehicle('${vv.id}')">${vv.nickname}</button>`
+    ).join('') +
+    `<button class="vehicle-pill-add" onclick="openAddVehicle()">+ 추가</button>` +
+    `</div>`;
+}
+
+// ── 렌더: 홈 ──
+function renderHome() {
+  const v = currentVehicle();
+  if (!v) { document.getElementById('home-content').innerHTML = '<div class="empty-state"><div class="empty-icon">🚗</div><div class="empty-text">차량이 없습니다</div></div>'; return; }
+
+  const mLogs = vehicleMaintLogs(v.id);
+  const fLogs = vehicleFuelLogs(v.id);
+  const reminders = vehicleReminders(v.id);
+
+  const avgEfficiency = calcFuelEfficiency(fLogs);
+  const nowMonth = monthStr();
+  const thisMonthCost =
+    mLogs.filter(l=>monthStr(l.date)===nowMonth).reduce((s,l)=>s+(l.cost||0),0) +
+    fLogs.filter(l=>monthStr(l.date)===nowMonth).reduce((s,l)=>s+(l.totalCost||0),0);
+
+  // 차량 pill
+  const pillsHtml = state.vehicles.map(vv=>`
+    <button class="vehicle-pill${vv.id===currentVehicleId?' active':''}" onclick="selectVehicle('${vv.id}')">${vv.nickname}</button>
+  `).join('') + `<button class="vehicle-pill-add" onclick="openAddVehicle()">+ 추가</button>`;
+
+  // 소모품 알림 (red/amber 먼저)
+  const statusList = reminders.map(r=>({ r, ...calcReminderStatus(r,v) }))
+    .sort((a,b)=>{ const o={red:0,amber:1,green:2}; return (o[a.urgency]||0)-(o[b.urgency]||0); });
+  const alertCount = statusList.filter(s=>s.urgency!=='green').length;
+
+  const remindersHtml = statusList.slice(0,5).map(s=>`
+    <div class="reminder-item">
+      <div class="reminder-dot ${s.urgency}"></div>
+      <div class="reminder-info">
+        <div class="reminder-type">${TYPE_ICONS[s.r.type]||'🔧'} ${s.r.type}</div>
+        <div class="reminder-next">${s.r.lastDate ? `최근: ${s.r.lastDate.slice(0,7)}` : '기록 없음'}</div>
+      </div>
+      <div class="reminder-badge ${s.urgency}">${s.label}</div>
+    </div>`).join('');
+
+  // 최근 정비 3건
+  const recentMaint = mLogs.slice(0,3).map(l=>`
+    <div class="log-item" onclick="editMaintLog('${l.id}')">
+      <div class="log-icon">${TYPE_ICONS[l.type]||'🔧'}</div>
+      <div class="log-body">
+        <div class="log-type">${l.type}</div>
+        <div class="log-meta">${l.date} ${l.shop?'· '+l.shop:''}</div>
+      </div>
+      <div>
+        <div class="log-cost">${l.cost?fmt(l.cost)+'원':'-'}</div>
+        <div class="log-km">${l.mileage?fmtKm(l.mileage):''}</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('home-content').innerHTML = `
+    <div class="page-title">${v.nickname}</div>
+    <div class="page-sub">${[v.make,v.model,v.year?v.year+'년':''].filter(Boolean).join(' ')} ${v.licensePlate?'· '+v.licensePlate:''}</div>
+    <div class="vehicle-pill-wrap">${pillsHtml}</div>
+
+    <div class="hero-card">
+      <div class="hero-label">현재 주행거리</div>
+      <div class="hero-value">${fmtKm(v.currentMileage||0)}</div>
+      <div class="hero-metrics">
+        <div class="hero-metric">
+          <div class="hero-metric-label">평균 연비</div>
+          <div class="hero-metric-value">${avgEfficiency?avgEfficiency.toFixed(1)+' km/L':'–'}</div>
+        </div>
+        <div class="hero-metric">
+          <div class="hero-metric-label">이달 유지비</div>
+          <div class="hero-metric-value">${thisMonthCost?fmt(thisMonthCost)+'원':'–'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-btns">
+      <button class="quick-btn" onclick="openPopup('add-fuel')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"/><path d="M3 11h11"/></svg>
+        주유 추가
+      </button>
+      <button class="quick-btn" onclick="openPopup('add-maint')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        정비 추가
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="section-hdr">
+        <div class="section-title">소모품 알림${alertCount?` <span style="color:var(--red)">· ${alertCount}건</span>`:''}</div>
+        <button class="settings-btn" onclick="switchTab('settings')">전체 보기</button>
+      </div>
+      ${reminders.length ? `<div class="reminder-list">${remindersHtml}</div>` : `<div class="empty-state" style="padding:1rem"><div class="empty-icon" style="font-size:24px">✅</div><div class="empty-text">등록된 알림이 없어요</div></div>`}
+    </div>
+
+    ${mLogs.length ? `
+    <div class="card">
+      <div class="section-hdr">
+        <div class="section-title">최근 정비</div>
+        <button class="settings-btn" onclick="switchTab('maint')">전체 보기</button>
+      </div>
+      ${recentMaint}
+    </div>` : ''}`;
+}
+
+function selectVehicle(vid) {
+  currentVehicleId = vid;
+  if (currentTab === 'home') renderHome();
+  else if (currentTab === 'maint') renderMaint();
+  else if (currentTab === 'fuel') renderFuel();
+  else if (currentTab === 'stats') renderStats();
+}
+function openAddVehicle() {
+  renderAddVehiclePopup(null);
+  openPopup('add-vehicle');
+}
+
+// ── 렌더: 정비기록 ──
+function renderMaint() {
+  const v = currentVehicle();
+  if (!v) { document.getElementById('maint-content').innerHTML = '<div class="empty-state"><div class="empty-icon">🔧</div><div class="empty-text">차량을 먼저 추가해주세요</div></div>'; return; }
+  const logs = vehicleMaintLogs(v.id);
+
+  if (!logs.length) {
+    document.getElementById('maint-content').innerHTML = `
+      <div class="page-title">정비기록</div>
+      ${vehiclePillsHtml()}
+      <div class="empty-state"><div class="empty-icon">🔧</div><div class="empty-text">정비 기록이 없어요</div><div class="empty-sub">아래 + 버튼으로 추가해보세요</div></div>`;
+    return;
+  }
+
+  // 월별 그룹
+  const groups = {};
+  logs.forEach(l => {
+    const m = monthStr(l.date);
+    if (!groups[m]) groups[m] = [];
+    groups[m].push(l);
+  });
+
+  const monthTotal = logs.filter(l=>monthStr(l.date)===monthStr()).reduce((s,l)=>s+(l.cost||0),0);
+
+  let html = `
+    <div class="page-title">정비기록</div>
+    ${vehiclePillsHtml()}`;
+
+  if (monthTotal) html += `
+    <div class="card" style="margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:13px;color:var(--text2)">이달 정비비</div>
+        <div style="font-size:17px;font-weight:700;color:var(--accent)">${fmt(monthTotal)}원</div>
+      </div>
+    </div>`;
+
+  Object.keys(groups).sort((a,b)=>b.localeCompare(a)).forEach(month => {
+    const monthLogs = groups[month];
+    const total = monthLogs.reduce((s,l)=>s+(l.cost||0),0);
+    html += `<div class="log-group-label">${month} · 합계 ${total?fmt(total)+'원':'–'}</div>`;
+    monthLogs.forEach(l => {
+      html += `
+        <div class="log-item" onclick="editMaintLog('${l.id}')">
+          <div class="log-icon">${TYPE_ICONS[l.type]||'🔧'}</div>
+          <div class="log-body">
+            <div class="log-type">${l.type}</div>
+            <div class="log-meta">${l.date}${l.shop?' · '+l.shop:''}${l.memo?' · '+l.memo:''}</div>
+          </div>
+          <div>
+            <div class="log-cost">${l.cost?fmt(l.cost)+'원':'–'}</div>
+            <div class="log-km">${l.mileage?fmtKm(l.mileage):''}</div>
+          </div>
+        </div>`;
+    });
+    html += '<div style="height:.5rem"></div>';
+  });
+
+  document.getElementById('maint-content').innerHTML = html;
+}
+
+function editMaintLog(id) {
+  editingId = id;
+  renderAddMaintPopup(id);
+  openPopup('add-maint', true);
+}
+
+// ── 렌더: 주유 ──
+function renderFuel() {
+  const v = currentVehicle();
+  if (!v) { document.getElementById('fuel-content').innerHTML = '<div class="empty-state"><div class="empty-icon">⛽</div><div class="empty-text">차량을 먼저 추가해주세요</div></div>'; return; }
+  const logs = vehicleFuelLogs(v.id);
+
+  const avgEff = calcFuelEfficiency(logs);
+  const nowMonth = monthStr();
+  const monthFuelCost = logs.filter(l=>monthStr(l.date)===nowMonth).reduce((s,l)=>s+(l.totalCost||0),0);
+
+  let html = `
+    <div class="page-title">주유</div>
+    ${vehiclePillsHtml()}
+    <div class="fuel-summary">
+      <div class="fuel-stat-card">
+        <div class="fuel-stat-label">평균 연비</div>
+        <div class="fuel-stat-value">${avgEff?avgEff.toFixed(1):'–'} <span class="fuel-stat-unit">km/L</span></div>
+      </div>
+      <div class="fuel-stat-card">
+        <div class="fuel-stat-label">이달 주유비</div>
+        <div class="fuel-stat-value">${monthFuelCost?fmt(monthFuelCost):'–'} <span class="fuel-stat-unit">원</span></div>
+      </div>
+    </div>`;
+
+  if (!logs.length) {
+    html += `<div class="empty-state"><div class="empty-icon">⛽</div><div class="empty-text">주유 기록이 없어요</div><div class="empty-sub">아래 + 버튼으로 추가해보세요</div></div>`;
+    document.getElementById('fuel-content').innerHTML = html;
+    return;
+  }
+
+  const groups = {};
+  logs.forEach(l => {
+    const m = monthStr(l.date);
+    if (!groups[m]) groups[m] = [];
+    groups[m].push(l);
+  });
+
+  Object.keys(groups).sort((a,b)=>b.localeCompare(a)).forEach(month => {
+    const gLogs = groups[month];
+    const total = gLogs.reduce((s,l)=>s+(l.totalCost||0),0);
+    html += `<div class="log-group-label">${month} · ${fmt(total)}원</div>`;
+    gLogs.forEach(l => {
+      const eff = getFuelEfficiencyForLog(l, logs);
+      const displayPPL = l.pricePerLiter || (l.totalCost && l.liters ? Math.round(l.totalCost / l.liters) : 0);
+      html += `
+        <div class="fuel-item" onclick="editFuelLog('${l.id}')">
+          <div class="fuel-body">
+            <div class="fuel-date">
+              ${l.date}
+              ${l.isFull ? '<span class="full-badge">만땅</span>' : '<span class="partial-badge">부분</span>'}
+            </div>
+            <div class="fuel-meta">${l.liters?l.liters+'L':''} ${displayPPL?'· '+fmt(displayPPL)+'원/L':''} ${l.mileage?'· '+fmtKm(l.mileage):''}</div>
+          </div>
+          <div style="text-align:right">
+            ${eff ? `<div class="fuel-efficiency">${eff.toFixed(1)} <span class="fuel-efficiency-unit">km/L</span></div>` : '<div class="fuel-efficiency" style="color:var(--text3)">–</div>'}
+            <div class="fuel-cost">${l.totalCost?fmt(l.totalCost)+'원':'–'}</div>
+          </div>
+        </div>`;
+    });
+    html += '<div style="height:.5rem"></div>';
+  });
+
+  document.getElementById('fuel-content').innerHTML = html;
+}
+
+function editFuelLog(id) {
+  editingId = id;
+  renderAddFuelPopup(id);
+  openPopup('add-fuel', true);
+}
+
+// ── 렌더: 통계 ──
+function renderStats() {
+  const v = currentVehicle();
+  if (!v) { document.getElementById('stats-content').innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">차량을 먼저 추가해주세요</div></div>'; return; }
+  const mLogs = vehicleMaintLogs(v.id);
+  const fLogs = vehicleFuelLogs(v.id);
+  const now = new Date();
+
+  let labels = [], maintData = [], fuelData = [], effData = [];
+
+  // 만땅 주유별 구간 연비 미리 계산
+  const effByLog = fLogs
+    .filter(l => l.isFull)
+    .sort((a,b) => a.date.localeCompare(b.date))
+    .map(l => ({ date: l.date, eff: getFuelEfficiencyForLog(l, fLogs) }))
+    .filter(x => x.eff !== null);
+
+  if (statsPeriod === 'month') {
+    for (let i=11; i>=0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      const m = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      labels.push(String(d.getMonth()+1)+'월');
+      maintData.push(mLogs.filter(l=>monthStr(l.date)===m).reduce((s,l)=>s+(l.cost||0),0));
+      fuelData.push(fLogs.filter(l=>monthStr(l.date)===m).reduce((s,l)=>s+(l.totalCost||0),0));
+      const me = effByLog.filter(x=>monthStr(x.date)===m).map(x=>x.eff);
+      effData.push(me.length ? +(me.reduce((a,b)=>a+b,0)/me.length).toFixed(2) : null);
+    }
+  } else {
+    for (let i=4; i>=0; i--) {
+      const y = now.getFullYear()-i;
+      labels.push(y+'년');
+      maintData.push(mLogs.filter(l=>new Date(l.date).getFullYear()===y).reduce((s,l)=>s+(l.cost||0),0));
+      fuelData.push(fLogs.filter(l=>new Date(l.date).getFullYear()===y).reduce((s,l)=>s+(l.totalCost||0),0));
+      const ye = effByLog.filter(x=>new Date(x.date).getFullYear()===y).map(x=>x.eff);
+      effData.push(ye.length ? +(ye.reduce((a,b)=>a+b,0)/ye.length).toFixed(2) : null);
+    }
+  }
+
+  const totalMaint = mLogs.reduce((s,l)=>s+(l.cost||0),0);
+  const totalFuel = fLogs.reduce((s,l)=>s+(l.totalCost||0),0);
+  const km = v.currentMileage||0;
+  const perKm = km > 0 ? (totalMaint+totalFuel)/km : null;
+  const avgEff = calcFuelEfficiency(fLogs);
+
+  // 정비 종류별 집계
+  const typeTotals = {};
+  mLogs.forEach(l=>{ typeTotals[l.type]=(typeTotals[l.type]||0)+(l.cost||0); });
+  const typeLabels = Object.keys(typeTotals);
+  const typeValues = typeLabels.map(t=>typeTotals[t]);
+  const typeColors = ['#1A6FE0','#00B493','#BA7517','#F04452','#8b5cf6','#ec4899','#0ea5e9','#f59e0b'];
+
+  document.getElementById('stats-content').innerHTML = `
+    <div class="page-title">통계</div>
+    ${vehiclePillsHtml()}
+    <div class="stat-period-btns">
+      <button class="stat-period-btn${statsPeriod==='month'?' active':''}" onclick="setStatsPeriod('month')">월별</button>
+      <button class="stat-period-btn${statsPeriod==='year'?' active':''}" onclick="setStatsPeriod('year')">연도별</button>
+    </div>
+    <div class="stat-cards">
+      <div class="stat-card">
+        <div class="stat-card-label">총 정비비</div>
+        <div class="stat-card-value">${totalMaint?fmt(totalMaint)+'원':'–'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">총 주유비</div>
+        <div class="stat-card-value">${totalFuel?fmt(totalFuel)+'원':'–'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">km당 비용</div>
+        <div class="stat-card-value">${perKm?Math.round(perKm)+'원':'–'}</div>
+        <div class="stat-card-sub">${km?fmtKm(km)+' 기준':''}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">평균 연비</div>
+        <div class="stat-card-value">${avgEff?avgEff.toFixed(1)+' km/L':'–'}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-bottom:.75rem">정비+주유 비용 추이</div>
+      ${(totalMaint+totalFuel)>0 ? `<div class="chart-container"><canvas id="stats-bar-chart"></canvas></div>` : `<div class="chart-empty">기록이 없어요</div>`}
+    </div>
+    ${effData.some(v=>v!==null) ? `
+    <div class="card">
+      <div class="section-title" style="margin-bottom:.75rem">연비 추이 (km/L)</div>
+      <div class="chart-container"><canvas id="stats-eff-chart"></canvas></div>
+    </div>` : ''}
+    ${typeLabels.length>0 ? `
+    <div class="card">
+      <div class="section-title" style="margin-bottom:.75rem">정비 종류별 비용</div>
+      <div class="chart-container"><canvas id="stats-type-chart"></canvas></div>
+    </div>` : ''}`;
+
+  setTimeout(() => {
+    if ((totalMaint+totalFuel)>0) {
+      if (statsChart) statsChart.destroy();
+      const ctx = document.getElementById('stats-bar-chart');
+      if (ctx) statsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label:'정비비', data:maintData, backgroundColor:'rgba(26,111,224,0.8)', borderRadius:4 },
+            { label:'주유비', data:fuelData, backgroundColor:'rgba(0,180,147,0.7)', borderRadius:4 },
+          ],
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ labels:{ font:{size:11}, boxWidth:10 } } },
+          scales:{ x:{ ticks:{font:{size:10}} }, y:{ ticks:{ font:{size:10}, callback:v=>v>=10000?Math.round(v/10000)+'만':''+v } } },
+        }
+      });
+    }
+    if (effData.some(v=>v!==null)) {
+      if (effChart) effChart.destroy();
+      const ctx3 = document.getElementById('stats-eff-chart');
+      if (ctx3) effChart = new Chart(ctx3, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: '연비',
+            data: effData,
+            borderColor: '#00B493',
+            backgroundColor: 'rgba(0,180,147,0.08)',
+            borderWidth: 2,
+            pointBackgroundColor: '#00B493',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 1.5,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            fill: true,
+            tension: 0.3,
+            spanGaps: false,
+          }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: c => c.parsed.y !== null ? c.parsed.y.toFixed(1)+' km/L' : '–' } },
+          },
+          scales: {
+            x: { ticks: { font: { size: 10 } } },
+            y: {
+              beginAtZero: false,
+              ticks: { font: { size: 10 }, callback: v => v+' km/L' },
+            },
+          },
+        }
+      });
+    }
+    if (typeLabels.length>0) {
+      if (typeChart) typeChart.destroy();
+      const ctx2 = document.getElementById('stats-type-chart');
+      if (ctx2) typeChart = new Chart(ctx2, {
+        type: 'doughnut',
+        data: { labels:typeLabels, datasets:[{ data:typeValues, backgroundColor:typeColors.slice(0,typeLabels.length), borderWidth:0 }] },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ position:'right', labels:{ font:{size:11}, boxWidth:12, padding:8 } } },
+        }
+      });
+    }
+  }, 50);
+}
+
+function setStatsPeriod(p) {
+  statsPeriod = p;
+  renderStats();
+}
+
+// ── 렌더: 설정 ──
+function renderSettings() {
+  const v = currentVehicle();
+  const reminders = v ? vehicleReminders(v.id) : [];
+
+  let vehiclesHtml = state.vehicles.map(vv=>`
+    <div class="settings-row" onclick="openEditVehicle('${vv.id}')" style="cursor:pointer">
+      <div>
+        <div class="settings-label">${vv.nickname}</div>
+        <div class="settings-value" style="font-size:11px">${[vv.make,vv.model,vv.year?vv.year+'년':'',vv.licensePlate].filter(Boolean).join(' ')}</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>`).join('');
+
+  let remindersHtml = '';
+  if (v) {
+    remindersHtml = reminders.map(r=>`
+      <div class="reminder-edit-row" id="rem-row-${r.id}">
+        <div class="reminder-edit-name">${TYPE_ICONS[r.type]||'🔧'} ${r.type}</div>
+        <input class="reminder-edit-input" type="number" value="${r.intervalKm||''}" placeholder="km" title="교체 주기 km"
+          onchange="updateReminder('${r.id}','intervalKm',this.value)"/>
+        <span class="reminder-edit-unit">km</span>
+        <input class="reminder-edit-input" type="number" value="${r.intervalMonths||''}" placeholder="월"
+          onchange="updateReminder('${r.id}','intervalMonths',this.value)"/>
+        <span class="reminder-edit-unit">개월</span>
+        <button class="reminder-del-btn" onclick="deleteReminder('${r.id}')">✕</button>
+      </div>`).join('');
+    remindersHtml += `
+      <div style="padding:.75rem">
+        <button class="btn-secondary" style="width:100%;font-size:13px" onclick="addReminderRow()">+ 소모품 추가</button>
+      </div>`;
+  }
+
+  const _acct = currentUser ? `
+    <div class="settings-section">
+      <div class="section-title">계정</div>
+      <div style="border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border)">
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">${escHtml(currentUser.displayName||'사용자')}</div>
+            <div class="settings-value" style="font-size:11px">${escHtml(currentUser.email||'')}</div>
+          </div>
+          ${currentUser.photoURL ? `<img src="${escHtml(currentUser.photoURL)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0" referrerpolicy="no-referrer" alt=""/>` : ''}
+        </div>
+        <div class="settings-row" onclick="doSignOut()" style="cursor:pointer">
+          <div class="settings-label" style="color:var(--red)">로그아웃</div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </div>
+      </div>
+    </div>` : `
+    <div class="settings-section">
+      <div class="section-title">계정</div>
+      <div style="border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border)">
+        <div class="settings-row" onclick="showLoginForSync()" style="cursor:pointer">
+          <div class="settings-label" style="color:var(--accent)">Google로 동기화하기</div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('settings-content').innerHTML = `
+    <div class="page-title">설정</div>
+    <div style="height:.5rem"></div>
+    ${_acct}
+    <div class="settings-section">
+      <div class="section-title">차량 관리</div>
+      <div style="border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border)">
+        ${vehiclesHtml}
+        <div class="settings-row" onclick="openAddVehicle()" style="cursor:pointer">
+          <div class="settings-label" style="color:var(--accent)">+ 차량 추가</div>
+        </div>
+      </div>
+    </div>
+
+    ${v ? `
+    <div class="settings-section">
+      <div class="section-hdr">
+        <div class="section-title">소모품 알림 관리 <span style="font-weight:400;color:var(--text3)">(${v.nickname})</span></div>
+      </div>
+      <div style="border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);background:var(--surface)">
+        <div style="display:flex;gap:.25rem;padding:.5rem .75rem;background:var(--surface2);border-bottom:1px solid var(--border)">
+          <div style="flex:1;font-size:11px;color:var(--text3);font-weight:600">항목</div>
+          <div style="width:72px;font-size:11px;color:var(--text3);font-weight:600;text-align:center">km 주기</div>
+          <div style="font-size:11px;color:var(--text3)">&nbsp;&nbsp;&nbsp;</div>
+          <div style="width:72px;font-size:11px;color:var(--text3);font-weight:600;text-align:center">개월 주기</div>
+          <div style="width:32px"></div>
+        </div>
+        ${remindersHtml}
+      </div>
+    </div>` : ''}
+
+    <div class="settings-section">
+      <div class="section-title">앱 정보</div>
+      <div style="border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border)">
+        <div class="settings-row">
+          <div class="settings-label">버전</div>
+          <div class="settings-value">1.0.0</div>
+        </div>
+        <div class="settings-row" onclick="toggleTheme()" style="cursor:pointer">
+          <div class="settings-label">다크모드</div>
+          <div class="settings-value" id="theme-label">${document.documentElement.getAttribute('data-theme')==='dark'?'켜짐':'꺼짐'}</div>
+        </div>
+        <div class="settings-row" onclick="confirmReset()" style="cursor:pointer">
+          <div class="settings-label" style="color:var(--red)">데이터 초기화</div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    </div>`;
+}
+
+function openEditVehicle(vid) {
+  renderAddVehiclePopup(vid);
+  openPopup('add-vehicle', true);
+}
+
+function updateReminder(rid, field, val) {
+  const r = state.reminders.find(x=>x.id===rid);
+  if (!r) return;
+  r[field] = val ? parseInt(val) : null;
+  saveState();
+}
+
+function addReminderRow() {
+  showPromptDialog('소모품 추가', '소모품 이름 (예: 타이어, 오일필터)', (name) => {
+    const vid = currentVehicleId;
+    if (!vid) return;
+    state.reminders.push({ id:uuid(), vehicleId:vid, type:name, lastMileage:null, lastDate:null, intervalKm:null, intervalMonths:null });
+    saveState();
+    renderSettings();
+  });
+}
+
+function deleteReminder(rid) {
+  showConfirm('이 알림 항목을 삭제할까요?', () => {
+    state.reminders = state.reminders.filter(r=>r.id!==rid);
+    saveState();
+    renderSettings();
+  });
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+  localStorage.setItem('car_theme', isDark ? '' : 'dark');
+  document.getElementById('theme-label').textContent = isDark ? '꺼짐' : '켜짐';
+}
+
+function confirmReset() {
+  showConfirm('모든 차량과 기록을 삭제할까요?<br>이 작업은 되돌릴 수 없습니다.', async () => {
+    if (currentUser) {
+      await _db.collection('users').doc(currentUser.uid).delete().catch(() => {});
+    }
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LOCAL_ONLY_KEY);
+    location.reload();
+  });
+}
+
+// ── 초기화 ──
+async function init() {
+  const theme = localStorage.getItem('car_theme');
+  if (theme) document.documentElement.setAttribute('data-theme', theme);
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./car_sw.js', { scope: './car_app.html' }).catch(() => {});
+  }
+
+  try { await _auth.getRedirectResult(); }
+  catch(e) { if (e.code !== 'auth/no-auth-event') showToast('로그인 오류: ' + e.code, 'error'); }
+
+  let settled = false;
+  _auth.onAuthStateChanged(async (user) => {
+    if (settled) return; settled = true;
+    currentUser = user;
+    if (user) {
+      await checkAndMigrate();
+      await loadState();
+      enterApp();
+    } else if (localStorage.getItem(LOCAL_ONLY_KEY) === '1') {
+      await loadState();
+      enterApp();
+    } else {
+      showLoginScreen();
+    }
+  });
+}
+
+init();
+</script>
+</body>
+</html>
