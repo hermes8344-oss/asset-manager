@@ -1801,12 +1801,9 @@ async function init() {
     navigator.serviceWorker.register('./car_sw.js', { scope: './car_app.html' }).catch(() => {});
   }
 
-  try { await _auth.getRedirectResult(); }
-  catch(e) { if (e.code !== 'auth/no-auth-event') showToast('로그인 오류: ' + e.code, 'error'); }
+  try { await _auth.getRedirectResult(); } catch(e) {}
 
-  let settled = false;
   _auth.onAuthStateChanged(async (user) => {
-    if (settled) return; settled = true;
     currentUser = user;
     if (user) {
       await checkAndMigrate();
