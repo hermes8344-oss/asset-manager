@@ -1445,8 +1445,8 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 </div>
 
 <script>
-const APP_VERSION = 'v.26070207';
-const APP_CHANGELOG = [{"v":"v.26070207","d":"26.07.02","m":"standalone 로그인 화면 분기: Google 로그인 불가 안내 + 이 기기에서만 사용하기 강조"},{"v":"v.26070206","d":"26.07.02","m":"standalone 로그인 방식 변경: window.open 우회 제거, signInWithRedirect 직접 호출"},{"v":"v.26070205","d":"26.07.02","m":"standalone 모드 Google 로그인 수정: Safari에서 로그인 후 앱 복귀 시 reload"},{"v":"v.26070204","d":"26.07.02","m":"로그인 루프 버그 수정: settled 플래그 제거 (팝업 로그인 후 onAuthStateChanged 차단 문제)"},{"v":"v.26070203","d":"26.07.02","m":"iOS Safari 로그인 루프 수정: signInWithRedirect → signInWithPopup (ITP 우회)"},{"v":"v.26070202","d":"26.07.02","m":"차량관리 앱 Firebase 로그인·Firestore 동기화 및 iPhone PWA 지원 추가"},{"v":"v.26070201","d":"26.07.02","m":"차량관리 앱 Firebase 로그인·Firestore 동기화 및 iPhone PWA 지원 추가"},{"v":"v.26062401","d":"26.06.24","m":"수입/지출 이달요약 카드에 예상수입·자동이체 후 여유 기능 추가"},{"v":"v.26061301","d":"26.06.13","m":"설정 고정비·자동이체 모바일 2열 레이아웃 및 금액 잘림 수정"},{"v":"v.26060401","d":"26.06.04","m":"계좌잔고 편집 모드 진입 시 0으로 저장된 값이 전월값으로 덮어씌워지는 버그 수정"},{"v":"v.26060101","d":"26.06.01","m":"UI 개선: 이름변경 모달, 수입지출 편집 취소 버그 수정, 설정 고정비/자동이체 PC·모바일 레이아웃 조정, 지난 메모 카드 추가"},{"v":"v.26053004","d":"26.05.30","m":"FAB 표시 버그 수정 및 설정 기타 탭 버전·업데이트 내역 기능 추가"},{"v":"v.26053003","d":"26.05.30","m":"금액 입력 커서 버그 수정 및 X 초기화 버튼 추가, 계좌 이번달만 삭제 시 항목 자체 삭제되도록 수정"}];
+const APP_VERSION = 'v.26070501';
+const APP_CHANGELOG = [{"v":"v.26070501","d":"26.07.05","m":"자산추이 그래프 모바일 툴팁 탭하여 유지/재탭으로 닫기 지원"},{"v":"v.26070207","d":"26.07.02","m":"standalone 로그인 화면 분기: Google 로그인 불가 안내 + 이 기기에서만 사용하기 강조"},{"v":"v.26070206","d":"26.07.02","m":"standalone 로그인 방식 변경: window.open 우회 제거, signInWithRedirect 직접 호출"},{"v":"v.26070205","d":"26.07.02","m":"standalone 모드 Google 로그인 수정: Safari에서 로그인 후 앱 복귀 시 reload"},{"v":"v.26070204","d":"26.07.02","m":"로그인 루프 버그 수정: settled 플래그 제거 (팝업 로그인 후 onAuthStateChanged 차단 문제)"},{"v":"v.26070203","d":"26.07.02","m":"iOS Safari 로그인 루프 수정: signInWithRedirect → signInWithPopup (ITP 우회)"},{"v":"v.26070202","d":"26.07.02","m":"차량관리 앱 Firebase 로그인·Firestore 동기화 및 iPhone PWA 지원 추가"},{"v":"v.26070201","d":"26.07.02","m":"차량관리 앱 Firebase 로그인·Firestore 동기화 및 iPhone PWA 지원 추가"},{"v":"v.26062401","d":"26.06.24","m":"수입/지출 이달요약 카드에 예상수입·자동이체 후 여유 기능 추가"},{"v":"v.26061301","d":"26.06.13","m":"설정 고정비·자동이체 모바일 2열 레이아웃 및 금액 잘림 수정"},{"v":"v.26060401","d":"26.06.04","m":"계좌잔고 편집 모드 진입 시 0으로 저장된 값이 전월값으로 덮어씌워지는 버그 수정"},{"v":"v.26060101","d":"26.06.01","m":"UI 개선: 이름변경 모달, 수입지출 편집 취소 버그 수정, 설정 고정비/자동이체 PC·모바일 레이아웃 조정, 지난 메모 카드 추가"},{"v":"v.26053004","d":"26.05.30","m":"FAB 표시 버그 수정 및 설정 기타 탭 버전·업데이트 내역 기능 추가"},{"v":"v.26053003","d":"26.05.30","m":"금액 입력 커서 버그 수정 및 X 초기화 버튼 추가, 계좌 이번달만 삭제 시 항목 자체 삭제되도록 수정"}];
 // ══════════════════════════════════════════
 // 상태 & 저장소
 // ══════════════════════════════════════════
@@ -2412,6 +2412,8 @@ function drawAnnualStackedBar(svgId, year, force=false) {
   const svg = document.getElementById(svgId);
   if (!svg || (!force && state.balTrendMode !== 'trend')) return;
   annualTipData = [];
+  annualTipActiveIdx = null;
+  hideChartTip();
 
   const W = svg.getBoundingClientRect().width || 300;
   const H = 160, PAD_L = 8, PAD_R = 8, PAD_T = 8, PAD_B = 28;
@@ -2496,7 +2498,7 @@ function drawAnnualStackedBar(svgId, year, force=false) {
       .map(c => `<span style="color:${CAT_HEX[c]}"> · ${c} ${fmtAbs(d.cats[c])}</span>`)
       .join('<br>');
     annualTipData[i] = `<b>${i+1}월</b><br><span style="color:${assetColor}">■ 자산 ${fmtAbs(d.asset)}</span><br>${catLines}${catLines?'<br>':''}<span style="color:${debtColor}">■ 부채 ${fmtAbs(d.debt)}</span><br><span style="color:${netColor}">● 순자산 ${fmtW(d.net)}</span>`;
-    svgStr += `<rect x="${PAD_L+i*barSlotW}" y="${PAD_T}" width="${barSlotW}" height="${cH+PAD_B}" fill="transparent" onmouseover="showAnnualTip(event,${i})" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" ontouchstart="showAnnualTip(event,${i});event.preventDefault()" ontouchend="hideChartTip()"/>`;
+    svgStr += `<rect x="${PAD_L+i*barSlotW}" y="${PAD_T}" width="${barSlotW}" height="${cH+PAD_B}" fill="transparent" onmouseover="showAnnualTip(event,${i})" onmousemove="moveChartTip(event)" onmouseout="hideChartTip()" ontouchstart="toggleAnnualTip(event,${i});event.preventDefault()"/>`;
   });
 
   // 순자산 라인 + 원형 마커
@@ -2522,6 +2524,7 @@ function drawAnnualStackedBar(svgId, year, force=false) {
 
 let graphData = {};
 let annualTipData = [];
+let annualTipActiveIdx = null;
 
 function initGraphs() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -2602,6 +2605,22 @@ function hideChartTip() {
 function showAnnualTip(evt, i) {
   showChartTip(evt, annualTipData[i] || '');
 }
+function toggleAnnualTip(evt, i) {
+  evt.stopPropagation();
+  if (annualTipActiveIdx === i) {
+    hideChartTip();
+    annualTipActiveIdx = null;
+  } else {
+    showAnnualTip(evt, i);
+    annualTipActiveIdx = i;
+  }
+}
+document.addEventListener('touchstart', function(e) {
+  if (annualTipActiveIdx !== null && !e.target.closest('#annual-stacked-svg')) {
+    hideChartTip();
+    annualTipActiveIdx = null;
+  }
+}, { passive: true });
 function showBarTip(evt, i) {
   const d = graphData;
   if (!d.barTipData || !d.barTipData[i]) return;
