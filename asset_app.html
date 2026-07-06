@@ -1445,8 +1445,8 @@ body:has(.modal-overlay.open) .screen { overflow: hidden; }
 </div>
 
 <script>
-const APP_VERSION = 'v.26070603';
-const APP_CHANGELOG = [{"v":"v.26070603","d":"26.07.06","m":"수입지출 그래프 모바일 툴팁 탭 유지 지원 및 순자산 히어로카드 음수 표시 애니메이션 버그 수정"},{"v":"v.26070602","d":"26.07.06","m":"순자산 히어로카드 음수 표시 애니메이션 부호 소실 버그 수정"},{"v":"v.26070601","d":"26.07.06","m":"수입지출 그래프 모바일 툴팁 탭하여 유지/재탭으로 닫기 지원"},{"v":"v.26070501","d":"26.07.05","m":"자산추이 그래프 모바일 툴팁 탭하여 유지/재탭으로 닫기 지원"},{"v":"v.26070207","d":"26.07.02","m":"standalone 로그인 화면 분기: Google 로그인 불가 안내 + 이 기기에서만 사용하기 강조"},{"v":"v.26070206","d":"26.07.02","m":"standalone 로그인 방식 변경: window.open 우회 제거, signInWithRedirect 직접 호출"},{"v":"v.26070205","d":"26.07.02","m":"standalone 모드 Google 로그인 수정: Safari에서 로그인 후 앱 복귀 시 reload"},{"v":"v.26070204","d":"26.07.02","m":"로그인 루프 버그 수정: settled 플래그 제거 (팝업 로그인 후 onAuthStateChanged 차단 문제)"},{"v":"v.26070203","d":"26.07.02","m":"iOS Safari 로그인 루프 수정: signInWithRedirect → signInWithPopup (ITP 우회)"},{"v":"v.26070202","d":"26.07.02","m":"차량관리 앱 Firebase 로그인·Firestore 동기화 및 iPhone PWA 지원 추가"},{"v":"v.26070201","d":"26.07.02","m":"차량관리 앱 Firebase 로그인·Firestore 동기화 및 iPhone PWA 지원 추가"},{"v":"v.26062401","d":"26.06.24","m":"수입/지출 이달요약 카드에 예상수입·자동이체 후 여유 기능 추가"},{"v":"v.26061301","d":"26.06.13","m":"설정 고정비·자동이체 모바일 2열 레이아웃 및 금액 잘림 수정"},{"v":"v.26060401","d":"26.06.04","m":"계좌잔고 편집 모드 진입 시 0으로 저장된 값이 전월값으로 덮어씌워지는 버그 수정"},{"v":"v.26060101","d":"26.06.01","m":"UI 개선: 이름변경 모달, 수입지출 편집 취소 버그 수정, 설정 고정비/자동이체 PC·모바일 레이아웃 조정, 지난 메모 카드 추가"}];
+const APP_VERSION = 'v.26070604';
+const APP_CHANGELOG = [{"v":"v.26070604","d":"26.07.06","m":"수입/지출 편집 진입 시 전월 금액 자동입력 제거"},{"v":"v.26070603","d":"26.07.06","m":"수입지출 그래프 모바일 툴팁 탭 유지 지원 및 순자산 히어로카드 음수 표시 애니메이션 버그 수정"},{"v":"v.26070602","d":"26.07.06","m":"순자산 히어로카드 음수 표시 애니메이션 부호 소실 버그 수정"},{"v":"v.26070601","d":"26.07.06","m":"수입지출 그래프 모바일 툴팁 탭하여 유지/재탭으로 닫기 지원"},{"v":"v.26070501","d":"26.07.05","m":"자산추이 그래프 모바일 툴팁 탭하여 유지/재탭으로 닫기 지원"},{"v":"v.26070207","d":"26.07.02","m":"standalone 로그인 화면 분기: Google 로그인 불가 안내 + 이 기기에서만 사용하기 강조"},{"v":"v.26070206","d":"26.07.02","m":"standalone 로그인 방식 변경: window.open 우회 제거, signInWithRedirect 직접 호출"},{"v":"v.26070205","d":"26.07.02","m":"standalone 모드 Google 로그인 수정: Safari에서 로그인 후 앱 복귀 시 reload"},{"v":"v.26070204","d":"26.07.02","m":"로그인 루프 버그 수정: settled 플래그 제거 (팝업 로그인 후 onAuthStateChanged 차단 문제)"},{"v":"v.26070203","d":"26.07.02","m":"iOS Safari 로그인 루프 수정: signInWithRedirect → signInWithPopup (ITP 우회)"},{"v":"v.26070202","d":"26.07.02","m":"차량관리 앱 Firebase 로그인·Firestore 동기화 및 iPhone PWA 지원 추가"},{"v":"v.26070201","d":"26.07.02","m":"차량관리 앱 Firebase 로그인·Firestore 동기화 및 iPhone PWA 지원 추가"},{"v":"v.26062401","d":"26.06.24","m":"수입/지출 이달요약 카드에 예상수입·자동이체 후 여유 기능 추가"},{"v":"v.26061301","d":"26.06.13","m":"설정 고정비·자동이체 모바일 2열 레이아웃 및 금액 잘림 수정"},{"v":"v.26060401","d":"26.06.04","m":"계좌잔고 편집 모드 진입 시 0으로 저장된 값이 전월값으로 덮어씌워지는 버그 수정"}];
 // ══════════════════════════════════════════
 // 상태 & 저장소
 // ══════════════════════════════════════════
@@ -4444,12 +4444,13 @@ function toggleCashflowEdit() {
     ensureCF(ym);
     const cf = state.cashflow[ym];
     const prevCf = state.cashflow[prevYM(ym)] || {};
-    // 현재 월 항목이 비어있으면 전월 데이터를 자동으로 불러옴
+    // 현재 월 항목이 비어있으면 전월 항목(구조)만 불러오고 금액은 비워둠
     const isEmpty = !(cf.income?.length) && !(cf.expense?.length);
     if (isEmpty && (prevCf.income?.length || prevCf.expense?.length)) {
-      cf.income  = (prevCf.income  || []).map(r => ({...r, _copied: true}));
-      cf.expense = (prevCf.expense || []).map(r => ({...r, _copied: true}));
-      cf.savings = (prevCf.savings || []).map(r => ({...r, _copied: true}));
+      const stripAmount = r => { const { amount, member1, member2, ...rest } = r; return { ...rest, _copied: true }; };
+      cf.income  = (prevCf.income  || []).map(stripAmount);
+      cf.expense = (prevCf.expense || []).map(stripAmount);
+      cf.savings = (prevCf.savings || []).map(stripAmount);
     }
     renderCashflow();
     showEditBar(cancelCashflowEdit, saveCashflow);
